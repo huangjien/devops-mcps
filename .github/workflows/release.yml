@@ -19,7 +19,7 @@ jobs:
     - name: Get package version
       id: get-version
       run: |
-        echo "version=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version']")" >> $GITHUB_OUTPUT
+        echo "version=$(python -c "from setuptools.config import read_configuration; print(read_configuration('pyproject.toml')['project']['version'])" | tr -d '\n')" >> $GITHUB_OUTPUT
 
     - name: Install dependencies
       run: |
