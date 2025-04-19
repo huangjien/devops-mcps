@@ -16,6 +16,11 @@ jobs:
       with:
         python-version: '3.12'
 
+    - name: Get package version
+      id: get-version
+      run: |
+        echo "version=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version']")" >> $GITHUB_OUTPUT
+
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
@@ -43,4 +48,39 @@ jobs:
         push: true
         tags: |
           ${{ secrets.DOCKER_HUB_USERNAME }}/devops-mcps:latest
-          ${{ secrets.DOCKER_HUB_USERNAME }}/devops-mcps:${{ github.sha }}
+          ${{ secrets.DOCKER_HUB_USERNAME }}/devops-mcps:${{ steps.get-version.outputs.version }}
+
+    - name: Create GitHub Release
+      uses: actions/create-release@v1
+      id: create_release
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: v${{ steps.get-version.outputs.version }}
+        release_name: Release v${{ steps.get-version.outputs.version }}
+        body: |
+          ### Changes
+          - Package version ${{ steps.get-version.outputs.version }} published to PyPI
+          - Docker image ${{ steps.get-version.outputs.version }} pushed to Docker Hub
+        draft: false
+        prerelease: false
+
+    - name: Upload Python Package to GitHub Release
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./dist/*.whl
+        asset_name: devops-mcps-${{ steps.get-version.outputs.version }}-py3-none-any.whl
+        asset_content_type: application/zip
+
+    - name: Upload Source Package to GitHub Release
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./dist/*.tar.gz
+        asset_name: devops-mcps-${{ steps.get-version.outputs.version }}.tar.gz
+        asset_content_type: application/gzip
