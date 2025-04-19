@@ -76,16 +76,21 @@ docker run -p 8000:8000 devops-mcps
 
 ## VSCode Configuration
 
+To use this MCP server in vs code copilot, there are 2 ways to configure it in VSCode settings.json:
+
 ### UVX Way
-1. Install the UVX extension in VSCode
-2. Create a `.vscode/settings.json` file:
+
 ```json
-{
-  "uvx.command": "devops-mcps",
-  "uvx.port": 8000
+"devops-mcps": {
+  "type": "stdio",
+  "command": "uvx",
+  "args": ["devops-mcps"],
+  "env": {
+    "GITHUB_PERSONAL_ACCESS_TOKEN": "ghp_xxxxxxxxxxxxxxxxxxxxxxxxxCe"
+  }
 }
 ```
-3. Press F5 to start debugging
+1. Press F5 to start debugging
 
 ### Docker Way
 
@@ -102,7 +107,6 @@ docker run -p 8000:8000 devops-mcps
   }
 }
 ```
-1. Reopen in Container
 
 ## Development
 
@@ -110,6 +114,13 @@ Install development dependencies:
 ```bash
 pip install -e .[dev]
 ```
+
+Run mcp inspector to test or debug:
+
+```bash
+npx @modelcontextprotocol/inspector uv run devops-mcps
+```
+
 ## CI/CD Pipeline
 
 GitHub Actions workflow will automatically:
