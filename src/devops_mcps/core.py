@@ -360,6 +360,9 @@ def main():
     args = parser.parse_args()
     mcp.run(transport=args.transport)
 
+def main_sse():
+    main(["--transport", "sse"])
+
 if __name__ == "__main__":
     main()
 

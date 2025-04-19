@@ -184,6 +184,12 @@ Set these secrets in your GitHub repository:
 Workflow triggers on push to `main` branch.
 ## Packaging and Publishing
 
+### Install tools
+
+```bash
+pip install -U twine build  
+```
+
 ### Build the package
 ```bash
 python -m build

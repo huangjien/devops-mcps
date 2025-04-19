@@ -35,11 +35,11 @@ dependencies = [
     "python-dotenv",
     "toml"
 ]
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 
 [project.scripts]
 devops-mcps = "devops_mcps.core:main"
-devops-mcps-sse = "devops_mcps.core:main --transport sse"
+devops-mcps-sse = "devops_mcps.core:main_sse"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
