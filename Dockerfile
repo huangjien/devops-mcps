@@ -24,6 +24,9 @@ RUN python3 -m pip install .
 # Expose the port your MCP server will run on
 EXPOSE 8000
 
-# Command to run the MCP server using uv
-ENTRYPOINT ["/app/.venv/bin/uv", "run", "devops-mcps"]
+# Environment variable for transport type
+ENV TRANSPORT_TYPE=stdio
+
+# Command to run the MCP server using uv with transport type selection
+ENTRYPOINT ["/bin/sh", "-c", "if [ \"$TRANSPORT_TYPE\" = \"sse\" ]; then /app/.venv/bin/uv run devops-mcps-sse; else /app/.venv/bin/uv run devops-mcps; fi"]
 

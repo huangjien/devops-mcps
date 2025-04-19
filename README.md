@@ -62,6 +62,30 @@ Run with UVX:
 uvx run devops-mcps
 ```
 
+## Transport Configuration
+
+The MCP server supports two transport types:
+- `stdio` (default): Standard input/output communication
+- `sse`: Server-Sent Events for HTTP-based communication
+
+### Local Usage
+```bash
+# Default stdio transport
+devops-mcps
+
+# SSE transport
+devops-mcps --transport sse
+```
+
+### UVX Usage
+```bash
+# Default stdio transport
+uvx run devops-mcps
+
+# SSE transport
+uvx run devops-mcps-sse
+```
+
 ## Docker Configuration
 
 Build the Docker image:
@@ -76,10 +100,11 @@ docker run -p 8000:8000 devops-mcps
 
 ## VSCode Configuration
 
-To use this MCP server in vs code copilot, there are 2 ways to configure it in VSCode settings.json:
+To use this MCP server in vs code copilot, there are 2 ways to configure it in VSCode settings.json with different transport types:
 
-### UVX Way
+### UVX Configuration
 
+#### stdio Transport (default)
 ```json
 "devops-mcps": {
   "type": "stdio",
@@ -90,10 +115,22 @@ To use this MCP server in vs code copilot, there are 2 ways to configure it in V
   }
 }
 ```
-1. Press F5 to start debugging
 
-### Docker Way
+#### SSE Transport
+```json
+"devops-mcps": {
+  "type": "sse",
+  "command": "uvx",
+  "args": ["devops-mcps-sse"],
+  "env": {
+    "GITHUB_PERSONAL_ACCESS_TOKEN": "ghp_xxxxxxxxxxxxxxxxxxxxxxxxxCe"
+  }
+}
+```
 
+### Docker Configuration
+
+#### stdio Transport (default)
 ```json
 "devops-mcps": {
   "command": "docker",
@@ -102,6 +139,17 @@ To use this MCP server in vs code copilot, there are 2 ways to configure it in V
     "-i",
     "huangjien/devops-mcps:latest"
   ],
+  "env": {
+    "GITHUB_PERSONAL_ACCESS_TOKEN": "ghp_xxxxxxxxxxxxxxxxxxxxxxxxx2Ce"
+  }
+}
+```
+
+#### SSE Transport (MCP Server Deployed in Remote Docker Container)
+```json
+"devops-mcps": {
+  "type": "sse",
+  "url": "http://[remote ip address]:8000/sse",
   "env": {
     "GITHUB_PERSONAL_ACCESS_TOKEN": "ghp_xxxxxxxxxxxxxxxxxxxxxxxxx2Ce"
   }

@@ -8,7 +8,7 @@ Repository = "https://github.com/huangjien/devops-mcps"
 
 [project]
 name = "devops-mcps"
-version = "0.2.1"
+version = "0.2.2"
 description = "A FastMCP-based MCP server for DevOps"
 authors = [{ name = "Jien Huang", email = "huangjien@gmail.com" }]
 readme = "README.md"
@@ -39,6 +39,7 @@ requires-python = ">=3.10"
 
 [project.scripts]
 devops-mcps = "devops_mcps.core:main"
+devops-mcps-sse = "devops_mcps.core:main --transport sse"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
