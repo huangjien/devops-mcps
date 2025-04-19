@@ -11,6 +11,8 @@ A FastMCP-based MCP server providing DevOps tools and integrations.
 
 ## Installation
 
+To install the package, use the following command:
+
 ```bash
 pip install devops-mcps
 ```
@@ -25,7 +27,10 @@ devops-mcps
 ## Configuration
 
 ### Environment Variables
-Set environment variables:
+
+Set the required environment variable for GitHub API access:
+
+
 ```bash
 export GITHUB_PERSONAL_ACCESS_TOKEN=your_token_here
 ```
@@ -142,6 +147,7 @@ twine upload dist/*
 - Ensure all classifiers in `pyproject.toml` are valid PyPI classifiers
 - Remove deprecated license classifiers in favor of SPDX license expressions
 - The package will be available at: https://pypi.org/project/devops-mcps/
+- Update the version everytime, or when you push, it will show an error: already exists.
 
 
 ## License
