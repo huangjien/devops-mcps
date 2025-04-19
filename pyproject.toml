@@ -8,7 +8,7 @@ Repository = "https://github.com/huangjien/devops-mcps"
 
 [project]
 name = "devops-mcps"
-version = "0.2.2"
+version = "0.2.5"
 description = "A FastMCP-based MCP server for DevOps"
 authors = [{ name = "Jien Huang", email = "huangjien@gmail.com" }]
 readme = "README.md"
