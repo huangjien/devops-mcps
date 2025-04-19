@@ -2,6 +2,10 @@
 
 A FastMCP-based MCP server providing DevOps tools and integrations.
 
+This a consertive MCP server. It does not add, update or delete anything in your system, does not run any job. Basically, it is read-only. It only retrieve data for analysis, display the information.
+
+So it is safe for DevOps.
+
 ## Features
 
 - GitHub repository search and management

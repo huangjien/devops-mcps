@@ -1,5 +1,12 @@
-from typing import List, Optional, Union, cast
-import json
+import logging
+import sys
+import base64
+
+import argparse
+from typing import List
+from mcp.server.fastmcp import FastMCP
+from dotenv import load_dotenv
+
 from devops_mcps.github_request import (
     GITHUB_TOKEN,
     GetFileContentsInput,
@@ -10,10 +17,7 @@ from devops_mcps.github_request import (
     SearchRepositoriesInput,
     github_request,
 )
-from mcp.server.fastmcp import FastMCP, Context
-from dotenv import load_dotenv
-import logging
-import sys
+
 
 logging.basicConfig(stream=sys.stderr, level=logging.INFO)
 
@@ -61,7 +65,8 @@ async def search_repositories(query: str, page: int = 1, perPage: int = 30) -> s
         return f"No repositories found matching '{input_data.query}'."
 
     response = [
-        f"Found {total_count} repositories matching '{input_data.query}'. Showing page {input_data.page}:"
+        f"Found {total_count} repositories matching '{input_data.query}'. \
+              Showing page {input_data.page}:"
     ]
 
     for repo in items:
@@ -69,7 +74,8 @@ async def search_repositories(query: str, page: int = 1, perPage: int = 30) -> s
         response.append(f"\n## {repo['full_name']}")
         response.append(f"Description: {description}")
         response.append(
-            f"Stars: {repo.get('stargazers_count', 0)}, Forks: {repo.get('forks_count', 0)}"
+            f"Stars: {repo.get('stargazers_count', 0)}, \
+                Forks: {repo.get('forks_count', 0)}"
         )
         response.append(f"Language: {repo.get('language', 'Not specified')}")
         response.append(f"URL: {repo.get('html_url', 'N/A')}")
@@ -108,13 +114,15 @@ async def get_file_contents(
     # If result is a list, it's a directory
     if isinstance(result, list):
         response = [
-            f"Directory listing for `{input_data.path}` in {input_data.owner}/{input_data.repo}:"
+            f"Directory listing for `{input_data.path}` in \
+                {input_data.owner}/{input_data.repo}:"
         ]
         for item in result:
             if isinstance(item, dict):
                 item_type = "📁 " if item.get("type") == "dir" else "📄 "
                 response.append(
-                    f"{item_type}{item.get('name', 'Unknown')} - {item.get('size', 0)} bytes"
+                    f"{item_type}{item.get('name', 'Unknown')} - \
+                        {item.get('size', 0)} bytes"
                 )
             else:
                 response.append(f"📄 {item}")
@@ -125,15 +133,17 @@ async def get_file_contents(
     encoding = result.get("encoding", "")
 
     if encoding == "base64":
-        import base64
 
         try:
             decoded_content = base64.b64decode(content).decode("utf-8")
-            return f"Contents of `{input_data.path}` in {input_data.owner}/{input_data.repo}:\n\n```\n{decoded_content}\n```"
+            return f"Contents of `{input_data.path}` in \
+                {input_data.owner}/{input_data.repo}:\n\n```\n{decoded_content}\n```"
         except:
-            return f"Could not decode content of `{input_data.path}`. It may be a binary file."
+            return f"Could not decode content of `{input_data.path}`. \
+                It may be a binary file."
 
-    return f"Contents of `{input_data.path}` in {input_data.owner}/{input_data.repo} (not in base64 format):\n{content}"
+    return f"Contents of `{input_data.path}` in {input_data.owner}/{input_data.repo} \
+        (not in base64 format):\n{content}"
 
 
 @mcp.tool()
@@ -177,7 +187,8 @@ async def list_commits(
     if not result:
         return f"No commits found in {input_data.owner}/{input_data.repo}."
     response = [
-        f"Commits in {input_data.owner}/{input_data.repo} (branch: {input_data.branch}, page: {input_data.page}):"
+        f"Commits in {input_data.owner}/{input_data.repo} \
+            (branch: {input_data.branch}, page: {input_data.page}):"
     ]
     for commit in result:
         if not isinstance(commit, dict):
@@ -185,7 +196,8 @@ async def list_commits(
             continue
         response.append(f"\n## {commit.get('sha', 'Unknown')}")
         response.append(
-            f"Author: {commit.get('commit', {}).get('author', {}).get('name', 'Unknown')}"
+            f"Author: {commit.get('commit', {}).get('author', {})\
+                       .get('name', 'Unknown')}"
         )
         response.append(
             f"Date: {commit.get('commit', {}).get('author', {}).get('date', 'Unknown')}"
@@ -254,10 +266,12 @@ async def list_issues(
         return f"Error listing issues: {result['error']}"
 
     if not result:
-        return f"No issues found matching the criteria in {input_data.owner}/{input_data.repo}."
+        return f"No issues found matching the criteria in \
+            {input_data.owner}/{input_data.repo}."
 
     response = [
-        f"Issues for {input_data.owner}/{input_data.repo} (state: {input_data.state}, page: {input_data.page}):"
+        f"Issues for {input_data.owner}/{input_data.repo}\
+              (state: {input_data.state}, page: {input_data.page}):"
     ]
 
     for issue in result:
@@ -314,7 +328,7 @@ async def get_repository(owner: str, repo: str) -> str:
     topics_str = ", ".join(topics) if topics else "None"
 
     return f"""
-# Repository Information: {result.get('full_name', f'{input_data.owner}/{input_data.repo}')}
+# Repository Info: {result.get('full_name', f'{input_data.owner}/{input_data.repo}')}
 
 - Description: {result.get('description', 'No description')}
 - URL: {result.get('html_url', 'N/A')}
@@ -324,7 +338,8 @@ async def get_repository(owner: str, repo: str) -> str:
 - Forks: {result.get('forks_count', 0)}
 - Watchers: {result.get('watchers_count', 0)}
 - Open Issues: {result.get('open_issues_count', 0)}
-- License: {result.get('license', {}).get('name', 'Not specified') if result.get('license') else 'Not specified'}
+- License: {result.get('license', {}).get('name', 'Not specified') \
+            if result.get('license') else 'Not specified'}
 - Private: {'Yes' if result.get('private', False) else 'No'}
 - Created: {result.get('created_at', 'Unknown')}
 - Updated: {result.get('updated_at', 'Unknown')}
@@ -378,7 +393,8 @@ async def search_code(
         return f"No code found matching '{input_data.q}'."
 
     response = [
-        f"Found {total_count} code results matching '{input_data.q}'. Showing page {input_data.page}:"
+        f"Found {total_count} code results matching '{input_data.q}'. \
+            Showing page {input_data.page}:"
     ]
 
     for item in items:
@@ -392,9 +408,6 @@ async def search_code(
         response.append(f"URL: {item.get('html_url', 'N/A')}")
 
     return "\n".join(response)
-
-
-import argparse
 
 
 def main():
@@ -413,7 +426,6 @@ def main():
 
 def main_sse():
     """Run the MCP server with SSE transport."""
-    import sys
 
     sys.argv.extend(["--transport", "sse"])
     main()

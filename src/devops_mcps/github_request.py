@@ -1,7 +1,8 @@
 import os
+from typing import Any, Dict, List, Optional
 import httpx
 from pydantic import BaseModel
-from typing import Any, Dict, List, Optional
+
 
 # Constants and configuration
 GITHUB_API_BASE = "https://api.github.com"
@@ -14,7 +15,7 @@ async def github_request(
     data: Optional[Dict[str, Any]] = None,
     params: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
-    """Make a request to the GitHub API with proper authentication and error handling."""
+    """Make a request to GitHub API with proper authentication and error handling."""
     headers = {
         "Accept": "application/vnd.github.v3+json",
         "User-Agent": "MCP-GitHub-Server/1.0",
