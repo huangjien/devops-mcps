@@ -428,6 +428,10 @@ async def search_code(
     return "\n".join(response)
 
 
-if __name__ == "__main__":
+def main():
+    """Entry point for the CLI."""
     mcp.run(transport="stdio")
+
+if __name__ == "__main__":
+    main()
 

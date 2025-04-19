@@ -1,0 +1,42 @@
+# .dockerignore
+
+# Ignore virtual environments created on the host
+.venv
+venv
+env
+*/.venv
+*/venv
+*/env
+
+# Ignore Python cache and compiled files
+__pycache__/
+*.pyc
+*.pyo
+
+# Ignore build artifacts
+build/
+dist/
+*.egg-info/
+*.so
+*.dylib
+
+# Ignore Node.js dependencies installed on the host
+node_modules/
+
+# Ignore Git directory and files
+.git/
+.gitignore
+.gitattributes
+
+# Ignore IDE/Editor specific files
+.vscode/
+.idea/
+*.iml
+
+# Ignore macOS specific files
+.DS_Store
+
+# Add any other logs, local config, etc. you don't want in the image
+*.log
+local_settings.py
+

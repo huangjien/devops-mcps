@@ -2,7 +2,6 @@ ARG GITHUB_PERSONAL_ACCESS_TOKEN
 
 # Stage 1: Build stage
 FROM python:3.13-slim AS builder
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 # Install curl and gnupg for Node.js installation
 RUN apt-get update && apt-get install -y curl gnupg
@@ -25,6 +24,6 @@ RUN python3 -m pip install .
 # Expose the port your MCP server will run on
 EXPOSE 8000
 
-# Command to run the MCP server
-ENTRYPOINT ["python3", "server.py"]
+# Command to run the MCP server using uv
+ENTRYPOINT ["/app/.venv/bin/uv", "run", "devops-mcps"]
 
