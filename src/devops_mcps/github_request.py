@@ -106,6 +106,21 @@ class ListIssuesInput(BaseModel):
     page: int = 1
     per_page: int = 30
 
+class CreateCommentInput(BaseModel):
+    owner: str
+    repo: str
+    sha: Optional[str] = None
+    body: str   = ""
+
+
+class ListCommitsInput(BaseModel):
+    owner: str
+    repo: str
+    branch: Optional[str] = None
+    sha: Optional[str] = None
+    per_page: int = 30  
+    page: int = 1
+
 
 class CreatePullRequestInput(BaseModel):
     owner: str

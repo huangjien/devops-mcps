@@ -1,6 +1,6 @@
 from typing import List, Optional, Union, cast
 import json
-from devops_mcps.github_request import GITHUB_TOKEN, GetFileContentsInput, GetRepositoryInput, ListIssuesInput, SearchCodeInput, SearchRepositoriesInput, github_request
+from devops_mcps.github_request import GITHUB_TOKEN, GetFileContentsInput, GetRepositoryInput, ListIssuesInput, ListCommitsInput, SearchCodeInput, SearchRepositoriesInput, github_request
 from mcp.server.fastmcp import FastMCP, Context
 from dotenv import load_dotenv
 import logging
@@ -112,6 +112,53 @@ async def get_file_contents(owner: str, repo: str, path: str, branch: str = None
             return f"Could not decode content of `{input_data.path}`. It may be a binary file."
     
     return f"Contents of `{input_data.path}` in {input_data.owner}/{input_data.repo} (not in base64 format):\n{content}"
+
+@mcp.tool()
+async def list_commits(
+    owner: str, 
+    repo: str, 
+    branch: str = None,
+    sha: str = None,
+    per_page: int = 30,
+    ) -> str:
+    """List commits in a GitHub repository
+    Args:
+        owner: Repository owner (username or organization)
+        repo: Repository name
+        branch: Branch to list commits from (default: repo default branch)
+        sha: SHA to start listing commits from
+        per_page: Results per page (max 100)
+    Returns:
+        Formatted list of commits
+    """
+    # Validate inputs with Pydantic
+    input_data = ListCommitsInput(owner=owner, repo=repo, branch=branch, sha=sha, per_page=per_page)
+    endpoint = f"/repos/{input_data.owner}/{input_data.repo}/commits"
+    params = {
+        "per_page": min(input_data.per_page, 100),  # Enforce GitHub API limits
+        "sha": input_data.sha,
+        "branch": input_data.branch
+    }
+
+    endpoint = f"/repos/{input_data.owner}/{input_data.repo}/commits", {"per_page": min(input_data.per_page, 100), "sha": input_data.sha, "branch": input_data.branch}
+    result = await github_request("GET", endpoint, params=params)
+    if "error" in result:
+        return f"Error listing commits: {result['error']}"
+
+    if not result:
+        return f"No commits found in {input_data.owner}/{input_data.repo}." 
+    response = [f"Commits in {input_data.owner}/{input_data.repo} (branch: {input_data.branch}, page: {input_data.page}):"]
+    for commit in result:
+        if not isinstance(commit, dict):
+            response.append(f"\n## Commit: {commit}")
+            continue
+        response.append(f"\n## {commit.get('sha', 'Unknown')}")
+        response.append(f"Author: {commit.get('commit', {}).get('author', {}).get('name', 'Unknown')}")
+        response.append(f"Date: {commit.get('commit', {}).get('author', {}).get('date', 'Unknown')}")
+        response.append(f"Message: {commit.get('commit', {}).get('message', 'No message')}")
+        response.append(f"URL: {commit.get('html_url', 'N/A')}")
+        response.append(f"Sha: {commit.get('sha', {}).get('sha', '{}')}")
+    return "\n".join(response)
 
 @mcp.tool()
 async def list_issues(
