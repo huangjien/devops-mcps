@@ -39,6 +39,7 @@ requires-python = ">=3.10"
 
 [project.scripts]
 devops-mcps = "devops_mcps.core:main"
+devops-mcps-sse = "devops_mcps.core:main --transport sse"
 
 [tool.setuptools]
 package-dir = {"" = "src"}

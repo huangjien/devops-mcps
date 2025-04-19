@@ -347,9 +347,18 @@ async def search_code(
     return "\n".join(response)
 
 
+import argparse
+
 def main():
     """Entry point for the CLI."""
-    mcp.run(transport="stdio")
+    parser = argparse.ArgumentParser(description='DevOps MCP Server')
+    parser.add_argument('--transport',
+                       choices=['stdio', 'sse'],
+                       default='stdio',
+                       help='Transport type (stdio or sse)')
+    
+    args = parser.parse_args()
+    mcp.run(transport=args.transport)
 
 if __name__ == "__main__":
     main()
