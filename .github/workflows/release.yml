@@ -38,7 +38,7 @@ jobs:
     - name: Login to Docker Hub
       uses: docker/login-action@v3
       with:
-        username: ${{ secrets.DOCKER_HUB_USERNAME }}
+        username: huangjien
         password: ${{ secrets.DOCKER_HUB_TOKEN }}
 
     - name: Build and push Docker image
@@ -47,8 +47,8 @@ jobs:
         context: .
         push: true
         tags: |
-          ${{ secrets.DOCKER_HUB_USERNAME }}/devops-mcps:latest
-          ${{ secrets.DOCKER_HUB_USERNAME }}/devops-mcps:${{ steps.get-version.outputs.version }}
+          huangjien/devops-mcps:latest
+          huangjien/devops-mcps:${{ steps.get-version.outputs.version }}
 
     - name: Create GitHub Release
       uses: actions/create-release@v1
