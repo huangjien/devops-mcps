@@ -33,7 +33,10 @@ dependencies = [
     "httpx",
     "pydantic",
     "python-dotenv",
-    "toml"
+    "toml",
+    "pyright>=1.1.389",
+    "ruff>=0.7.4",
+    "black>=24.0.0"
 ]
 requires-python = ">=3.12"
 
@@ -46,3 +49,8 @@ package-dir = {"" = "src"}
 
 [tool.uv]
 dev-dependencies = ["pyright>=1.1.389", "ruff>=0.7.4"]
+
+[tool.black]
+line-length = 88
+target-version = ["py312"]
+skip-string-normalization = false

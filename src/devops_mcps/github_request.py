@@ -1,5 +1,3 @@
-
-
 import os
 import httpx
 from pydantic import BaseModel
@@ -14,12 +12,12 @@ async def github_request(
     method: str,
     endpoint: str,
     data: Optional[Dict[str, Any]] = None,
-    params: Optional[Dict[str, Any]] = None
+    params: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """Make a request to the GitHub API with proper authentication and error handling."""
     headers = {
         "Accept": "application/vnd.github.v3+json",
-        "User-Agent": "MCP-GitHub-Server/1.0"
+        "User-Agent": "MCP-GitHub-Server/1.0",
     }
 
     if GITHUB_TOKEN:
@@ -30,13 +28,21 @@ async def github_request(
     async with httpx.AsyncClient() as client:
         try:
             if method == "GET":
-                response = await client.get(url, headers=headers, params=params, timeout=30.0)
+                response = await client.get(
+                    url, headers=headers, params=params, timeout=30.0
+                )
             elif method == "POST":
-                response = await client.post(url, headers=headers, json=data, timeout=30.0)
+                response = await client.post(
+                    url, headers=headers, json=data, timeout=30.0
+                )
             elif method == "PUT":
-                response = await client.put(url, headers=headers, json=data, timeout=30.0)
+                response = await client.put(
+                    url, headers=headers, json=data, timeout=30.0
+                )
             elif method == "PATCH":
-                response = await client.patch(url, headers=headers, json=data, timeout=30.0)
+                response = await client.patch(
+                    url, headers=headers, json=data, timeout=30.0
+                )
             else:
                 return {"error": f"Unsupported method: {method}"}
 
@@ -106,11 +112,12 @@ class ListIssuesInput(BaseModel):
     page: int = 1
     per_page: int = 30
 
+
 class CreateCommentInput(BaseModel):
     owner: str
     repo: str
     sha: Optional[str] = None
-    body: str   = ""
+    body: str = ""
 
 
 class ListCommitsInput(BaseModel):
@@ -118,7 +125,7 @@ class ListCommitsInput(BaseModel):
     repo: str
     branch: Optional[str] = None
     sha: Optional[str] = None
-    per_page: int = 30  
+    per_page: int = 30
     page: int = 1
 
 
