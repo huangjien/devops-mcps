@@ -1,7 +1,7 @@
 ARG GITHUB_PERSONAL_ACCESS_TOKEN
 
 # Stage 1: Build stage
-FROM python:3.13-slim AS builder
+FROM python:3.13-slim
 
 # Install curl and gnupg for Node.js installation
 RUN apt-get update && apt-get install -y curl gnupg

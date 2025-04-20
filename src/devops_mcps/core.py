@@ -23,7 +23,8 @@ logging.basicConfig(stream=sys.stderr, level=logging.INFO)
 
 load_dotenv()
 
-mcp = FastMCP("DevOps MCP Server", settings={"initialization_timeout": 10})
+mcp = FastMCP("DevOps MCP Server", host="0.0.0.0", port=8000,\
+               settings={"initialization_timeout": 10})
 
 if not GITHUB_TOKEN:
     print("Warning: GITHUB_PERSONAL_ACCESS_TOKEN environment variable not set")

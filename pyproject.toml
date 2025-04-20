@@ -1,14 +1,6 @@
-[build-system]
-requires = ["setuptools", "wheel"]
-build-backend = "setuptools.build_meta"
-
-[project.urls]
-Homepage = "https://www.huangjien.com"
-Repository = "https://github.com/huangjien/devops-mcps"
-
 [project]
 name = "devops-mcps"
-version = "0.3.3"
+version = "0.3.5"
 description = "A FastMCP-based MCP server for DevOps"
 authors = [{ name = "Jien Huang", email = "huangjien@gmail.com" }]
 readme = "README.md"
@@ -20,6 +12,10 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3.12",
 ]
+
+[project.urls]
+Homepage = "https://www.huangjien.com"
+Repository = "https://github.com/huangjien/devops-mcps"
 
 keywords = [
     "devops",
@@ -44,6 +40,10 @@ requires-python = ">=3.12"
 [project.scripts]
 devops-mcps = "devops_mcps.core:main"
 devops-mcps-sse = "devops_mcps.core:main_sse"
+
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
