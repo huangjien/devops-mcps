@@ -39,21 +39,6 @@ Set the required environment variable for GitHub API access:
 export GITHUB_PERSONAL_ACCESS_TOKEN=your_token_here
 ```
 
-### JSON Configuration
-Create a `config.json` file:
-```json
-{
-  "github": {
-    "access_token": "your_token_here",
-    "api_url": "https://api.github.com"
-  },
-  "server": {
-    "port": 8000,
-    "debug": false
-  }
-}
-```
-
 ## UVX Configuration
 
 Install UVX tools:

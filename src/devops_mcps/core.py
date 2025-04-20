@@ -3,7 +3,7 @@ import sys
 import base64
 
 import argparse
-from typing import List
+from typing import List, Optional
 from mcp.server.fastmcp import FastMCP
 from dotenv import load_dotenv
 
@@ -23,8 +23,12 @@ logging.basicConfig(stream=sys.stderr, level=logging.INFO)
 
 load_dotenv()
 
-mcp = FastMCP("DevOps MCP Server", host="0.0.0.0", port=8000,\
-               settings={"initialization_timeout": 10})
+mcp = FastMCP(
+    "DevOps MCP Server",
+    host="0.0.0.0",
+    port=8000,
+    settings={"initialization_timeout": 10},
+)
 
 if not GITHUB_TOKEN:
     print("Warning: GITHUB_PERSONAL_ACCESS_TOKEN environment variable not set")
@@ -139,9 +143,11 @@ async def get_file_contents(
             decoded_content = base64.b64decode(content).decode("utf-8")
             return f"Contents of `{input_data.path}` in \
                 {input_data.owner}/{input_data.repo}:\n\n```\n{decoded_content}\n```"
-        except:
-            return f"Could not decode content of `{input_data.path}`. \
-                It may be a binary file."
+        except (UnicodeDecodeError, TypeError) as e:  # Catch potential decoding issues
+            return (
+                f"Could not decode content of `{input_data.path}: {e}`. "
+                f"It may be a binary file or have an unexpected encoding."
+            )
 
     return f"Contents of `{input_data.path}` in {input_data.owner}/{input_data.repo} \
         (not in base64 format):\n{content}"
@@ -216,7 +222,7 @@ async def list_issues(
     owner: str,
     repo: str,
     state: str = "open",
-    labels: List[str] = [],
+    labels: Optional[List[str]] = None,
     sort: str = "created",
     direction: str = "desc",
     page: int = 1,

@@ -1,8 +1,8 @@
 import os
+import json
 from typing import Any, Dict, List, Optional
 import httpx
 from pydantic import BaseModel
-
 
 # Constants and configuration
 GITHUB_API_BASE = "https://api.github.com"
@@ -30,23 +30,19 @@ async def github_request(
         try:
             if method == "GET":
                 response = await client.get(
-                    url, headers=headers, \
-                        params=params, timeout=30.0
+                    url, headers=headers, params=params, timeout=30.0
                 )
             elif method == "POST":
                 response = await client.post(
-                    url, headers=headers, \
-                        json=data, timeout=30.0
+                    url, headers=headers, json=data, timeout=30.0
                 )
             elif method == "PUT":
                 response = await client.put(
-                    url, headers=headers, \
-                        json=data, timeout=30.0
+                    url, headers=headers, json=data, timeout=30.0
                 )
             elif method == "PATCH":
                 response = await client.patch(
-                    url, headers=headers, \
-                        json=data, timeout=30.0
+                    url, headers=headers, json=data, timeout=30.0
                 )
             else:
                 return {"error": f"Unsupported method: {method}"}
@@ -59,11 +55,11 @@ async def github_request(
                 error_json = e.response.json()
                 if "message" in error_json:
                     error_message += f": {error_json['message']}"
-            except:
+            except json.JSONDecodeError:
                 pass
             return {"error": error_message}
-        except Exception as e:
-            return {"error": str(e)}
+        except httpx.RequestError as e:
+            return {"error": f"Request error: {str(e)}"}
 
 
 # Define Pydantic models for input validation
