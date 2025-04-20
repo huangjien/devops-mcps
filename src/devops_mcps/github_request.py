@@ -30,19 +30,23 @@ async def github_request(
         try:
             if method == "GET":
                 response = await client.get(
-                    url, headers=headers, params=params, timeout=30.0
+                    url, headers=headers, \
+                        params=params, timeout=30.0
                 )
             elif method == "POST":
                 response = await client.post(
-                    url, headers=headers, json=data, timeout=30.0
+                    url, headers=headers, \
+                        json=data, timeout=30.0
                 )
             elif method == "PUT":
                 response = await client.put(
-                    url, headers=headers, json=data, timeout=30.0
+                    url, headers=headers, \
+                        json=data, timeout=30.0
                 )
             elif method == "PATCH":
                 response = await client.patch(
-                    url, headers=headers, json=data, timeout=30.0
+                    url, headers=headers, \
+                        json=data, timeout=30.0
                 )
             else:
                 return {"error": f"Unsupported method: {method}"}
@@ -66,7 +70,7 @@ async def github_request(
 class SearchRepositoriesInput(BaseModel):
     query: str
     page: int = 1
-    perPage: int = 30
+    per_page: int = 30
 
 
 class CreateRepositoryInput(BaseModel):

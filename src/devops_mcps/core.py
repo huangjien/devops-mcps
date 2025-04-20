@@ -31,9 +31,9 @@ if not GITHUB_TOKEN:
 
 
 # Helper functions for GitHub API requests
-# Github API Tools implementations
+# GitHub API Tools implementations
 @mcp.tool()
-async def search_repositories(query: str, page: int = 1, perPage: int = 30) -> str:
+async def search_repositories(query: str, page: int = 1, per_page: int = 30) -> str:
     """Search for GitHub repositories
 
     Args:
@@ -45,12 +45,12 @@ async def search_repositories(query: str, page: int = 1, perPage: int = 30) -> s
         Formatted search results with repository details
     """
     # Validate inputs with Pydantic
-    input_data = SearchRepositoriesInput(query=query, page=page, perPage=perPage)
+    input_data = SearchRepositoriesInput(query=query, page=page, per_page=per_page)
 
     params = {
         "q": input_data.query,
         "page": input_data.page,
-        "per_page": min(input_data.perPage, 100),  # Enforcing GitHub API limits
+        "per_page": min(input_data.per_page, 100),  # Enforcing GitHub API limits
     }
 
     result = await github_request("GET", "/search/repositories", params=params)

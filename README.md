@@ -2,7 +2,7 @@
 
 A FastMCP-based MCP server providing DevOps tools and integrations.
 
-This a consertive MCP server. It does not add, update or delete anything in your system, does not run any job. Basically, it is read-only. It only retrieve data for analysis, display the information.
+This a conservative MCP server. It does not add, update or delete anything in your system, does not run any job. Basically, it is read-only. It only retrieves data for analysis, display the information.
 
 So it is safe for DevOps.
 
@@ -201,16 +201,16 @@ python -m build
 
 ### Upload to PyPI
 1. Create a `~/.pypirc` file with your API token:
-```ini
-[pypi]
-username = __token__
-password = your_pypi_api_token_here
-```
+    ```ini
+    [pypi]
+    username = __token__
+    password = your_pypi_api_token_here
+    ```
 
 2. Upload the package:
-```bash
-twine upload dist/*
-```
+    ```bash
+    twine upload dist/*
+    ```
 
 ### Important Notes
 - Ensure all classifiers in `pyproject.toml` are valid PyPI classifiers
