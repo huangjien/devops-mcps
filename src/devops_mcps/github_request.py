@@ -30,7 +30,7 @@ async def github_request(
         try:
             if method == "GET":
                 response = await client.get(
-                    url, headers=headers, params=params, timeout=30.0
+                    url, headers=headers, timeout=30.0
                 )
             elif method == "POST":
                 response = await client.post(

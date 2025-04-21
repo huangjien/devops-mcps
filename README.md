@@ -145,6 +145,12 @@ To use this MCP server in vs code copilot, there are 2 ways to configure it in V
 }
 ```
 
+Note: The docker should start like:
+
+```bash
+docker run -p 8000:8000 -e TRANSPORT_TYPE=sse -i huangjien/devops-mcps:latest
+```
+
 ## Development
 
 Install development dependencies:

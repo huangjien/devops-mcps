@@ -7,8 +7,8 @@ FROM python:3.13-slim
 RUN apt-get update && apt-get install -y curl gnupg
 
 # Install Node.js and npm
-RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
-    && apt-get install -y nodejs
+# RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
+#     && apt-get install -y nodejs
 
 RUN python3 -m venv /app/.venv
 # Install pip and uv into the virtual environment
