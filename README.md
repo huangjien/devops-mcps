@@ -48,7 +48,7 @@ uvx install
 
 Run with UVX:
 ```bash
-uvx run devops-mcps
+uvx devops-mcps
 ```
 
 ## Transport Configuration
@@ -155,7 +155,28 @@ docker run -p 8000:8000 -e TRANSPORT_TYPE=sse -i huangjien/devops-mcps:latest
 
 Install development dependencies:
 ```bash
-pip install -e .[dev]
+uv pip install -e .[dev]
+```
+
+or 
+```bash
+uv sync
+```
+
+Recommend to install vs code extension: **ruff**
+
+Or do it in command line:
+
+To lint (check):
+
+```bash
+uvx ruff check
+```
+
+To format:
+
+```bash
+uvx ruff format
 ```
 
 Run mcp inspector to test or debug:

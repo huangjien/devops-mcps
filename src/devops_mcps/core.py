@@ -1,195 +1,175 @@
+# /Users/huangjien/workspace/devops-mcps/src/devops_mcps/core.py
 import logging
+from . import github  # Import the github module
+import logging.handlers  # Import handlers
 import sys
-import base64
-
 import argparse
-from typing import List, Optional
-from mcp.server.fastmcp import FastMCP
+from typing import List, Optional, Dict, Any, Union
+
+# Third-party imports
 from dotenv import load_dotenv
 
-from devops_mcps.github_request import (
-  GITHUB_TOKEN,
-  GetFileContentsInput,
-  GetRepositoryInput,
-  ListIssuesInput,
-  ListCommitsInput,
-  SearchCodeInput,
-  SearchRepositoriesInput,
-  github_request,
+# MCP imports
+from mcp.server.fastmcp import FastMCP
+
+# --- Logging Setup (BEFORE importing github) ---
+
+# Define logging parameters
+LOG_FILENAME = "mcp_server.log"
+MAX_LOG_SIZE_MB = 4
+MAX_BYTES = MAX_LOG_SIZE_MB * 1024 * 1024
+BACKUP_COUNT = 0  # Set to 0 to overwrite (delete the old log on rotation)
+# --- CHANGE LOG LEVEL HERE ---
+LOG_LEVEL = logging.DEBUG  # Set the log level to DEBUG
+
+# --- UPDATE FORMATTER HERE ---
+# Create formatter - Added %(lineno)d for line number
+log_formatter = logging.Formatter(
+  "%(asctime)s - %(name)s - %(levelname)s:%(lineno)d - %(message)s"
 )
 
+# --- Configure Root Logger ---
+root_logger = logging.getLogger()
+root_logger.setLevel(LOG_LEVEL)  # Set the desired global level
+root_logger.handlers.clear()  # Clear any existing handlers (important if run multiple times)
 
-logging.basicConfig(stream=sys.stderr, level=logging.INFO)
+# --- Rotating File Handler ---
+# Consider using an absolute path if the script's working directory might change
+# log_file_path = os.path.join('/var/log/mcp', LOG_FILENAME) # Example absolute path
+log_file_path = LOG_FILENAME  # Use relative path for simplicity here
 
-load_dotenv()
+try:
+  rotating_handler = logging.handlers.RotatingFileHandler(
+    filename=log_file_path,
+    maxBytes=MAX_BYTES,
+    backupCount=BACKUP_COUNT,
+    encoding="utf-8",
+  )
+  rotating_handler.setFormatter(log_formatter)  # Apply updated formatter
+  root_logger.addHandler(rotating_handler)
+  file_logging_enabled = True
+except Exception as file_log_error:
+  # Log error to stderr if file handler setup fails
+  # Use basicConfig temporarily for this error message if root logger has no handlers yet
+  # --- Use updated format string in fallback ---
+  logging.basicConfig(level=LOG_LEVEL, format=log_formatter._fmt, stream=sys.stderr)
+  logging.error(
+    f"Failed to configure file logging to {log_file_path}: {file_log_error}"
+  )
+  file_logging_enabled = False
+
+
+# --- Console (stderr) Handler ---
+try:
+  console_handler = logging.StreamHandler(sys.stderr)
+  console_handler.setFormatter(log_formatter)  # Apply updated formatter
+  root_logger.addHandler(console_handler)
+  console_logging_enabled = True
+except Exception as console_log_error:
+  # Less likely to fail, but handle anyway
+  # --- Use updated format string in fallback ---
+  logging.basicConfig(level=LOG_LEVEL, format=log_formatter._fmt, stream=sys.stderr)
+  logging.error(f"Failed to configure console logging: {console_log_error}")
+  console_logging_enabled = False
+
+# --- Final Logging Setup Confirmation ---
+# Initialize logger for this module AFTER handlers are added
+logger = logging.getLogger(__name__)
+
+log_destinations = []
+if file_logging_enabled:
+  log_destinations.append(
+    f"File ({log_file_path}, MaxSize: {MAX_LOG_SIZE_MB}MB, Backups: {BACKUP_COUNT})"
+  )
+if console_logging_enabled:
+  log_destinations.append("Console (stderr)")
+
+if log_destinations:
+  # Use getLevelName to show 'DEBUG' instead of the numeric value
+  logger.info(
+    f"Logging configured (Level: {logging.getLevelName(LOG_LEVEL)}) -> {' & '.join(log_destinations)}"
+  )
+else:
+  # Should not happen if basicConfig fallback works, but as a safeguard
+  print("CRITICAL: Logging could not be configured.", file=sys.stderr)
+
+
+# --- Environment and Local Imports (AFTER logging setup) ---
+
+load_dotenv()  # Load .env file
+
+
+# --- MCP Server Setup ---
 
 mcp = FastMCP(
-  "DevOps MCP Server",
+  "DevOps MCP Server (PyGithub - Raw Output)",
   host="0.0.0.0",
   port=8000,
   settings={"initialization_timeout": 10},
 )
 
-if not GITHUB_TOKEN:
-  print("Warning: GITHUB_PERSONAL_ACCESS_TOKEN environment variable not set")
-  print("Some functionality may be limited")
+# --- MCP Tools (Wrappers around github.py functions) ---
+# (No changes needed in the tool definitions themselves)
+# Debug logs added previously will now be shown due to LOG_LEVEL change
 
 
-# Helper functions for GitHub API requests
-# GitHub API Tools implementations
 @mcp.tool()
-async def search_repositories(query: str, page: int = 1, per_page: int = 30) -> str:
-  """Search for GitHub repositories
+async def search_repositories(
+  query: str,
+) -> Union[List[Dict[str, Any]], Dict[str, str]]:
+  """Search for GitHub repositories. Returns raw data for the first page.
 
   Args:
-      query: Search query using GitHub search syntax
-      page: Page number for pagination (default: 1)
-      perPage: Results per page (max 100, default: 30)
+      query: Search query using GitHub search syntax.
 
   Returns:
-      Formatted search results with repository details
+      List of repository dictionaries (first page) or an error dictionary.
   """
-  # Validate inputs with Pydantic
-  input_data = SearchRepositoriesInput(query=query, page=page, per_page=per_page)
-
-  params = {
-    "q": input_data.query,
-    "page": input_data.page,
-    "per_page": min(input_data.per_page, 100),  # Enforcing GitHub API limits
-  }
-
-  result = await github_request("GET", "/search/repositories", params=params)
-
-  if "error" in result:
-    return f"Error searching repositories: {result['error']}"
-
-  total_count = result.get("total_count", 0)
-  items = result.get("items", [])
-
-  if not items:
-    return f"No repositories found matching '{input_data.query}'."
-
-  response = [
-    f"Found {total_count} repositories matching '{input_data.query}'. \
-              Showing page {input_data.page}:"
-  ]
-
-  for repo in items:
-    description = repo.get("description", "No description")
-    response.append(f"\n## {repo['full_name']}")
-    response.append(f"Description: {description}")
-    response.append(
-      f"Stars: {repo.get('stargazers_count', 0)}, \
-                Forks: {repo.get('forks_count', 0)}"
-    )
-    response.append(f"Language: {repo.get('language', 'Not specified')}")
-    response.append(f"URL: {repo.get('html_url', 'N/A')}")
-
-  return "\n".join(response)
+  logger.debug(
+    f"Executing search_repositories with query: {query}"
+  )  # This will now be logged
+  return github.gh_search_repositories(query=query)
 
 
 @mcp.tool()
 async def get_file_contents(
-  owner: str, repo: str, path: str, branch: str = None
-) -> str:
-  """Get the contents of a file or directory from a GitHub repository.
+  owner: str, repo: str, path: str, branch: Optional[str] = None
+) -> Union[str, List[Dict[str, Any]], Dict[str, Any]]:
+  """Get the contents of a file (decoded) or directory listing (list of dicts) from a GitHub repository.
 
   Args:
-      owner: Repository owner (username or organization)
-      repo: Repository name
-      path: Path to file/directory
-      branch: Branch to get contents from (default: repo default branch)
+      owner: Repository owner (username or organization).
+      repo: Repository name.
+      path: Path to the file or directory.
+      branch: Branch name (defaults to the repository's default branch).
 
   Returns:
-      File content or directory listing
+      Decoded file content (str), list of file/dir dictionaries, or an error dictionary.
   """
-  # Validate inputs with Pydantic
-  input_data = GetFileContentsInput(owner=owner, repo=repo, path=path, branch=branch)
-
-  endpoint = f"/repos/{input_data.owner}/{input_data.repo}/contents/{input_data.path}"
-  params = {}
-  if input_data.branch:
-    params["ref"] = input_data.branch
-
-  result = await github_request("GET", endpoint, params=params)
-
-  if "error" in result:
-    return f"Error getting file contents: {result['error']}"
-
-  # If result is a list, it's a directory
-  if isinstance(result, list):
-    response = [
-      f"Directory listing for `{input_data.path}` in \
-                {input_data.owner}/{input_data.repo}:"
-    ]
-    for item in result:
-      if isinstance(item, dict):
-        item_type = "📁 " if item.get("type") == "dir" else "📄 "
-        response.append(
-          f"{item_type}{item.get('name', 'Unknown')} - \
-                        {item.get('size', 0)} bytes"
-        )
-      else:
-        response.append(f"📄 {item}")
-    return "\n".join(response)
-
-  # It's a file
-  content = result.get("content", "")
-  encoding = result.get("encoding", "")
-
-  if encoding == "base64":
-    try:
-      decoded_content = base64.b64decode(content).decode("utf-8")
-      return f"Contents of `{input_data.path}` in \
-                {input_data.owner}/{input_data.repo}:\n\n```\n{decoded_content}\n```"
-    except (UnicodeDecodeError, TypeError) as e:  # Catch potential decoding issues
-      return (
-        f"Could not decode content of `{input_data.path}: {e}`. "
-        f"It may be a binary file or have an unexpected encoding."
-      )
-
-  return f"Contents of `{input_data.path}` in {input_data.owner}/{input_data.repo} \
-        (not in base64 format):\n{content}"
+  logger.debug(
+    f"Executing get_file_contents for {owner}/{repo}/{path}"
+  )  # This will now be logged
+  return github.gh_get_file_contents(owner=owner, repo=repo, path=path, branch=branch)
 
 
 @mcp.tool()
 async def list_commits(
-  owner: str,
-  repo: str,
-) -> str:
-  """List commits in a GitHub repository
+  owner: str, repo: str, branch: Optional[str] = None
+) -> Union[List[Dict[str, Any]], Dict[str, str]]:
+  """List commits in a GitHub repository. Returns raw data for the first page.
+
   Args:
-      owner: Repository owner (username or organization)
-      repo: Repository name
+      owner: Repository owner (username or organization).
+      repo: Repository name.
+      branch: Branch name or SHA to list commits from (defaults to default branch).
+
   Returns:
-      Formatted list of commits
+      List of commit dictionaries (first page) or an error dictionary.
   """
-  # Validate inputs with Pydantic
-  input_data = ListCommitsInput(owner=owner, repo=repo)
-  endpoint = f"/repos/{input_data.owner}/{input_data.repo}/commits"
-  result = await github_request("GET", endpoint)
-
-  if "error" in result:
-    return f"Error listing commits: {result['error']}"
-
-  if not result:
-    return f"No commits found in {input_data.owner}/{input_data.repo}."
-  response = [f"Commits in {input_data.owner}/{input_data.repo} :"]
-  for commit in result:
-    if not isinstance(commit, dict):
-      response.append(f"\n## Commit: {commit}")
-      continue
-    response.append(f"\n## {commit.get('sha', 'Unknown')}")
-    response.append(
-      f"Author: {commit.get('commit', {}).get('author', {}).get('name', 'Unknown')}"
-    )
-    response.append(
-      f"Date: {commit.get('commit', {}).get('author', {}).get('date', 'Unknown')}"
-    )
-    response.append(f"Message: {commit.get('commit', {}).get('message', 'No message')}")
-    response.append(f"URL: {commit.get('html_url', 'N/A')}")
-    response.append(f"Sha: {commit.get('sha', {}).get('sha', '{}')}")
-  return "\n".join(response)
+  logger.debug(
+    f"Executing list_commits for {owner}/{repo}, branch: {branch}"
+  )  # This will now be logged
+  return github.gh_list_commits(owner=owner, repo=repo, branch=branch)
 
 
 @mcp.tool()
@@ -200,134 +180,45 @@ async def list_issues(
   labels: Optional[List[str]] = None,
   sort: str = "created",
   direction: str = "desc",
-  page: int = 1,
-  per_page: int = 30,
-) -> str:
-  """List issues in a GitHub repository with filtering options
+) -> Union[List[Dict[str, Any]], Dict[str, str]]:
+  """List issues in a GitHub repository. Returns raw data for the first page.
 
   Args:
-      owner: Repository owner
-      repo: Repository name
-      state: Filter by state ('open', 'closed', 'all')
-      labels: Filter by labels
-      sort: Sort by ('created', 'updated', 'comments')
-      direction: Sort direction ('asc', 'desc')
-      page: Page number
-      per_page: Results per page
+      owner: Repository owner.
+      repo: Repository name.
+      state: Filter by state ('open', 'closed', 'all'). Default: 'open'.
+      labels: Filter by labels (list of strings).
+      sort: Sort by ('created', 'updated', 'comments'). Default: 'created'.
+      direction: Sort direction ('asc', 'desc'). Default: 'desc'.
 
   Returns:
-      Formatted list of issues
+      List of issue dictionaries (first page) or an error dictionary.
   """
-  # Validate inputs with Pydantic
-  input_data = ListIssuesInput(
-    owner=owner,
-    repo=repo,
-    state=state,
-    labels=labels,
-    sort=sort,
-    direction=direction,
-    page=page,
-    per_page=per_page,
+  logger.debug(
+    f"Executing list_issues for {owner}/{repo}, state: {state}"
+  )  # This will now be logged
+  return github.gh_list_issues(
+    owner=owner, repo=repo, state=state, labels=labels, sort=sort, direction=direction
   )
-
-  params = {
-    "state": input_data.state,
-    "sort": input_data.sort,
-    "direction": input_data.direction,
-    "page": input_data.page,
-    "per_page": min(input_data.per_page, 100),  # Enforce GitHub API limits
-  }
-
-  if input_data.labels:
-    params["labels"] = ",".join(input_data.labels)
-
-  endpoint = f"/repos/{input_data.owner}/{input_data.repo}/issues"
-  result = await github_request("GET", endpoint, params=params)
-
-  if "error" in result:
-    return f"Error listing issues: {result['error']}"
-
-  if not result:
-    return f"No issues found matching the criteria in \
-            {input_data.owner}/{input_data.repo}."
-
-  response = [
-    f"Issues for {input_data.owner}/{input_data.repo}\
-              (state: {input_data.state}, page: {input_data.page}):"
-  ]
-
-  for issue in result:
-    if not isinstance(issue, dict):
-      response.append(f"\n## Issue: {issue}")
-      continue
-
-    response.append(
-      f"\n## #{issue.get('number', 'Unknown')} - {issue.get('title', 'Untitled')}"
-    )
-    response.append(f"State: {issue.get('state', 'Unknown')}")
-    response.append(f"Created: {issue.get('created_at', 'Unknown')}")
-    response.append(f"Updated: {issue.get('updated_at', 'Unknown')}")
-
-    if issue.get("labels"):
-      label_names = [label.get("name", "Unknown") for label in issue.get("labels", [])]
-      response.append(f"Labels: {', '.join(label_names)}")
-
-    if issue.get("assignees"):
-      assignee_names = [
-        assignee.get("login", "Unknown") for assignee in issue.get("assignees", [])
-      ]
-      response.append(f"Assignees: {', '.join(assignee_names)}")
-
-    response.append(f"URL: {issue.get('html_url', 'N/A')}")
-
-  return "\n".join(response)
 
 
 @mcp.tool()
-async def get_repository(owner: str, repo: str) -> str:
-  """Get information about a GitHub repository
+async def get_repository(
+  owner: str, repo: str
+) -> Union[Dict[str, Any], Dict[str, str]]:
+  """Get information about a GitHub repository. Returns raw data.
 
   Args:
-      owner: Repository owner (username or organization)
-      repo: Repository name
+      owner: Repository owner (username or organization).
+      repo: Repository name.
 
   Returns:
-      Formatted repository details
+      Repository dictionary or an error dictionary.
   """
-  # Validate inputs with Pydantic
-  input_data = GetRepositoryInput(owner=owner, repo=repo)
-
-  endpoint = f"/repos/{input_data.owner}/{input_data.repo}"
-  result = await github_request("GET", endpoint)
-
-  if "error" in result:
-    return f"Error getting repository information: {result['error']}"
-
-  topics = result.get("topics", [])
-  topics_str = ", ".join(topics) if topics else "None"
-
-  return f"""
-# Repository Info: {result.get("full_name", f"{input_data.owner}/{input_data.repo}")}
-
-- Description: {result.get("description", "No description")}
-- URL: {result.get("html_url", "N/A")}
-- Homepage: {result.get("homepage", "N/A")}
-- Language: {result.get("language", "Not specified")}
-- Stars: {result.get("stargazers_count", 0)}
-- Forks: {result.get("forks_count", 0)}
-- Watchers: {result.get("watchers_count", 0)}
-- Open Issues: {result.get("open_issues_count", 0)}
-- License: {
-    result.get("license", {}).get("name", "Not specified")
-    if result.get("license")
-    else "Not specified"
-  }
-- Private: {"Yes" if result.get("private", False) else "No"}
-- Created: {result.get("created_at", "Unknown")}
-- Updated: {result.get("updated_at", "Unknown")}
-- Default Branch: {result.get("default_branch", "Unknown")}
-- Topics: {topics_str}
-    """
+  logger.debug(
+    f"Executing get_repository for {owner}/{repo}"
+  )  # This will now be logged
+  return github.gh_get_repository(owner=owner, repo=repo)
 
 
 @mcp.tool()
@@ -335,66 +226,30 @@ async def search_code(
   q: str,
   sort: str = "indexed",
   order: str = "desc",
-  per_page: int = 30,
-  page: int = 1,
-) -> str:
-  """Search for code across GitHub repositories.
+) -> Union[List[Dict[str, Any]], Dict[str, str]]:
+  """Search for code across GitHub repositories. Returns raw data for the first page.
 
   Args:
-      q: Search query using GitHub code search syntax
-      sort: Sort field ('indexed' only)
-      order: Sort order ('asc' or 'desc')
-      per_page: Results per page (max 100)
-      page: Page number
+      q: Search query using GitHub code search syntax.
+      sort: Sort field ('indexed' or 'best match'). Default: 'indexed'.
+      order: Sort order ('asc' or 'desc'). Default: 'desc'.
 
   Returns:
-      Formatted code search results
+      List of code result dictionaries (first page) or an error dictionary.
   """
-  # Validate inputs with Pydantic
-  input_data = SearchCodeInput(
-    q=q, sort=sort, order=order, per_page=per_page, page=page
-  )
+  logger.debug(f"Executing search_code with query: {q}")  # This will now be logged
+  return github.gh_search_code(q=q, sort=sort, order=order)
 
-  params = {
-    "q": input_data.q,
-    "sort": input_data.sort,
-    "order": input_data.order,
-    "per_page": min(input_data.per_page, 100),
-    "page": input_data.page,
-  }
 
-  result = await github_request("GET", "/search/code", params=params)
-
-  if "error" in result:
-    return f"Error searching code: {result['error']}"
-
-  total_count = result.get("total_count", 0)
-  items = result.get("items", [])
-
-  if not items:
-    return f"No code found matching '{input_data.q}'."
-
-  response = [
-    f"Found {total_count} code results matching '{input_data.q}'. \
-            Showing page {input_data.page}:"
-  ]
-
-  for item in items:
-    repo = item.get("repository", {})
-    repo_name = repo.get("full_name", "Unknown")
-    path = item.get("path", "Unknown file")
-    name = item.get("name", "Unknown")
-
-    response.append(f"\n## {repo_name} - {path}")
-    response.append(f"File: {name}")
-    response.append(f"URL: {item.get('html_url', 'N/A')}")
-
-  return "\n".join(response)
+# --- Main Execution Logic ---
+# (No changes needed in main() or main_sse())
 
 
 def main():
   """Entry point for the CLI."""
-  parser = argparse.ArgumentParser(description="DevOps MCP Server")
+  parser = argparse.ArgumentParser(
+    description="DevOps MCP Server (PyGithub - Raw Output)"
+  )
   parser.add_argument(
     "--transport",
     choices=["stdio", "sse"],
@@ -403,13 +258,41 @@ def main():
   )
 
   args = parser.parse_args()
+
+  # Check if the GitHub client initialized successfully (accessing the global 'g' from the imported module)
+  if github.g is None:
+    # Initialization logs errors/warnings, but we might want to prevent startup
+    if github.GITHUB_TOKEN:
+      logger.error(  # This will now go to file & console
+        "GitHub client failed to initialize despite token being present. Check logs. Exiting."
+      )
+      sys.exit(1)
+    else:
+      # Allow running without auth, but tools will return errors if called
+      logger.warning(  # This will now go to file & console
+        "Running without GitHub authentication. GitHub tools will fail if used."
+      )
+
+  logger.info(
+    f"Starting MCP server with {args.transport} transport..."
+  )  # This will now go to file & console
   mcp.run(transport=args.transport)
 
 
 def main_sse():
   """Run the MCP server with SSE transport."""
+  if "--transport" not in sys.argv:
+    sys.argv.extend(["--transport", "sse"])
+  elif "sse" not in sys.argv:
+    try:
+      idx = sys.argv.index("--transport")
+      if idx + 1 < len(sys.argv):
+        sys.argv[idx + 1] = "sse"
+      else:
+        sys.argv.append("sse")
+    except ValueError:
+      sys.argv.extend(["--transport", "sse"])
 
-  sys.argv.extend(["--transport", "sse"])
   main()
 
 
