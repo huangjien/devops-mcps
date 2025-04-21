@@ -39,21 +39,6 @@ Set the required environment variable for GitHub API access:
 export GITHUB_PERSONAL_ACCESS_TOKEN=your_token_here
 ```
 
-### JSON Configuration
-Create a `config.json` file:
-```json
-{
-  "github": {
-    "access_token": "your_token_here",
-    "api_url": "https://api.github.com"
-  },
-  "server": {
-    "port": 8000,
-    "debug": false
-  }
-}
-```
-
 ## UVX Configuration
 
 Install UVX tools:
@@ -63,7 +48,7 @@ uvx install
 
 Run with UVX:
 ```bash
-uvx run devops-mcps
+uvx devops-mcps
 ```
 
 ## Transport Configuration
@@ -160,11 +145,38 @@ To use this MCP server in vs code copilot, there are 2 ways to configure it in V
 }
 ```
 
+Note: The docker should start like:
+
+```bash
+docker run -p 8000:8000 -e TRANSPORT_TYPE=sse -i huangjien/devops-mcps:latest
+```
+
 ## Development
 
 Install development dependencies:
 ```bash
-pip install -e .[dev]
+uv pip install -e .[dev]
+```
+
+or 
+```bash
+uv sync
+```
+
+Recommend to install vs code extension: **ruff**
+
+Or do it in command line:
+
+To lint (check):
+
+```bash
+uvx ruff check
+```
+
+To format:
+
+```bash
+uvx ruff format
 ```
 
 Run mcp inspector to test or debug:
