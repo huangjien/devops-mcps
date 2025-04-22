@@ -5,7 +5,7 @@ import re
 from typing import List, Optional, Dict, Any, Union
 
 # Third-party imports
-from jenkinsapi.jenkins import Jenkins, JenkinsException as JenkinsAPIException
+from jenkinsapi.jenkins import Jenkins, JenkinsAPIException
 from jenkinsapi.job import Job
 from jenkinsapi.view import View
 from requests.exceptions import ConnectionError

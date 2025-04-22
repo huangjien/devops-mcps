@@ -112,7 +112,6 @@ class SearchCodeInput(BaseModel):
 
 
 # --- GitHub Client Initialization ---
-# ... (rest of the file remains the same) ...
 
 GITHUB_TOKEN = os.environ.get("GITHUB_PERSONAL_ACCESS_TOKEN")
 GITHUB_API_URL = os.environ.get("GITHUB_API_URL")  # e.g., https://github.mycompany.com/api/v3
@@ -127,6 +126,8 @@ def initialize_github_client():
   github_kwargs = {"timeout": 60, "per_page": 10}
   if GITHUB_API_URL:
     github_kwargs["base_url"] = GITHUB_API_URL
+  else:
+    github_kwargs["base_url"] = "https://api.github.com/api/v3"  # Default
 
   if GITHUB_TOKEN:
     try:
