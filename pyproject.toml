@@ -1,15 +1,14 @@
 [project]
 name = "devops-mcps"
-version = "0.5.0"
+version = "0.5.1"
 description = "A FastMCP-based MCP server for DevOps"
 authors = [{ name = "Jien Huang", email = "huangjien@gmail.com" }]
 readme = "README.md"
-license = { text = "MIT" }
+license-files = ["LICENSE"]
 classifiers = [
     "Development Status :: 1 - Planning",
     "Intended Audience :: Developers",
     "Intended Audience :: System Administrators",
-    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3.12",
 ]
 
@@ -28,6 +27,7 @@ dependencies = [
     "toml",
     "dotenv>=0.9.9",
     "pygithub>=2.6.1",
+    "jenkinsapi==0.3.9",
 ]
 requires-python = ">=3.12"
 
@@ -50,7 +50,8 @@ package-dir = {"" = "src"}
 [tool.uv]
 dev-dependencies = [
     "pyright>=1.1.389",
- "ruff>=0.7.4",
+    "pytest>=8.3.5",
+    "ruff>=0.7.4",
 ]
 
 [tool.ruff]

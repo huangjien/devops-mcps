@@ -1,6 +1,6 @@
 # /Users/huangjien/workspace/devops-mcps/src/devops_mcps/core.py
 import logging
-from . import github  # Import the github module
+from . import github, jenkins  # Import the github module and jenkins
 import logging.handlers  # Import handlers
 import sys
 import argparse
@@ -102,7 +102,7 @@ load_dotenv()  # Load .env file
 # --- MCP Server Setup ---
 
 mcp = FastMCP(
-  "DevOps MCP Server (PyGithub - Raw Output)",
+  "DevOps MCP Server (Github & Jenkins)",
   host="0.0.0.0",
   port=8000,
   settings={"initialization_timeout": 10},
@@ -198,7 +198,12 @@ async def list_issues(
     f"Executing list_issues for {owner}/{repo}, state: {state}"
   )  # This will now be logged
   return github.gh_list_issues(
-    owner=owner, repo=repo, state=state, labels=labels, sort=sort, direction=direction
+    owner=owner,
+    repo=repo,
+    state=state,
+    labels=labels,
+    sort=sort,
+    direction=direction,
   )
 
 
@@ -241,6 +246,91 @@ async def search_code(
   return github.gh_search_code(q=q, sort=sort, order=order)
 
 
+# --- MCP Jenkins Tools (Wrappers around jenkins.py functions) ---
+@mcp.tool()
+async def get_jenkins_jobs() -> Union[List[Dict[str, Any]], Dict[str, str]]:
+  """Get all Jenkins jobs.
+
+  Returns:
+      List of job dictionaries or an error dictionary.
+  """
+  logger.debug("Executing get_jenkins_jobs")
+  return jenkins.jenkins_get_jobs()
+
+
+@mcp.tool()
+async def get_jenkins_build_log(
+  job_name: str, build_number: int
+) -> Union[str, Dict[str, str]]:
+  """Get the Jenkins build log for a specific job and build number (last 5KB).
+
+  Args:
+      job_name: Name of the Jenkins job.
+      build_number: Build number.
+
+  Returns:
+      The last 5KB of the build log (str) or an error dictionary.
+  """
+  logger.debug(
+    f"Executing get_jenkins_build_log for job: {job_name}, build: {build_number}"
+  )
+  return jenkins.jenkins_get_build_log(job_name=job_name, build_number=build_number)
+
+
+@mcp.tool()
+async def get_jenkins_jobs_under_view(
+  view_name: str,
+) -> Union[List[Dict[str, Any]], Dict[str, str]]:
+  """Get all Jenkins jobs under a specific view.
+
+  Args:
+      view_name: Name of the Jenkins view.
+
+  Returns:
+      List of job dictionaries or an error dictionary.
+  """
+  logger.debug(f"Executing get_jenkins_jobs_under_view for view: {view_name}")
+  return jenkins.jenkins_get_jobs_under_view(view_name=view_name)
+
+
+@mcp.tool()
+async def get_jenkins_jobs_by_name(
+  job_name_pattern: str,
+) -> Union[List[Dict[str, Any]], Dict[str, str]]:
+  """Get all Jenkins jobs matching a regex pattern.
+
+  Args:
+      job_name_pattern: Regex pattern to match job names.
+
+  Returns:
+      List of job dictionaries or an error dictionary.
+  """
+  logger.debug(f"Executing get_jenkins_jobs_by_name with pattern: {job_name_pattern}")
+  return jenkins.jenkins_get_jobs_by_name(job_name_pattern=job_name_pattern)
+
+
+@mcp.tool()
+async def get_all_jenkins_views() -> Union[List[Dict[str, Any]], Dict[str, str]]:
+  """Get all views in jenkins.
+
+  Returns:
+      List of views or an error dictionary.
+  """
+  logger.debug("Executing get_all_jenkins_views")
+  return jenkins.jenkins_get_all_views()
+
+
+@mcp.tool()
+async def get_jenkins_queue() -> Union[List[Dict[str, Any]], Dict[str, str]]:
+  """Get all queue items in jenkins.
+
+  Returns:
+      List of queue items or an error dictionary.
+  """
+  logger.debug("Executing get_jenkins_queue")
+  return jenkins.jenkins_get_queue()
+
+
 # --- Main Execution Logic ---
 # (No changes needed in main() or main_sse())
 
@@ -272,7 +362,17 @@ def main():
       logger.warning(  # This will now go to file & console
         "Running without GitHub authentication. GitHub tools will fail if used."
       )
-
+  # Check if the Jenkins client initialized successfully
+  if jenkins.j is None:
+    if jenkins.JENKINS_URL and jenkins.JENKINS_USER and jenkins.JENKINS_TOKEN:
+      logger.error(  # This will now go to file & console
+        "Jenkins client failed to initialize despite credentials being present. Check logs. Exiting."
+      )
+      sys.exit(1)
+    else:
+      logger.warning(  # This will now go to file & console
+        "Running without Jenkins authentication. Jenkins tools will fail if used."
+      )
   logger.info(
     f"Starting MCP server with {args.transport} transport..."
   )  # This will now go to file & console
