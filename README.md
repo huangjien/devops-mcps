@@ -87,6 +87,26 @@ Run the container:
 docker run -p 8000:8000 devops-mcps
 ```
 
+## GitHub Public and Enterprise Support
+
+This project supports both public GitHub and GitHub Enterprise automatically.
+
+- By default, it connects to public GitHub (`https://api.github.com`).
+- To use with GitHub Enterprise, set the `GITHUB_API_URL` environment variable to your enterprise API endpoint (e.g., `https://github.mycompany.com/api/v3`).
+
+**Example:**
+
+```bash
+# For public GitHub (default)
+export GITHUB_PERSONAL_ACCESS_TOKEN=your_token_here
+
+# For GitHub Enterprise
+export GITHUB_PERSONAL_ACCESS_TOKEN=your_token_here
+export GITHUB_API_URL=https://github.mycompany.com/api/v3
+```
+
+The server will detect the correct API endpoint at runtime.
+
 ## VSCode Configuration
 
 To use this MCP server in vs code copilot, there are 2 ways to configure it in VSCode settings.json with different transport types:
@@ -100,7 +120,11 @@ To use this MCP server in vs code copilot, there are 2 ways to configure it in V
   "command": "uvx",
   "args": ["devops-mcps"],
   "env": {
-    "GITHUB_PERSONAL_ACCESS_TOKEN": "ghp_xxxxxxxxxxxxxxxxxxxxxxxxxCe"
+    "GITHUB_PERSONAL_ACCESS_TOKEN": "ghp_xxxxxxxxxxxxxxxxxxxxxxxxxCe",
+    "GITHUB_API_URL": "https://github.mycompany.com/api/v3",
+    "JENKINS_URL": "jenkins_url_here",
+    "JENKINS_USER": "jenkins_username_here",
+    "JENKINS_TOKEN": "jenkins_password_here"
   }
 }
 ```
@@ -112,7 +136,11 @@ To use this MCP server in vs code copilot, there are 2 ways to configure it in V
   "command": "uvx",
   "args": ["devops-mcps-sse"],
   "env": {
-    "GITHUB_PERSONAL_ACCESS_TOKEN": "ghp_xxxxxxxxxxxxxxxxxxxxxxxxxCe"
+    "GITHUB_PERSONAL_ACCESS_TOKEN": "ghp_xxxxxxxxxxxxxxxxxxxxxxxxxCe",
+    "GITHUB_API_URL": "https://github.mycompany.com/api/v3",
+    "JENKINS_URL": "jenkins_url_here",
+    "JENKINS_USER": "jenkins_username_here",
+    "JENKINS_TOKEN": "jenkins_password_here"
   }
 }
 ```
@@ -129,7 +157,11 @@ To use this MCP server in vs code copilot, there are 2 ways to configure it in V
     "huangjien/devops-mcps:latest"
   ],
   "env": {
-    "GITHUB_PERSONAL_ACCESS_TOKEN": "ghp_xxxxxxxxxxxxxxxxxxxxxxxxx2Ce"
+    "GITHUB_PERSONAL_ACCESS_TOKEN": "ghp_xxxxxxxxxxxxxxxxxxxxxxxxx2Ce",
+    "GITHUB_API_URL": "https://github.mycompany.com/api/v3",
+    "JENKINS_URL": "jenkins_url_here",
+    "JENKINS_USER": "jenkins_username_here",
+    "JENKINS_TOKEN": "jenkins_password_here"
   }
 }
 ```
@@ -140,7 +172,11 @@ To use this MCP server in vs code copilot, there are 2 ways to configure it in V
   "type": "sse",
   "url": "http://[remote ip address]:8000/sse",
   "env": {
-    "GITHUB_PERSONAL_ACCESS_TOKEN": "ghp_xxxxxxxxxxxxxxxxxxxxxxxxx2Ce"
+    "GITHUB_PERSONAL_ACCESS_TOKEN": "ghp_xxxxxxxxxxxxxxxxxxxxxxxxx2Ce",
+    "GITHUB_API_URL": "https://github.mycompany.com/api/v3",
+    "JENKINS_URL": "jenkins_url_here",
+    "JENKINS_USER": "jenkins_username_here",
+    "JENKINS_TOKEN": "jenkins_password_here"
   }
 }
 ```

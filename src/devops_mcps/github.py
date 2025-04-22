@@ -115,8 +115,8 @@ class SearchCodeInput(BaseModel):
 # ... (rest of the file remains the same) ...
 
 GITHUB_TOKEN = os.environ.get("GITHUB_PERSONAL_ACCESS_TOKEN")
+GITHUB_API_URL = os.environ.get("GITHUB_API_URL")  # e.g., https://github.mycompany.com/api/v3
 g: Optional[Github] = None
-
 
 def initialize_github_client():
   """Initializes the global GitHub client 'g'."""
@@ -124,13 +124,16 @@ def initialize_github_client():
   if g:  # Already initialized
     return g
 
+  github_kwargs = {"timeout": 60, "per_page": 10}
+  if GITHUB_API_URL:
+    github_kwargs["base_url"] = GITHUB_API_URL
+
   if GITHUB_TOKEN:
     try:
-      # Apply the new timeout here
-      g = Github(GITHUB_TOKEN, timeout=60, per_page=10)
+      g = Github(GITHUB_TOKEN, **github_kwargs)
       _ = g.get_user().login  # Test connection
       logger.info(
-        "Successfully authenticated with GitHub using GITHUB_PERSONAL_ACCESS_TOKEN."
+        f"Authenticated with GitHub using GITHUB_PERSONAL_ACCESS_TOKEN. Base URL: {github_kwargs.get('base_url', 'default')}"
       )
     except RateLimitExceededException:
       logger.error("GitHub API rate limit exceeded during initialization.")
@@ -145,16 +148,13 @@ def initialize_github_client():
     logger.warning("GITHUB_PERSONAL_ACCESS_TOKEN environment variable not set.")
     logger.warning("GitHub related tools will have limited functionality.")
     try:
-      # Apply the new timeout here as well
-      g = Github(timeout=60, per_page=10)
+      g = Github(**github_kwargs)
       _ = g.get_rate_limit()  # Basic check
-      logger.info("Initialized unauthenticated GitHub client.")
+      logger.info(f"Initialized unauthenticated GitHub client. Base URL: {github_kwargs.get('base_url', 'default')}")
     except Exception as e:
       logger.error(f"Failed to initialize unauthenticated GitHub client: {e}")
       g = None
   return g
-
-
 # Call initialization when the module is loaded
 initialize_github_client()
 

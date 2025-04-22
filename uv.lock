@@ -177,7 +177,6 @@ source = { editable = "." }
 dependencies = [
     { name = "dotenv" },
     { name = "fastmcp" },
-    { name = "httpx" },
     { name = "jenkinsapi" },
     { name = "pydantic" },
     { name = "pygithub" },
@@ -196,7 +195,6 @@ dev = [
 requires-dist = [
     { name = "dotenv", specifier = ">=0.9.9" },
     { name = "fastmcp", specifier = ">=2.2.0" },
-    { name = "httpx" },
     { name = "jenkinsapi", specifier = "==0.3.9" },
     { name = "pydantic" },
     { name = "pygithub", specifier = ">=2.6.1" },

@@ -21,7 +21,6 @@ keywords = [
 
 dependencies = [
     "fastmcp>=2.2.0",
-    "httpx",
     "pydantic",
     "python-dotenv",
     "toml",
