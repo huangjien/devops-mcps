@@ -2,6 +2,7 @@
 import logging
 import os
 from typing import List, Optional, Dict, Any, Union
+from .cache import cache
 
 # Third-party imports
 from github import (
@@ -324,6 +325,14 @@ def _handle_paginated_list(paginated_list: PaginatedList) -> List[Dict[str, Any]
 def gh_search_repositories(query: str) -> Union[List[Dict[str, Any]], Dict[str, str]]:
   """Internal logic for searching repositories."""
   logger.debug(f"gh_search_repositories called with query: '{query}'")
+  
+  # Check cache first
+  cache_key = f"github:search_repos:{query}"
+  cached = cache.get(cache_key)
+  if cached:
+    logger.debug(f"Returning cached result for {cache_key}")
+    return cached
+    
   if not g:
     logger.error("gh_search_repositories: GitHub client not initialized.")
     return {"error": "GitHub client not initialized."}
@@ -331,7 +340,9 @@ def gh_search_repositories(query: str) -> Union[List[Dict[str, Any]], Dict[str, 
     input_data = SearchRepositoriesInput(query=query)
     repositories: PaginatedList = g.search_repositories(query=input_data.query)
     logger.debug(f"Found {repositories.totalCount} repositories matching query.")
-    return _handle_paginated_list(repositories)
+    result = _handle_paginated_list(repositories)
+    cache.set(cache_key, result, ttl=300)  # Cache for 5 minutes
+    return result
   except GithubException as e:
     logger.error(
       f"gh_search_repositories GitHub Error: {e.status} - {e.data}", exc_info=True
@@ -351,6 +362,15 @@ def gh_get_file_contents(
   logger.debug(
     f"gh_get_file_contents called for {owner}/{repo}/{path}, branch: {branch}"
   )
+  
+  # Check cache first
+  branch_str = branch if branch else "default"
+  cache_key = f"github:get_file:{owner}/{repo}/{path}:{branch_str}"
+  cached = cache.get(cache_key)
+  if cached:
+    logger.debug(f"Returning cached result for {cache_key}")
+    return cached
+    
   if not g:
     logger.error("gh_get_file_contents: GitHub client not initialized.")
     return {"error": "GitHub client not initialized."}
@@ -390,13 +410,17 @@ def gh_get_file_contents(
           }
       elif contents.content is not None:
         logger.debug(f"Returning raw (non-base64) content for '{path}'.")
-        return contents.content  # Return raw if not base64
+        result = contents.content  # Return raw if not base64
+        cache.set(cache_key, result, ttl=1800)  # Cache for 30 minutes
+        return result
       else:
         logger.debug(f"Content for '{path}' is None or empty.")
-        return {
+        result = {
           "message": "File appears to be empty or content is inaccessible.",
           **_to_dict(contents),  # Include metadata
         }
+        cache.set(cache_key, result, ttl=1800)  # Cache for 30 minutes
+        return result
   except UnknownObjectException:
     logger.warning(
       f"gh_get_file_contents: Repository '{owner}/{repo}' or path '{path}' not found."
@@ -420,6 +444,15 @@ def gh_list_commits(
 ) -> Union[List[Dict[str, Any]], Dict[str, str]]:
   """Internal logic for listing commits."""
   logger.debug(f"gh_list_commits called for {owner}/{repo}, branch: {branch}")
+  
+  # Check cache first
+  branch_str = branch if branch else "default"
+  cache_key = f"github:list_commits:{owner}/{repo}:{branch_str}"
+  cached = cache.get(cache_key)
+  if cached:
+    logger.debug(f"Returning cached result for {cache_key}")
+    return cached
+    
   if not g:
     logger.error("gh_list_commits: GitHub client not initialized.")
     return {"error": "GitHub client not initialized."}
@@ -434,9 +467,9 @@ def gh_list_commits(
       logger.debug("Fetching commits for default branch.")
 
     commits_paginated: PaginatedList = repo_obj.get_commits(**commit_kwargs)
-    # Note: totalCount is not reliably available for commits before first page fetch
-    # logger.debug(f"Found {commits_paginated.totalCount} commits.") # This might be inaccurate here
-    return _handle_paginated_list(commits_paginated)
+    result = _handle_paginated_list(commits_paginated)
+    cache.set(cache_key, result, ttl=3600)  # Cache for 1 hour
+    return result
   except UnknownObjectException:
     logger.warning(f"gh_list_commits: Repository '{owner}/{repo}' not found.")
     return {"error": f"Repository '{owner}/{repo}' not found."}
@@ -469,6 +502,15 @@ def gh_list_issues(
   logger.debug(
     f"gh_list_issues called for {owner}/{repo}, state: {state}, labels: {labels}, sort: {sort}, direction: {direction}"
   )
+  
+  # Check cache first
+  labels_str = ",".join(sorted(labels)) if labels else "none"
+  cache_key = f"github:list_issues:{owner}/{repo}:{state}:{labels_str}:{sort}:{direction}"
+  cached = cache.get(cache_key)
+  if cached:
+    logger.debug(f"Returning cached result for {cache_key}")
+    return cached
+    
   if not g:
     logger.error("gh_list_issues: GitHub client not initialized.")
     return {"error": "GitHub client not initialized."}
@@ -488,7 +530,9 @@ def gh_list_issues(
 
     issues_paginated: PaginatedList = repo_obj.get_issues(**issue_kwargs)
     logger.debug(f"Found {issues_paginated.totalCount} issues matching criteria.")
-    return _handle_paginated_list(issues_paginated)
+    result = _handle_paginated_list(issues_paginated)
+    cache.set(cache_key, result, ttl=1800)  # Cache for 30 minutes
+    return result
   except UnknownObjectException:
     logger.warning(f"gh_list_issues: Repository '{owner}/{repo}' not found.")
     return {"error": f"Repository '{owner}/{repo}' not found."}
@@ -506,6 +550,14 @@ def gh_list_issues(
 def gh_get_repository(owner: str, repo: str) -> Union[Dict[str, Any], Dict[str, str]]:
   """Internal logic for getting repository info."""
   logger.debug(f"gh_get_repository called for {owner}/{repo}")
+  
+  # Check cache first
+  cache_key = f"github:get_repo:{owner}/{repo}"
+  cached = cache.get(cache_key)
+  if cached:
+    logger.debug(f"Returning cached result for {cache_key}")
+    return cached
+    
   if not g:
     logger.error("gh_get_repository: GitHub client not initialized.")
     return {"error": "GitHub client not initialized."}
@@ -513,7 +565,9 @@ def gh_get_repository(owner: str, repo: str) -> Union[Dict[str, Any], Dict[str, 
     input_data = GetRepositoryInput(owner=owner, repo=repo)
     repo_obj = g.get_repo(f"{input_data.owner}/{input_data.repo}")
     logger.debug(f"Successfully retrieved repository object for {owner}/{repo}.")
-    return _to_dict(repo_obj)
+    result = _to_dict(repo_obj)
+    cache.set(cache_key, result, ttl=3600)  # Cache for 1 hour
+    return result
   except UnknownObjectException:
     logger.warning(f"gh_get_repository: Repository '{owner}/{repo}' not found.")
     return {"error": f"Repository '{owner}/{repo}' not found."}
@@ -534,6 +588,14 @@ def gh_search_code(
 ) -> Union[List[Dict[str, Any]], Dict[str, str]]:
   """Internal logic for searching code."""
   logger.debug(f"gh_search_code called with query: '{q}', sort: {sort}, order: {order}")
+  
+  # Check cache first
+  cache_key = f"github:search_code:{q}:{sort}:{order}"
+  cached = cache.get(cache_key)
+  if cached:
+    logger.debug(f"Returning cached result for {cache_key}")
+    return cached
+    
   if not g:
     logger.error("gh_search_code: GitHub client not initialized.")
     return {"error": "GitHub client not initialized."}
@@ -542,7 +604,9 @@ def gh_search_code(
     search_kwargs = {"sort": input_data.sort, "order": input_data.order}
     code_results: PaginatedList = g.search_code(query=input_data.q, **search_kwargs)
     logger.debug(f"Found {code_results.totalCount} code results matching query.")
-    return _handle_paginated_list(code_results)
+    result = _handle_paginated_list(code_results)
+    cache.set(cache_key, result, ttl=300)  # Cache for 5 minutes
+    return result
   except GithubException as e:
     msg = e.data.get("message", "Unknown GitHub error")
     logger.error(f"gh_search_code GitHub Error: {e.status} - {e.data}", exc_info=True)

@@ -8,10 +8,19 @@ So it is safe for DevOps.
 
 ## Features
 
-- GitHub repository search and management
+### GitHub Integration
+- Repository search and management
 - File content retrieval from repositories
 - Issue tracking and management
 - Code search functionality
+- Commit history viewing
+
+### Jenkins Integration
+- Job listing and management
+- Build log retrieval
+- View management
+- Build parameter inspection
+- Recent failed builds monitoring
 
 ## Installation
 
@@ -32,12 +41,24 @@ devops-mcps
 
 ### Environment Variables
 
+#### GitHub Configuration
 Set the required environment variable for GitHub API access:
-
 
 ```bash
 export GITHUB_PERSONAL_ACCESS_TOKEN=your_token_here
 ```
+
+#### Jenkins Configuration
+Set the required environment variables for Jenkins API access:
+
+```bash
+export JENKINS_URL=your_jenkins_url
+export JENKINS_USER=your_jenkins_username
+export JENKINS_TOKEN=your_jenkins_token
+export LOG_LENGTH=5120
+```
+
+**Note**: LOG_LENGTH means it will retrieve this length of jenkins log for analysis. It does not always the longer the better.
 
 ## UVX Configuration
 
@@ -102,7 +123,7 @@ export GITHUB_PERSONAL_ACCESS_TOKEN=your_token_here
 
 # For GitHub Enterprise
 export GITHUB_PERSONAL_ACCESS_TOKEN=your_token_here
-export GITHUB_API_URL=https://github.mycompany.com/api/v3
+export GITHUB_API_URL=https://github.mycompany.com
 ```
 
 The server will detect the correct API endpoint at runtime.
@@ -121,7 +142,7 @@ To use this MCP server in vs code copilot, there are 2 ways to configure it in V
   "args": ["devops-mcps"],
   "env": {
     "GITHUB_PERSONAL_ACCESS_TOKEN": "ghp_xxxxxxxxxxxxxxxxxxxxxxxxxCe",
-    "GITHUB_API_URL": "https://github.mycompany.com/api/v3",
+    "GITHUB_API_URL": "https://github.mycompany.com",
     "JENKINS_URL": "jenkins_url_here",
     "JENKINS_USER": "jenkins_username_here",
     "JENKINS_TOKEN": "jenkins_password_here"
@@ -137,7 +158,7 @@ To use this MCP server in vs code copilot, there are 2 ways to configure it in V
   "args": ["devops-mcps-sse"],
   "env": {
     "GITHUB_PERSONAL_ACCESS_TOKEN": "ghp_xxxxxxxxxxxxxxxxxxxxxxxxxCe",
-    "GITHUB_API_URL": "https://github.mycompany.com/api/v3",
+    "GITHUB_API_URL": "https://github.mycompany.com",
     "JENKINS_URL": "jenkins_url_here",
     "JENKINS_USER": "jenkins_username_here",
     "JENKINS_TOKEN": "jenkins_password_here"
@@ -158,7 +179,7 @@ To use this MCP server in vs code copilot, there are 2 ways to configure it in V
   ],
   "env": {
     "GITHUB_PERSONAL_ACCESS_TOKEN": "ghp_xxxxxxxxxxxxxxxxxxxxxxxxx2Ce",
-    "GITHUB_API_URL": "https://github.mycompany.com/api/v3",
+    "GITHUB_API_URL": "https://github.mycompany.com",
     "JENKINS_URL": "jenkins_url_here",
     "JENKINS_USER": "jenkins_username_here",
     "JENKINS_TOKEN": "jenkins_password_here"
@@ -173,7 +194,7 @@ To use this MCP server in vs code copilot, there are 2 ways to configure it in V
   "url": "http://[remote ip address]:8000/sse",
   "env": {
     "GITHUB_PERSONAL_ACCESS_TOKEN": "ghp_xxxxxxxxxxxxxxxxxxxxxxxxx2Ce",
-    "GITHUB_API_URL": "https://github.mycompany.com/api/v3",
+    "GITHUB_API_URL": "https://github.mycompany.com",
     "JENKINS_URL": "jenkins_url_here",
     "JENKINS_USER": "jenkins_username_here",
     "JENKINS_TOKEN": "jenkins_password_here"
@@ -270,3 +291,58 @@ python -m build
 ## License
 
 MIT
+
+## Appendix (Query in Github)
+
+### For Repository Search (gh_search_repositories):
+
+- in:<field>: Search only in specific fields (name, description, readme, or combinations).
+query="fastapi in:name" (Find repos with "fastapi" in their name)
+query="web framework in:readme,description"
+
+- user:<username> or org:<orgname>: Search within a specific user's or organization's repositories.
+query="user:tiangolo fastapi"
+
+- language:<language>: Filter by programming language.
+query="http client language:python"
+
+- stars:<N>, forks:<N>: Filter by number of stars or forks (use ranges like >100, <50, 10..50).
+query="language:javascript stars:>1000"
+
+- created:<YYYY-MM-DD>, pushed:<YYYY-MM-DD>: Filter by creation or last push date (use ranges).
+query="data science pushed:>2024-03-01"
+
+- topic:<topic-name>: Filter by repository topic.
+query="topic:docker topic:python"
+
+- license:<license-keyword>: Filter by license (e.g., mit, apache-2.0).
+query="language:go license:mit"
+
+### For Code Search (gh_search_code):
+
+- in:<field>: Search within file content (default), path, or both.
+q='"import requests" in:file'
+
+- user:<username> or org:<orgname>: Search code within a specific user's or organization's repositories.
+q='"BaseSettings" user:tiangolo'
+
+- repo:<owner>/<repository>: Search code within a specific repository.
+q='"JenkinsAPIException" repo:devops-mcps/devops-mcps'
+
+- language:<language>: Filter by the language of the file containing the code.
+q='def main language:python'
+
+- path:<path>, path:/: Search within specific paths or the root directory.
+q='"GithubException" path:src/devops_mcps'
+
+- filename:<filename>: Search within specific filenames.
+q='TODO filename:core.py'
+
+- extension:<ext>: Search within files having a specific extension.
+q='class Settings extension:py'
+
+This query syntax provides a flexible and powerful way to find exactly what you need on GitHub directly through your MCP tools. You can find the full, official documentation here:
+
+- Searching on GitHub: https://docs.github.com/en/search-github/searching-on-github
+- Searching Code: https://docs.github.com/en/search-github/searching-on-github/searching-code
+- Searching Repositories: https://docs.github.com/en/search-github/searching-on-github/searching-for-repositories
