@@ -114,8 +114,11 @@ class SearchCodeInput(BaseModel):
 # --- GitHub Client Initialization ---
 
 GITHUB_TOKEN = os.environ.get("GITHUB_PERSONAL_ACCESS_TOKEN")
-GITHUB_API_URL = os.environ.get("GITHUB_API_URL")  # e.g., https://github.mycompany.com/api/v3
+GITHUB_API_URL = os.environ.get(
+  "GITHUB_API_URL"
+)  # e.g., https://github.mycompany.com/api/v3
 g: Optional[Github] = None
+
 
 def initialize_github_client():
   """Initializes the global GitHub client 'g'."""
@@ -151,11 +154,15 @@ def initialize_github_client():
     try:
       g = Github(**github_kwargs)
       _ = g.get_rate_limit()  # Basic check
-      logger.info(f"Initialized unauthenticated GitHub client. Base URL: {github_kwargs.get('base_url', 'default')}")
+      logger.info(
+        f"Initialized unauthenticated GitHub client. Base URL: {github_kwargs.get('base_url', 'default')}"
+      )
     except Exception as e:
       logger.error(f"Failed to initialize unauthenticated GitHub client: {e}")
       g = None
   return g
+
+
 # Call initialization when the module is loaded
 initialize_github_client()
 

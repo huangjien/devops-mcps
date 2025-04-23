@@ -1,45 +1,24 @@
 # /Users/huangjien/workspace/devops-mcps/src/devops_mcps/jenkins.py
 import logging
 import os
-import re
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional, Dict, Any, Union
+import requests
 
 # Third-party imports
 from jenkinsapi.jenkins import Jenkins, JenkinsAPIException
 from jenkinsapi.job import Job
 from jenkinsapi.view import View
+from jenkinsapi.build import Build
 from requests.exceptions import ConnectionError
-
-# --- Import field_validator instead of validator ---
-from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
 
-# --- Pydantic Models (Input Validation) ---
-
-
-class GetJobsInput(BaseModel):
-  pass  # No input parameters
-
-
-class GetBuildLogInput(BaseModel):
-  job_name: str
-  build_number: int
-
-
-class GetJobsUnderViewInput(BaseModel):
-  view_name: str
-
-
-class GetJobsByNameInput(BaseModel):
-  job_name_pattern: str
-
-
 # --- Jenkins Client Initialization ---
-
 JENKINS_URL = os.environ.get("JENKINS_URL")
 JENKINS_USER = os.environ.get("JENKINS_USER")
 JENKINS_TOKEN = os.environ.get("JENKINS_TOKEN")
+LOG_LENGTH = os.environ.get("LOG_LENGTH", 10240)  # Default to 10KB if not set
 j: Optional[Jenkins] = None
 
 
@@ -128,9 +107,9 @@ def jenkins_get_jobs() -> Union[List[Dict[str, Any]], Dict[str, str]]:
     logger.error("jenkins_get_jobs: Jenkins client not initialized.")
     return {"error": "Jenkins client not initialized."}
   try:
-    jobs = j.get_jobs()
+    jobs = j.keys()
     logger.debug(f"Found {len(jobs)} jobs.")
-    return [_to_dict(job) for job in jobs.values()]  # modified to use .values()
+    return [_to_dict(job) for job in jobs]  # modified to use .values()
   except JenkinsAPIException as e:
     logger.error(f"jenkins_get_jobs Jenkins Error: {e}", exc_info=True)
     return {"error": f"Jenkins API Error: {e}"}
@@ -150,71 +129,17 @@ def jenkins_get_build_log(
     logger.error("jenkins_get_build_log: Jenkins client not initialized.")
     return {"error": "Jenkins client not initialized."}
   try:
-    input_data = GetBuildLogInput(job_name=job_name, build_number=build_number)
-    job = j.get_job(input_data.job_name)
-    build = job.get_build(input_data.build_number)
+    job = j.get_job(job_name)
+    build = job.get_build(build_number)
     if not build:
-      return {
-        "error": f"Build #{input_data.build_number} not found for job {input_data.job_name}"
-      }
+      return {"error": f"Build #{build_number} not found for job {job_name}"}
     log = build.get_console()
-    return log[-5000:]  # Return only the last 5KB
+    return log[-LOG_LENGTH:]  # Return only the last 5KB
   except JenkinsAPIException as e:
     logger.error(f"jenkins_get_build_log Jenkins Error: {e}", exc_info=True)
     return {"error": f"Jenkins API Error: {e}"}
   except Exception as e:
     logger.error(f"Unexpected error in jenkins_get_build_log: {e}", exc_info=True)
-    return {"error": f"An unexpected error occurred: {e}"}
-
-
-def jenkins_get_jobs_under_view(
-  view_name: str,
-) -> Union[List[Dict[str, Any]], Dict[str, str]]:
-  """Internal logic for getting jobs under a specific view."""
-  logger.debug(f"jenkins_get_jobs_under_view called for view: {view_name}")
-  if not j:
-    logger.error("jenkins_get_jobs_under_view: Jenkins client not initialized.")
-    return {"error": "Jenkins client not initialized."}
-  try:
-    input_data = GetJobsUnderViewInput(view_name=view_name)
-    view = j.get_view(input_data.view_name)
-    jobs = view.get_job_dict()
-    logger.debug(f"Found {len(jobs)} jobs under view '{view_name}'.")
-    return [_to_dict(j.get_job(job_name)) for job_name in jobs]
-  except JenkinsAPIException as e:
-    logger.error(f"jenkins_get_jobs_under_view Jenkins Error: {e}", exc_info=True)
-    return {"error": f"Jenkins API Error: {e}"}
-  except Exception as e:
-    logger.error(f"Unexpected error in jenkins_get_jobs_under_view: {e}", exc_info=True)
-    return {"error": f"An unexpected error occurred: {e}"}
-
-
-def jenkins_get_jobs_by_name(
-  job_name_pattern: str,
-) -> Union[List[Dict[str, Any]], Dict[str, str]]:
-  """Internal logic for getting jobs that match a regex pattern."""
-  logger.debug(f"jenkins_get_jobs_by_name called with pattern: {job_name_pattern}")
-  if not j:
-    logger.error("jenkins_get_jobs_by_name: Jenkins client not initialized.")
-    return {"error": "Jenkins client not initialized."}
-  try:
-    input_data = GetJobsByNameInput(job_name_pattern=job_name_pattern)
-    all_jobs = j.get_jobs()
-    compiled_pattern = re.compile(input_data.job_name_pattern)
-    matching_jobs = [
-      all_jobs[job_name]
-      for job_name in all_jobs
-      if compiled_pattern.fullmatch(job_name)
-    ]
-    logger.debug(
-      f"Found {len(matching_jobs)} jobs matching pattern '{job_name_pattern}'."
-    )
-    return [_to_dict(job) for job in matching_jobs]
-  except JenkinsAPIException as e:
-    logger.error(f"jenkins_get_jobs_by_name Jenkins Error: {e}", exc_info=True)
-    return {"error": f"Jenkins API Error: {e}"}
-  except Exception as e:
-    logger.error(f"Unexpected error in jenkins_get_jobs_by_name: {e}", exc_info=True)
     return {"error": f"An unexpected error occurred: {e}"}
 
 
@@ -226,9 +151,9 @@ def jenkins_get_all_views() -> Union[List[Dict[str, Any]], Dict[str, str]]:
     logger.error("jenkins_get_all_views: Jenkins client not initialized.")
     return {"error": "Jenkins client not initialized."}
   try:
-    views = j.get_views()
+    views = j.views.keys()
     logger.debug(f"Found {len(views)} views.")
-    return [_to_dict(view) for view in views.values()]  # modified to use .values()
+    return [_to_dict(view) for view in views]  # modified to use .values()
   except JenkinsAPIException as e:
     logger.error(f"jenkins_get_all_views Jenkins Error: {e}", exc_info=True)
     return {"error": f"Jenkins API Error: {e}"}
@@ -237,19 +162,207 @@ def jenkins_get_all_views() -> Union[List[Dict[str, Any]], Dict[str, str]]:
     return {"error": f"An unexpected error occurred: {e}"}
 
 
-def jenkins_get_queue() -> Union[List[Dict[str, Any]], Dict[str, str]]:
-  """Get the Jenkins build queue information."""
+# --- Add new function to get build parameters ---
+def jenkins_get_build_parameters(
+  job_name: str, build_number: int
+) -> Union[Dict[str, Any], Dict[str, str]]:
+  """Internal logic for getting build parameters."""
+  logger.debug(
+    f"jenkins_get_build_parameters called for job: {job_name}, build: {build_number}"
+  )
+  if not j:
+    logger.error("jenkins_get_build_parameters: Jenkins client not initialized.")
+    return {"error": "Jenkins client not initialized."}
+  try:
+    job: Job = j.get_job(job_name)
+    build: Optional[Build] = job.get_build(build_number)
+
+    if not build:
+      logger.warning(f"Build #{build_number} not found for job {job_name}")
+      return {"error": f"Build #{build_number} not found for job {job_name}"}
+
+    params: Dict[str, Any] = build.get_params()  # Get the parameters
+    logger.debug(f"Retrieved parameters for build {job_name}#{build_number}: {params}")
+    return params  # Return the dictionary directly
+
+  except JenkinsAPIException as e:
+    # Check for specific errors like job not found
+    if "No such job" in str(e):  # Example check
+      logger.warning(f"Job '{job_name}' not found.")
+      return {"error": f"Job '{job_name}' not found."}
+    logger.error(f"jenkins_get_build_parameters Jenkins Error: {e}", exc_info=True)
+    return {
+      "error": f"Jenkins API Error: {str(e)}"
+    }  # Return string representation of error
+  except Exception as e:
+    logger.error(
+      f"Unexpected error in jenkins_get_build_parameters: {e}", exc_info=True
+    )
+    return {"error": f"An unexpected error occurred: {e}"}
+
+
+# --- Add the previously uncalled function (optional, but good practice if needed) ---
+def jenkins_get_queue() -> Union[Dict[str, Any], Dict[str, str]]:
+  """Get the current Jenkins queue information."""
   logger.debug("jenkins_get_queue called")
   if not j:
     logger.error("jenkins_get_queue: Jenkins client not initialized.")
     return {"error": "Jenkins client not initialized."}
   try:
-    queue = j.get_queue()
-    logger.debug(f"Found {len(queue)} queue items.")
-    return [_to_dict(q) for q in queue]
+    queue_info = j.get_queue().get_queue_items()  # Example: get items
+    logger.debug(f"Retrieved queue info: {queue_info}")
+    # Note: jenkinsapi might return specific objects here, adjust _to_dict or processing as needed
+    return {"queue_items": _to_dict(queue_info)}  # Wrap in a dict for clarity
   except JenkinsAPIException as e:
     logger.error(f"jenkins_get_queue Jenkins Error: {e}", exc_info=True)
-    return {"error": f"Jenkins API Error: {e}"}
+    return {"error": f"Jenkins API Error: {str(e)}"}
   except Exception as e:
     logger.error(f"Unexpected error in jenkins_get_queue: {e}", exc_info=True)
+    return {"error": f"An unexpected error occurred: {e}"}
+
+
+# --- End jenkins_get_queue ---
+
+
+def jenkins_get_recent_failed_builds(
+  hours_ago: int = 8,
+) -> Union[List[Dict[str, Any]], Dict[str, str]]:
+  """
+  Internal logic for getting jobs whose LAST build failed within the specified recent period.
+  Uses a single optimized API call for performance.
+
+  Args:
+      hours_ago: How many hours back to check for failed builds.
+
+  Returns:
+      A list of dictionaries for jobs whose last build failed recently, or an error dictionary.
+  """
+  logger.debug(
+    f"jenkins_get_recent_failed_builds (OPTIMIZED) called for the last {hours_ago} hours"
+  )
+
+  # Need credentials even if not using the 'j' client object directly for API calls
+  if not JENKINS_URL or not JENKINS_USER or not JENKINS_TOKEN:
+    logger.error("Jenkins credentials (URL, USER, TOKEN) not configured.")
+    return {"error": "Jenkins credentials not configured."}
+
+  recent_failed_builds = []
+  try:
+    # Calculate the cutoff time in UTC
+    now_utc = datetime.now(timezone.utc)
+    cutoff_utc = now_utc - timedelta(hours=hours_ago)
+    logger.debug(f"Checking for LAST builds failed since {cutoff_utc.isoformat()}")
+
+    # --- Optimized API Call ---
+    # Construct the API URL with the tree parameter
+    # Request job name, url, and details of the lastBuild
+    api_url = f"{JENKINS_URL.rstrip('/')}/api/json?tree=jobs[name,url,lastBuild[number,timestamp,result,url]]"
+    logger.debug(f"Making optimized API call to: {api_url}")
+
+    # Make the authenticated request (adjust timeout as needed)
+    response = requests.get(
+      api_url,
+      auth=(JENKINS_USER, JENKINS_TOKEN),
+      timeout=60,  # Set a reasonable timeout for this single large request (e.g., 60 seconds)
+    )
+    response.raise_for_status()  # Raise HTTPError for bad responses (4xx or 5xx)
+
+    data = response.json()
+    # --- End Optimized API Call ---
+
+    if "jobs" not in data:
+      logger.warning("No 'jobs' key found in Jenkins API response.")
+      return []  # Return empty list if no jobs data
+
+    # Iterate through the jobs data obtained from the single API call
+    for job_data in data.get("jobs", []):
+      job_name = job_data.get("name")
+      last_build_data = job_data.get("lastBuild")
+
+      if not job_name:
+        logger.warning("Found job data with no name, skipping.")
+        continue
+
+      logger.debug(f"Processing job: {job_name} from optimized response")
+
+      if not last_build_data:
+        logger.debug(
+          f"  Job '{job_name}' has no lastBuild information in the response."
+        )
+        continue
+
+      # Extract last build details
+      build_number = last_build_data.get("number")
+      build_timestamp_ms = last_build_data.get("timestamp")
+      status = last_build_data.get(
+        "result"
+      )  # 'result' usually holds FAILURE, SUCCESS, etc.
+      build_url = last_build_data.get("url")
+
+      if not build_timestamp_ms:
+        logger.warning(
+          f"Last build for {job_name} (Num: {build_number}) missing timestamp data. Skipping."
+        )
+        continue
+
+      # Convert timestamp and check time window
+      build_timestamp_utc = datetime.fromtimestamp(
+        build_timestamp_ms / 1000.0, tz=timezone.utc
+      )
+
+      if build_timestamp_utc >= cutoff_utc:
+        logger.debug(
+          f"  Last build {job_name}#{build_number} is recent ({build_timestamp_utc.isoformat()}). Status: {status}"
+        )
+        # Check status
+        if status == "FAILURE":
+          recent_failed_builds.append(
+            {
+              "job_name": job_name,
+              "build_number": build_number,
+              "status": status,
+              "timestamp_utc": build_timestamp_utc.isoformat(),
+              "url": build_url
+              or job_data.get("url", "") + str(build_number),  # Construct URL if needed
+            }
+          )
+          logger.info(f"Found recent failed LAST build: {job_name}#{build_number}")
+        else:
+          logger.debug(
+            f"  Last build {job_name}#{build_number} was recent but status was not FAILURE (Status: {status})."
+          )
+      else:
+        logger.debug(
+          f"  Last build {job_name}#{build_number} ({build_timestamp_utc.isoformat()}) is older than cutoff ({cutoff_utc.isoformat()}). Skipping."
+        )
+
+    logger.debug(
+      f"Finished processing optimized response. Found {len(recent_failed_builds)} jobs whose last build failed in the last {hours_ago} hours."
+    )
+    return recent_failed_builds
+
+  except requests.exceptions.Timeout as e:
+    logger.error(f"Timeout error during optimized Jenkins API call: {e}", exc_info=True)
+    return {"error": f"Timeout connecting to Jenkins API: {e}"}
+  except requests.exceptions.ConnectionError as e:
+    logger.error(
+      f"Connection error during optimized Jenkins API call: {e}", exc_info=True
+    )
+    return {"error": f"Could not connect to Jenkins API: {e}"}
+  except requests.exceptions.HTTPError as e:
+    logger.error(
+      f"HTTP error during optimized Jenkins API call: {e.response.status_code} - {e.response.text}",
+      exc_info=True,
+    )
+    return {
+      "error": f"Jenkins API HTTP Error: {e.response.status_code} - {e.response.reason}"
+    }
+  except requests.exceptions.RequestException as e:
+    logger.error(f"Error during optimized Jenkins API call: {e}", exc_info=True)
+    return {"error": f"Jenkins API Request Error: {e}"}
+  except Exception as e:  # Catch other potential errors (e.g., JSON parsing)
+    logger.error(
+      f"Unexpected error in jenkins_get_recent_failed_builds (optimized): {e}",
+      exc_info=True,
+    )
     return {"error": f"An unexpected error occurred: {e}"}
