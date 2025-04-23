@@ -53,7 +53,7 @@ def initialize_jenkins_client():
     try:
       j = Jenkins(JENKINS_URL, username=JENKINS_USER, password=JENKINS_TOKEN)
       # Basic connection test
-      _ = j.get_whoami()
+      _ = j.get_master_data()
       logger.info(
         "Successfully authenticated with Jenkins using JENKINS_URL, JENKINS_USER and JENKINS_TOKEN."
       )
