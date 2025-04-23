@@ -105,7 +105,7 @@ mcp = FastMCP(
   "DevOps MCP Server (Github & Jenkins)",
   host="0.0.0.0",
   port=8000,
-  settings={"initialization_timeout": 10},
+  settings={"initialization_timeout": 10, "request_timeout": 300},
 )
 
 # --- MCP Tools (Wrappers around github.py functions) ---
@@ -269,44 +269,12 @@ async def get_jenkins_build_log(
       build_number: Build number.
 
   Returns:
-      The last 5KB of the build log (str) or an error dictionary.
+      The last 10KB of the build log (str) or an error dictionary.
   """
   logger.debug(
     f"Executing get_jenkins_build_log for job: {job_name}, build: {build_number}"
   )
   return jenkins.jenkins_get_build_log(job_name=job_name, build_number=build_number)
-
-
-@mcp.tool()
-async def get_jenkins_jobs_under_view(
-  view_name: str,
-) -> Union[List[Dict[str, Any]], Dict[str, str]]:
-  """Get all Jenkins jobs under a specific view.
-
-  Args:
-      view_name: Name of the Jenkins view.
-
-  Returns:
-      List of job dictionaries or an error dictionary.
-  """
-  logger.debug(f"Executing get_jenkins_jobs_under_view for view: {view_name}")
-  return jenkins.jenkins_get_jobs_under_view(view_name=view_name)
-
-
-@mcp.tool()
-async def get_jenkins_jobs_by_name(
-  job_name_pattern: str,
-) -> Union[List[Dict[str, Any]], Dict[str, str]]:
-  """Get all Jenkins jobs matching a regex pattern.
-
-  Args:
-      job_name_pattern: Regex pattern to match job names.
-
-  Returns:
-      List of job dictionaries or an error dictionary.
-  """
-  logger.debug(f"Executing get_jenkins_jobs_by_name with pattern: {job_name_pattern}")
-  return jenkins.jenkins_get_jobs_by_name(job_name_pattern=job_name_pattern)
 
 
 @mcp.tool()
@@ -320,16 +288,51 @@ async def get_all_jenkins_views() -> Union[List[Dict[str, Any]], Dict[str, str]]
   return jenkins.jenkins_get_all_views()
 
 
+# --- Add the new MCP tool for build parameters ---
 @mcp.tool()
-async def get_jenkins_queue() -> Union[List[Dict[str, Any]], Dict[str, str]]:
-  """Get all queue items in jenkins.
+async def get_jenkins_build_parameters(
+  job_name: str, build_number: int
+) -> Union[Dict[str, Any], Dict[str, str]]:
+  """Get the parameters used for a specific Jenkins build.
+
+  Args:
+      job_name: Name of the Jenkins job.
+      build_number: Build number.
 
   Returns:
-      List of queue items or an error dictionary.
+      A dictionary containing the build parameters or an error dictionary.
   """
-  logger.debug("Executing get_jenkins_queue")
-  return jenkins.jenkins_get_queue()
+  logger.debug(
+    f"Executing get_jenkins_build_parameters for job: {job_name}, build: {build_number}"
+  )
+  # Call the corresponding function in the jenkins module
+  return jenkins.jenkins_get_build_parameters(
+    job_name=job_name, build_number=build_number
+  )
 
+
+@mcp.tool()
+# --- ADD hours_ago parameter here ---
+async def get_recent_failed_jenkins_builds(
+  hours_ago: int = 8,
+) -> Union[List[Dict[str, Any]], Dict[str, str]]:
+  """Get a list of Jenkins builds that failed within the specified recent period.
+
+  Args: # Add Args section
+      hours_ago (int, optional): How many hours back to check for failed builds. Defaults to 8.
+
+  Returns:
+      A list of dictionaries, each containing details ('job_name', 'build_number',
+      'status', 'timestamp_utc', 'url') for builds that failed recently,
+      or an error dictionary.
+  """
+  # --- Use the hours_ago variable in the log ---
+  logger.debug(f"Executing get_recent_failed_jenkins_builds for last {hours_ago} hours")
+  # --- Pass the hours_ago parameter ---
+  return jenkins.jenkins_get_recent_failed_builds(hours_ago=hours_ago)
+
+
+# --- End new MCP tool ---
 
 # --- Main Execution Logic ---
 # (No changes needed in main() or main_sse())
