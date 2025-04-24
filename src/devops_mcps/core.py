@@ -227,29 +227,6 @@ async def get_all_jenkins_views() -> Union[List[Dict[str, Any]], Dict[str, str]]
   return jenkins.jenkins_get_all_views()
 
 
-# --- Add the new MCP tool for build parameters ---
-@mcp.tool()
-async def get_jenkins_build_parameters(
-  job_name: str, build_number: int
-) -> Union[Dict[str, Any], Dict[str, str]]:
-  """Get the parameters used for a specific Jenkins build.
-
-  Args:
-      job_name: Name of the Jenkins job.
-      build_number: Build number.
-
-  Returns:
-      A dictionary containing the build parameters or an error dictionary.
-  """
-  logger.debug(
-    f"Executing get_jenkins_build_parameters for job: {job_name}, build: {build_number}"
-  )
-  # Call the corresponding function in the jenkins module
-  return jenkins.jenkins_get_build_parameters(
-    job_name=job_name, build_number=build_number
-  )
-
-
 @mcp.tool()
 # --- ADD hours_ago parameter here ---
 async def get_recent_failed_jenkins_builds(

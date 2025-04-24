@@ -24,92 +24,18 @@ from github.License import License  # Import License for _to_dict
 from github.Milestone import Milestone  # Import Milestone for _to_dict
 
 # --- Import field_validator instead of validator ---
-from pydantic import BaseModel, field_validator
+from .inputs import (
+  SearchRepositoriesInput,
+  GetFileContentsInput,
+  ListCommitsInput,
+  ListIssuesInput,
+  GetRepositoryInput,
+  SearchCodeInput,
+)
 
 logger = logging.getLogger(__name__)
 
 # --- Pydantic Models (Input Validation - Moved from core.py) ---
-
-
-class SearchRepositoriesInput(BaseModel):
-  query: str
-
-
-class GetFileContentsInput(BaseModel):
-  owner: str
-  repo: str
-  path: str
-  branch: Optional[str] = None
-
-
-class ListCommitsInput(BaseModel):
-  owner: str
-  repo: str
-  branch: Optional[str] = None
-
-
-class ListIssuesInput(BaseModel):
-  owner: str
-  repo: str
-  state: str = "open"
-  labels: Optional[List[str]] = None
-  sort: str = "created"
-  direction: str = "desc"
-
-  # --- Use field_validator ---
-  @field_validator("state")
-  @classmethod  # Keep classmethod if needed, often optional in v2 for simple validators
-  def state_must_be_valid(cls, v: str) -> str:
-    if v not in ["open", "closed", "all"]:
-      raise ValueError("state must be 'open', 'closed', or 'all'")
-    return v
-
-  # --- Use field_validator ---
-  @field_validator("sort")
-  @classmethod
-  def sort_must_be_valid(cls, v: str) -> str:
-    if v not in ["created", "updated", "comments"]:
-      raise ValueError("sort must be 'created', 'updated', or 'comments'")
-    return v
-
-  # --- Use field_validator ---
-  @field_validator("direction")
-  @classmethod
-  def direction_must_be_valid(cls, v: str) -> str:
-    if v not in ["asc", "desc"]:
-      raise ValueError("direction must be 'asc' or 'desc'")
-    return v
-
-
-class GetRepositoryInput(BaseModel):
-  owner: str
-  repo: str
-
-
-class SearchCodeInput(BaseModel):
-  q: str
-  sort: str = "indexed"
-  order: str = "desc"
-
-  # --- Use field_validator ---
-  @field_validator("sort")
-  @classmethod
-  def sort_must_be_valid(cls, v: str) -> str:
-    # Note: The original logic used 'pass', which doesn't do anything.
-    # If validation is intended, it should raise an error or modify the value.
-    # Keeping the original intent (allowing 'indexed' or 'best match' implicitly).
-    # If strict validation was intended, add:
-    # if v not in ['indexed', 'best match']:
-    #     raise ValueError("sort must be 'indexed' or 'best match'")
-    return v
-
-  # --- Use field_validator ---
-  @field_validator("order")
-  @classmethod
-  def order_must_be_valid(cls, v: str) -> str:
-    if v not in ["asc", "desc"]:
-      raise ValueError("order must be 'asc' or 'desc'")
-    return v
 
 
 # --- GitHub Client Initialization ---
