@@ -66,7 +66,10 @@ async def search_repositories(
   """
   logger.debug(
     f"Executing search_repositories with query: {query}"
-  )  # This will now be logged
+  )
+  if not query:
+    logger.error("参数 query 不能为空")
+    return {"error": "参数 query 不能为空"}
   return github.gh_search_repositories(query=query)
 
 
@@ -87,7 +90,16 @@ async def get_file_contents(
   """
   logger.debug(
     f"Executing get_file_contents for {owner}/{repo}/{path}"
-  )  # This will now be logged
+  )
+  if not owner:
+    logger.error("参数 owner 不能为空")
+    return {"error": "参数 owner 不能为空"}
+  if not repo:
+    logger.error("参数 repo 不能为空")
+    return {"error": "参数 repo 不能为空"}
+  if not path:
+    logger.error("参数 path 不能为空")
+    return {"error": "参数 path 不能为空"}
   return github.gh_get_file_contents(owner=owner, repo=repo, path=path, branch=branch)
 
 
@@ -107,7 +119,13 @@ async def list_commits(
   """
   logger.debug(
     f"Executing list_commits for {owner}/{repo}, branch: {branch}"
-  )  # This will now be logged
+  )
+  if not owner:
+    logger.error("参数 owner 不能为空")
+    return {"error": "参数 owner 不能为空"}
+  if not repo:
+    logger.error("参数 repo 不能为空")
+    return {"error": "参数 repo 不能为空"}
   return github.gh_list_commits(owner=owner, repo=repo, branch=branch)
 
 
@@ -135,7 +153,13 @@ async def list_issues(
   """
   logger.debug(
     f"Executing list_issues for {owner}/{repo}, state: {state}"
-  )  # This will now be logged
+  )
+  if not owner:
+    logger.error("参数 owner 不能为空")
+    return {"error": "参数 owner 不能为空"}
+  if not repo:
+    logger.error("参数 repo 不能为空")
+    return {"error": "参数 repo 不能为空"}
   return github.gh_list_issues(
     owner=owner,
     repo=repo,
@@ -161,7 +185,13 @@ async def get_repository(
   """
   logger.debug(
     f"Executing get_repository for {owner}/{repo}"
-  )  # This will now be logged
+  )
+  if not owner:
+    logger.error("参数 owner 不能为空")
+    return {"error": "参数 owner 不能为空"}
+  if not repo:
+    logger.error("参数 repo 不能为空")
+    return {"error": "参数 repo 不能为空"}
   return github.gh_get_repository(owner=owner, repo=repo)
 
 
@@ -181,7 +211,10 @@ async def search_code(
   Returns:
       List of code result dictionaries (first page) or an error dictionary.
   """
-  logger.debug(f"Executing search_code with query: {q}")  # This will now be logged
+  logger.debug(f"Executing search_code with query: {q}")
+  if not q:
+    logger.error("参数 q 不能为空")
+    return {"error": "参数 q 不能为空"}
   return github.gh_search_code(q=q, sort=sort, order=order)
 
 
@@ -213,6 +246,12 @@ async def get_jenkins_build_log(
   logger.debug(
     f"Executing get_jenkins_build_log for job: {job_name}, build: {build_number}"
   )
+  if not job_name:
+    logger.error("参数 job_name 不能为空")
+    return {"error": "参数 job_name 不能为空"}
+  if build_number is None:
+    logger.error("参数 build_number 不能为空")
+    return {"error": "参数 build_number 不能为空"}
   return jenkins.jenkins_get_build_log(job_name=job_name, build_number=build_number)
 
 
@@ -256,6 +295,8 @@ async def get_recent_failed_jenkins_builds(
 
 def main():
   """Entry point for the CLI."""
+  # 确保环境变量加载后再初始化 github 客户端
+  github.initialize_github_client(force=True)
   parser = argparse.ArgumentParser(
     description="DevOps MCP Server (PyGithub - Raw Output)"
   )
