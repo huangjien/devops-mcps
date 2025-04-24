@@ -325,14 +325,14 @@ def _handle_paginated_list(paginated_list: PaginatedList) -> List[Dict[str, Any]
 def gh_search_repositories(query: str) -> Union[List[Dict[str, Any]], Dict[str, str]]:
   """Internal logic for searching repositories."""
   logger.debug(f"gh_search_repositories called with query: '{query}'")
-  
+
   # Check cache first
   cache_key = f"github:search_repos:{query}"
   cached = cache.get(cache_key)
   if cached:
     logger.debug(f"Returning cached result for {cache_key}")
     return cached
-    
+
   if not g:
     logger.error("gh_search_repositories: GitHub client not initialized.")
     return {"error": "GitHub client not initialized."}
@@ -362,7 +362,7 @@ def gh_get_file_contents(
   logger.debug(
     f"gh_get_file_contents called for {owner}/{repo}/{path}, branch: {branch}"
   )
-  
+
   # Check cache first
   branch_str = branch if branch else "default"
   cache_key = f"github:get_file:{owner}/{repo}/{path}:{branch_str}"
@@ -370,7 +370,7 @@ def gh_get_file_contents(
   if cached:
     logger.debug(f"Returning cached result for {cache_key}")
     return cached
-    
+
   if not g:
     logger.error("gh_get_file_contents: GitHub client not initialized.")
     return {"error": "GitHub client not initialized."}
@@ -444,7 +444,7 @@ def gh_list_commits(
 ) -> Union[List[Dict[str, Any]], Dict[str, str]]:
   """Internal logic for listing commits."""
   logger.debug(f"gh_list_commits called for {owner}/{repo}, branch: {branch}")
-  
+
   # Check cache first
   branch_str = branch if branch else "default"
   cache_key = f"github:list_commits:{owner}/{repo}:{branch_str}"
@@ -452,7 +452,7 @@ def gh_list_commits(
   if cached:
     logger.debug(f"Returning cached result for {cache_key}")
     return cached
-    
+
   if not g:
     logger.error("gh_list_commits: GitHub client not initialized.")
     return {"error": "GitHub client not initialized."}
@@ -502,15 +502,17 @@ def gh_list_issues(
   logger.debug(
     f"gh_list_issues called for {owner}/{repo}, state: {state}, labels: {labels}, sort: {sort}, direction: {direction}"
   )
-  
+
   # Check cache first
   labels_str = ",".join(sorted(labels)) if labels else "none"
-  cache_key = f"github:list_issues:{owner}/{repo}:{state}:{labels_str}:{sort}:{direction}"
+  cache_key = (
+    f"github:list_issues:{owner}/{repo}:{state}:{labels_str}:{sort}:{direction}"
+  )
   cached = cache.get(cache_key)
   if cached:
     logger.debug(f"Returning cached result for {cache_key}")
     return cached
-    
+
   if not g:
     logger.error("gh_list_issues: GitHub client not initialized.")
     return {"error": "GitHub client not initialized."}
@@ -550,14 +552,14 @@ def gh_list_issues(
 def gh_get_repository(owner: str, repo: str) -> Union[Dict[str, Any], Dict[str, str]]:
   """Internal logic for getting repository info."""
   logger.debug(f"gh_get_repository called for {owner}/{repo}")
-  
+
   # Check cache first
   cache_key = f"github:get_repo:{owner}/{repo}"
   cached = cache.get(cache_key)
   if cached:
     logger.debug(f"Returning cached result for {cache_key}")
     return cached
-    
+
   if not g:
     logger.error("gh_get_repository: GitHub client not initialized.")
     return {"error": "GitHub client not initialized."}
@@ -588,14 +590,14 @@ def gh_search_code(
 ) -> Union[List[Dict[str, Any]], Dict[str, str]]:
   """Internal logic for searching code."""
   logger.debug(f"gh_search_code called with query: '{q}', sort: {sort}, order: {order}")
-  
+
   # Check cache first
   cache_key = f"github:search_code:{q}:{sort}:{order}"
   cached = cache.get(cache_key)
   if cached:
     logger.debug(f"Returning cached result for {cache_key}")
     return cached
-    
+
   if not g:
     logger.error("gh_search_code: GitHub client not initialized.")
     return {"error": "GitHub client not initialized."}

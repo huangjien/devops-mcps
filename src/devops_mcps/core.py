@@ -1,7 +1,5 @@
 # /Users/huangjien/workspace/devops-mcps/src/devops_mcps/core.py
 import logging
-from . import github, jenkins  # Import the github module and jenkins
-import logging.handlers  # Import handlers
 import sys
 import argparse
 from typing import List, Optional, Dict, Any, Union
@@ -10,107 +8,35 @@ from typing import List, Optional, Dict, Any, Union
 from dotenv import load_dotenv
 from importlib.metadata import version, PackageNotFoundError
 
+# Import local modules after logging setup
+from . import github, jenkins
+
 # MCP imports
 from mcp.server.fastmcp import FastMCP
 
-# --- Logging Setup (BEFORE importing github) ---
+# Local imports
+from .logger import setup_logging
 
-# Define logging parameters
-LOG_FILENAME = "mcp_server.log"
-MAX_LOG_SIZE_MB = 4
-MAX_BYTES = MAX_LOG_SIZE_MB * 1024 * 1024
-BACKUP_COUNT = 0  # Set to 0 to overwrite (delete the old log on rotation)
-# --- CHANGE LOG LEVEL HERE ---
-LOG_LEVEL = logging.DEBUG  # Set the log level to DEBUG
-
-# --- UPDATE FORMATTER HERE ---
-# Create formatter - Added %(lineno)d for line number
-log_formatter = logging.Formatter(
-  "%(asctime)s - %(name)s - %(levelname)s:%(lineno)d - %(message)s"
-)
-
-# --- Configure Root Logger ---
-root_logger = logging.getLogger()
-root_logger.setLevel(LOG_LEVEL)  # Set the desired global level
-root_logger.handlers.clear()  # Clear any existing handlers (important if run multiple times)
-
-# --- Rotating File Handler ---
-# Consider using an absolute path if the script's working directory might change
-# log_file_path = os.path.join('/var/log/mcp', LOG_FILENAME) # Example absolute path
-log_file_path = LOG_FILENAME  # Use relative path for simplicity here
-
-try:
-  rotating_handler = logging.handlers.RotatingFileHandler(
-    filename=log_file_path,
-    maxBytes=MAX_BYTES,
-    backupCount=BACKUP_COUNT,
-    encoding="utf-8",
-  )
-  rotating_handler.setFormatter(log_formatter)  # Apply updated formatter
-  root_logger.addHandler(rotating_handler)
-  file_logging_enabled = True
-except Exception as file_log_error:
-  # Log error to stderr if file handler setup fails
-  # Use basicConfig temporarily for this error message if root logger has no handlers yet
-  # --- Use updated format string in fallback ---
-  logging.basicConfig(level=LOG_LEVEL, format=log_formatter._fmt, stream=sys.stderr)
-  logging.error(
-    f"Failed to configure file logging to {log_file_path}: {file_log_error}"
-  )
-  file_logging_enabled = False
-
-
-# --- Console (stderr) Handler ---
-try:
-  console_handler = logging.StreamHandler(sys.stderr)
-  console_handler.setFormatter(log_formatter)  # Apply updated formatter
-  root_logger.addHandler(console_handler)
-  console_logging_enabled = True
-except Exception as console_log_error:
-  # Less likely to fail, but handle anyway
-  # --- Use updated format string in fallback ---
-  logging.basicConfig(level=LOG_LEVEL, format=log_formatter._fmt, stream=sys.stderr)
-  logging.error(f"Failed to configure console logging: {console_log_error}")
-  console_logging_enabled = False
-
-# --- Final Logging Setup Confirmation ---
-# Initialize logger for this module AFTER handlers are added
+# Setup logging before importing github/jenkins
+setup_logging()
 logger = logging.getLogger(__name__)
 
-log_destinations = []
-if file_logging_enabled:
-  log_destinations.append(
-    f"File ({log_file_path}, MaxSize: {MAX_LOG_SIZE_MB}MB, Backups: {BACKUP_COUNT})"
-  )
-if console_logging_enabled:
-  log_destinations.append("Console (stderr)")
 
-if log_destinations:
-  # Use getLevelName to show 'DEBUG' instead of the numeric value
-  logger.info(
-    f"Logging configured (Level: {logging.getLevelName(LOG_LEVEL)}) -> {' & '.join(log_destinations)}"
-  )
-else:
-  # Should not happen if basicConfig fallback works, but as a safeguard
-  print("CRITICAL: Logging could not be configured.", file=sys.stderr)
-
-
-# --- Environment and Local Imports (AFTER logging setup) ---
-
+# --- Environment Setup ---
 load_dotenv()  # Load .env file
 
 # --- Get Package Version ---
 try:
-    # Replace 'devops-mcps' if your actual distributable package name is different
-    # This name usually comes from your pyproject.toml `[project] name`
-    # or setup.py `name=` argument.
-    package_version = version("devops-mcps")
+  # Replace 'devops-mcps' if your actual distributable package name is different
+  # This name usually comes from your pyproject.toml `[project] name`
+  # or setup.py `name=` argument.
+  package_version = version("devops-mcps")
 except PackageNotFoundError:
-    logger.warning(
-        "Could not determine package version using importlib.metadata. "
-        "Is the package installed correctly? Falling back to 'unknown'."
-    )
-    package_version = "?.?.?" # Provide a fallback
+  logger.warning(
+    "Could not determine package version using importlib.metadata. "
+    "Is the package installed correctly? Falling back to 'unknown'."
+  )
+  package_version = "?.?.?"  # Provide a fallback
 
 # --- MCP Server Setup ---
 
