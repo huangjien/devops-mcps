@@ -100,4 +100,3 @@ def setup_logging() -> bool:
     print("CRITICAL: Logging could not be configured.", file=sys.stderr)
 
   return file_logging_enabled
-

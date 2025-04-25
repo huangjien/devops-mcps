@@ -211,7 +211,7 @@ wheels = [
 
 [[package]]
 name = "devops-mcps"
-version = "0.5.8"
+version = "0.6.1"
 source = { editable = "." }
 dependencies = [
     { name = "dotenv" },

@@ -64,9 +64,7 @@ async def search_repositories(
   Returns:
       List of repository dictionaries (first page) or an error dictionary.
   """
-  logger.debug(
-    f"Executing search_repositories with query: {query}"
-  )
+  logger.debug(f"Executing search_repositories with query: {query}")
   if not query:
     logger.error("参数 query 不能为空")
     return {"error": "参数 query 不能为空"}
@@ -88,9 +86,7 @@ async def get_file_contents(
   Returns:
       Decoded file content (str), list of file/dir dictionaries, or an error dictionary.
   """
-  logger.debug(
-    f"Executing get_file_contents for {owner}/{repo}/{path}"
-  )
+  logger.debug(f"Executing get_file_contents for {owner}/{repo}/{path}")
   if not owner:
     logger.error("参数 owner 不能为空")
     return {"error": "参数 owner 不能为空"}
@@ -117,9 +113,7 @@ async def list_commits(
   Returns:
       List of commit dictionaries (first page) or an error dictionary.
   """
-  logger.debug(
-    f"Executing list_commits for {owner}/{repo}, branch: {branch}"
-  )
+  logger.debug(f"Executing list_commits for {owner}/{repo}, branch: {branch}")
   if not owner:
     logger.error("参数 owner 不能为空")
     return {"error": "参数 owner 不能为空"}
@@ -151,9 +145,7 @@ async def list_issues(
   Returns:
       List of issue dictionaries (first page) or an error dictionary.
   """
-  logger.debug(
-    f"Executing list_issues for {owner}/{repo}, state: {state}"
-  )
+  logger.debug(f"Executing list_issues for {owner}/{repo}, state: {state}")
   if not owner:
     logger.error("参数 owner 不能为空")
     return {"error": "参数 owner 不能为空"}
@@ -183,9 +175,7 @@ async def get_repository(
   Returns:
       Repository dictionary or an error dictionary.
   """
-  logger.debug(
-    f"Executing get_repository for {owner}/{repo}"
-  )
+  logger.debug(f"Executing get_repository for {owner}/{repo}")
   if not owner:
     logger.error("参数 owner 不能为空")
     return {"error": "参数 owner 不能为空"}
