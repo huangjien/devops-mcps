@@ -22,6 +22,25 @@ So it is safe for DevOps.
 - Build parameter inspection
 - Recent failed builds monitoring
 
+
+### Artifactory Integration
+
+The DevOps MCP Server provides integration with JFrog Artifactory, allowing you to:
+
+1. **List Repository Items**: Browse through repositories and directories to view their contents.
+   - Supports both file and directory listings
+   - Results are cached for improved performance
+
+2. **Search Across Repositories**: Search for artifacts by name or path across one or multiple repositories.
+   - Supports filtering by specific repositories
+   - Uses Artifactory Query Language (AQL) for powerful searches
+
+3. **Get Item Information**: Retrieve detailed information about specific artifacts.
+   - For files: includes metadata and properties
+   - For directories: includes child items
+
+All Artifactory operations support both token-based authentication and basic username/password authentication.
+
 ## Installation
 
 To install the package, use the following command:
@@ -37,11 +56,11 @@ Run the MCP server:
 devops-mcps
 ```
 
+# DevOps MCP Server
 ## Configuration
-
 ### Environment Variables
-
 #### GitHub Configuration
+
 Set the required environment variable for GitHub API access:
 
 ```bash
@@ -56,6 +75,12 @@ export JENKINS_URL=your_jenkins_url
 export JENKINS_USER=your_jenkins_username
 export JENKINS_TOKEN=your_jenkins_token
 export LOG_LENGTH=5120
+export ARTIFACTORY_URL=https://your-artifactory-instance.example.com
+# Authentication - either use identity token:
+export ARTIFACTORY_IDENTITY_TOKEN=your_token_here
+# OR use username and password:
+export ARTIFACTORY_USERNAME=your_username
+export ARTIFACTORY_PASSWORD=your_password
 ```
 
 **Note**: LOG_LENGTH means it will retrieve this length of jenkins log for analysis. It does not always the longer the better.
