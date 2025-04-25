@@ -45,7 +45,7 @@ GITHUB_API_URL = os.environ.get("GITHUB_API_URL")
 def initialize_github_client(force: bool = False):
   """Initializes the global GitHub client 'g'. Set force=True to re-initialize."""
   global g
-  # 测试友好：每次都重置 g，确保 patch.dict 后能初始化 mock
+  # Test-friendly: Reset g each time to ensure mock can be initialized after patch.dict
   g = None
 
   github_token = os.environ.get("GITHUB_PERSONAL_ACCESS_TOKEN")
@@ -131,7 +131,7 @@ def _to_dict(obj: Any) -> Any:
 
   # Handle top-level objects
   if isinstance(obj, Repository):
-    # 优先处理 mock _rawData
+    # Prioritize handling mock _rawData
     if hasattr(obj, "_rawData") and isinstance(obj._rawData, dict):
       return _to_dict(obj._rawData)
     return {
@@ -228,7 +228,7 @@ def _to_dict(obj: Any) -> Any:
 
   # Fallback
   try:
-    # 优先兼容 mock 对象
+    # Prioritize compatibility with mock objects
     try:
       import unittest.mock
 
@@ -245,7 +245,7 @@ def _to_dict(obj: Any) -> Any:
 
           def extract_value(v):
             if isinstance(v, unittest.mock.Mock):
-              # 如果 mock 有 return_value 且 return_value 不是 mock，则递归取
+              # If mock has return_value and return_value is not a mock, recursively get it
               rv = getattr(v, "return_value", v)
               if isinstance(rv, unittest.mock.Mock):
                 return extract_value(rv)
@@ -257,12 +257,12 @@ def _to_dict(obj: Any) -> Any:
           return raw
       return raw
     if is_mock:
-      # 尝试返回 mock 属性字典，兼容测试
+      # Try returning mock attribute dictionary for test compatibility
       attrs = {}
       for attr in ["name", "full_name", "description"]:
         if hasattr(obj, attr):
           value = getattr(obj, attr)
-          # 取 mock 属性的 return_value 或实际值
+          # Get mock attribute's return_value or actual value
           if isinstance(value, unittest.mock.Mock):
             value = value.return_value if hasattr(value, "return_value") else str(value)
           attrs[attr] = value
@@ -296,10 +296,54 @@ def _handle_paginated_list(paginated_list: PaginatedList) -> List[Dict[str, Any]
 
 
 # --- GitHub API Functions (Internal Logic) ---
-# These functions contain the core PyGithub interaction logic
+
+def gh_get_current_user_info() -> Dict[str, Any]:
+  """Internal logic for getting the authenticated user's info."""
+  logger.debug("gh_get_current_user_info called")
+
+  # Check cache first (optional, but good practice if info doesn't change often)
+  cache_key = "github:current_user_info"
+  cached = cache.get(cache_key)
+  if cached:
+    logger.debug(f"Returning cached result for {cache_key}")
+    return cached
+
+  github_client = initialize_github_client(force=True) # Ensure client is initialized
+  if not github_client:
+    logger.error("gh_get_current_user_info: GitHub client not initialized.")
+    return {"error": "GitHub client not initialized."}
+
+  try:
+    user = github_client.get_user()
+    user_info = {
+      "login": user.login,
+      "name": user.name,
+      "email": user.email,
+      "id": user.id,
+      "html_url": user.html_url,
+      "type": user.type,
+      # Add other fields as needed, e.g., company, location
+    }
+    logger.debug(f"Successfully retrieved user info for {user.login}")
+    cache.set(cache_key, user_info, ttl=3600) # Cache for 1 hour
+    return user_info
+  except BadCredentialsException:
+    logger.error("gh_get_current_user_info: Invalid credentials.")
+    return {"error": "Authentication failed. Check your GitHub token."}
+  except RateLimitExceededException:
+      logger.error("gh_get_current_user_info: GitHub API rate limit exceeded.")
+      return {"error": "GitHub API rate limit exceeded."}
+  except GithubException as e:
+    logger.error(f"gh_get_current_user_info GitHub Error: {e.status} - {e.data}", exc_info=True)
+    return {"error": f"GitHub API Error: {e.status} - {e.data.get('message', 'Unknown GitHub error')}"}
+  except Exception as e:
+    logger.error(f"Unexpected error in gh_get_current_user_info: {e}", exc_info=True)
+    return {"error": f"An unexpected error occurred: {e}"}
 
 
-def gh_search_repositories(query: str) -> Union[List[Dict[str, Any]], Dict[str, str]]:
+def gh_search_repositories(
+  query: str,
+) -> Union[List[Dict[str, Any]], Dict[str, str]]:
   """Internal logic for searching repositories."""
   logger.debug(f"gh_search_repositories called with query: '{query}'")
 

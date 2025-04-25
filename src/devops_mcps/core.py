@@ -66,9 +66,27 @@ async def search_repositories(
   """
   logger.debug(f"Executing search_repositories with query: {query}")
   if not query:
-    logger.error("参数 query 不能为空")
-    return {"error": "参数 query 不能为空"}
+    logger.error("Parameter 'query' cannot be empty")
+    return {"error": "Parameter 'query' cannot be empty"}
   return github.gh_search_repositories(query=query)
+
+
+@mcp.tool(
+  name="github_get_current_user_info",
+  description="Get the name and email of the currently authenticated GitHub user.",
+)
+async def github_get_current_user_info() -> dict:  # Removed g: Github parameter
+  """
+  Retrieves the name and email of the authenticated GitHub user.
+
+  Returns:
+      A dictionary containing the user's name and email, or an error message.
+  """
+  # Call the synchronous function from the github module directly
+  # Note: This will block the event loop despite being in an async function.
+  return (
+    github.gh_get_current_user_info()
+  )  # Removed try/except, error handling is in github.py
 
 
 @mcp.tool()
@@ -88,14 +106,14 @@ async def get_file_contents(
   """
   logger.debug(f"Executing get_file_contents for {owner}/{repo}/{path}")
   if not owner:
-    logger.error("参数 owner 不能为空")
-    return {"error": "参数 owner 不能为空"}
+    logger.error("Parameter 'owner' cannot be empty")
+    return {"error": "Parameter 'owner' cannot be empty"}
   if not repo:
-    logger.error("参数 repo 不能为空")
-    return {"error": "参数 repo 不能为空"}
+    logger.error("Parameter 'repo' cannot be empty")
+    return {"error": "Parameter 'repo' cannot be empty"}
   if not path:
-    logger.error("参数 path 不能为空")
-    return {"error": "参数 path 不能为空"}
+    logger.error("Parameter 'path' cannot be empty")
+    return {"error": "Parameter 'path' cannot be empty"}
   return github.gh_get_file_contents(owner=owner, repo=repo, path=path, branch=branch)
 
 
@@ -115,11 +133,11 @@ async def list_commits(
   """
   logger.debug(f"Executing list_commits for {owner}/{repo}, branch: {branch}")
   if not owner:
-    logger.error("参数 owner 不能为空")
-    return {"error": "参数 owner 不能为空"}
+    logger.error("Parameter 'owner' cannot be empty")
+    return {"error": "Parameter 'owner' cannot be empty"}
   if not repo:
-    logger.error("参数 repo 不能为空")
-    return {"error": "参数 repo 不能为空"}
+    logger.error("Parameter 'repo' cannot be empty")
+    return {"error": "Parameter 'repo' cannot be empty"}
   return github.gh_list_commits(owner=owner, repo=repo, branch=branch)
 
 
@@ -147,11 +165,11 @@ async def list_issues(
   """
   logger.debug(f"Executing list_issues for {owner}/{repo}, state: {state}")
   if not owner:
-    logger.error("参数 owner 不能为空")
-    return {"error": "参数 owner 不能为空"}
+    logger.error("Parameter 'owner' cannot be empty")
+    return {"error": "Parameter 'owner' cannot be empty"}
   if not repo:
-    logger.error("参数 repo 不能为空")
-    return {"error": "参数 repo 不能为空"}
+    logger.error("Parameter 'repo' cannot be empty")
+    return {"error": "Parameter 'repo' cannot be empty"}
   return github.gh_list_issues(
     owner=owner,
     repo=repo,
@@ -177,35 +195,31 @@ async def get_repository(
   """
   logger.debug(f"Executing get_repository for {owner}/{repo}")
   if not owner:
-    logger.error("参数 owner 不能为空")
-    return {"error": "参数 owner 不能为空"}
+    logger.error("Parameter 'owner' cannot be empty")
+    return {"error": "Parameter 'owner' cannot be empty"}
   if not repo:
-    logger.error("参数 repo 不能为空")
-    return {"error": "参数 repo 不能为空"}
+    logger.error("Parameter 'repo' cannot be empty")
+    return {"error": "Parameter 'repo' cannot be empty"}
   return github.gh_get_repository(owner=owner, repo=repo)
 
 
 @mcp.tool()
 async def search_code(
-  q: str,
-  sort: str = "indexed",
-  order: str = "desc",
+  query: str,
 ) -> Union[List[Dict[str, Any]], Dict[str, str]]:
-  """Search for code across GitHub repositories. Returns raw data for the first page.
+  """Search for code in GitHub repositories. Returns raw data for the first page.
 
   Args:
-      q: Search query using GitHub code search syntax.
-      sort: Sort field ('indexed' or 'best match'). Default: 'indexed'.
-      order: Sort order ('asc' or 'desc'). Default: 'desc'.
+      query: Search query using GitHub search syntax.
 
   Returns:
-      List of code result dictionaries (first page) or an error dictionary.
+      List of code search result dictionaries (first page) or an error dictionary.
   """
-  logger.debug(f"Executing search_code with query: {q}")
-  if not q:
-    logger.error("参数 q 不能为空")
-    return {"error": "参数 q 不能为空"}
-  return github.gh_search_code(q=q, sort=sort, order=order)
+  logger.debug(f"Executing search_code with query: {query}")
+  if not query:
+    logger.error("Parameter 'query' cannot be empty")
+    return {"error": "Parameter 'query' cannot be empty"}
+  return github.gh_search_code(query=query)
 
 
 # --- MCP Jenkins Tools (Wrappers around jenkins.py functions) ---
@@ -285,7 +299,7 @@ async def get_recent_failed_jenkins_builds(
 
 def main():
   """Entry point for the CLI."""
-  # 确保环境变量加载后再初始化 github 客户端
+  # Ensure environment variables are loaded before initializing the github client
   github.initialize_github_client(force=True)
   parser = argparse.ArgumentParser(
     description="DevOps MCP Server (PyGithub - Raw Output)"
