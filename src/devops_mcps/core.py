@@ -228,7 +228,7 @@ async def get_jenkins_build_log(
 
   Args:
       job_name: Name of the Jenkins job.
-      build_number: Build number.
+      build_number: Build number, if 0 or minus, get the last build.
 
   Returns:
       The last 10KB of the build log (str) or an error dictionary.

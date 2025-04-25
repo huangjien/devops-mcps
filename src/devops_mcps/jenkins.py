@@ -121,7 +121,8 @@ def jenkins_get_jobs() -> Union[List[Dict[str, Any]], Dict[str, str]]:
 def jenkins_get_build_log(
   job_name: str, build_number: int
 ) -> Union[str, Dict[str, str]]:
-  """Internal logic for getting a build log (last 5KB)."""
+  """Internal logic for getting a build log (last 5KB).
+  If build_number <= 0, returns the latest build log."""
   logger.debug(
     f"jenkins_get_build_log called for job: {job_name}, build: {build_number}"
   )
@@ -130,6 +131,9 @@ def jenkins_get_build_log(
     return {"error": "Jenkins client not initialized."}
   try:
     job = j.get_job(job_name)
+    if build_number <= 0:
+      build_number = job.get_last_buildnumber()
+      logger.debug(f"Using latest build number: {build_number}")
     build = job.get_build(build_number)
     if not build:
       return {"error": f"Build #{build_number} not found for job {job_name}"}
