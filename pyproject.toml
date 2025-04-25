@@ -1,6 +1,6 @@
 [project]
 name = "devops-mcps"
-version = "0.5.8"
+version = "0.5.9"
 description = "A FastMCP-based MCP server for DevOps"
 authors = [{ name = "Jien Huang", email = "huangjien@gmail.com" }]
 readme = "README.md"
@@ -50,6 +50,8 @@ package-dir = {"" = "src"}
 dev-dependencies = [
     "pyright>=1.1.389",
     "pytest>=8.3.5",
+    "pytest-cov>=6.1.1",
+    "pytest-mock>=3.14.0",
     "ruff>=0.7.4",
 ]
 

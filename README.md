@@ -242,6 +242,11 @@ Run mcp inspector to test or debug:
 npx @modelcontextprotocol/inspector uv run devops-mcps
 ```
 
+Test and Coverage
+```
+pytest --cov=src/devops_mcps --cov-report=html tests/
+```
+
 ## CI/CD Pipeline
 
 GitHub Actions workflow will automatically:
