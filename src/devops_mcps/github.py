@@ -297,6 +297,7 @@ def _handle_paginated_list(paginated_list: PaginatedList) -> List[Dict[str, Any]
 
 # --- GitHub API Functions (Internal Logic) ---
 
+
 def gh_get_current_user_info() -> Dict[str, Any]:
   """Internal logic for getting the authenticated user's info."""
   logger.debug("gh_get_current_user_info called")
@@ -308,7 +309,7 @@ def gh_get_current_user_info() -> Dict[str, Any]:
     logger.debug(f"Returning cached result for {cache_key}")
     return cached
 
-  github_client = initialize_github_client(force=True) # Ensure client is initialized
+  github_client = initialize_github_client(force=True)  # Ensure client is initialized
   if not github_client:
     logger.error("gh_get_current_user_info: GitHub client not initialized.")
     return {"error": "GitHub client not initialized."}
@@ -325,17 +326,21 @@ def gh_get_current_user_info() -> Dict[str, Any]:
       # Add other fields as needed, e.g., company, location
     }
     logger.debug(f"Successfully retrieved user info for {user.login}")
-    cache.set(cache_key, user_info, ttl=3600) # Cache for 1 hour
+    cache.set(cache_key, user_info, ttl=3600)  # Cache for 1 hour
     return user_info
   except BadCredentialsException:
     logger.error("gh_get_current_user_info: Invalid credentials.")
     return {"error": "Authentication failed. Check your GitHub token."}
   except RateLimitExceededException:
-      logger.error("gh_get_current_user_info: GitHub API rate limit exceeded.")
-      return {"error": "GitHub API rate limit exceeded."}
+    logger.error("gh_get_current_user_info: GitHub API rate limit exceeded.")
+    return {"error": "GitHub API rate limit exceeded."}
   except GithubException as e:
-    logger.error(f"gh_get_current_user_info GitHub Error: {e.status} - {e.data}", exc_info=True)
-    return {"error": f"GitHub API Error: {e.status} - {e.data.get('message', 'Unknown GitHub error')}"}
+    logger.error(
+      f"gh_get_current_user_info GitHub Error: {e.status} - {e.data}", exc_info=True
+    )
+    return {
+      "error": f"GitHub API Error: {e.status} - {e.data.get('message', 'Unknown GitHub error')}"
+    }
   except Exception as e:
     logger.error(f"Unexpected error in gh_get_current_user_info: {e}", exc_info=True)
     return {"error": f"An unexpected error occurred: {e}"}

@@ -243,7 +243,7 @@ npx @modelcontextprotocol/inspector uv run devops-mcps
 ```
 
 Test and Coverage
-```
+```bash
 pytest --cov=src/devops_mcps --cov-report=html tests/
 ```
 

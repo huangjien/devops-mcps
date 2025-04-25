@@ -16,14 +16,14 @@ from devops_mcps.github import (
   gh_list_issues,
   gh_get_repository,
   gh_search_code,
-  gh_get_current_user_info, # Add this import
+  gh_get_current_user_info,  # Add this import
 )
 from github import (
   UnknownObjectException,
   BadCredentialsException,
-  RateLimitExceededException, # Add this import
+  RateLimitExceededException,  # Add this import
   GithubException,
-  NamedUser, # Add this import
+  NamedUser,  # Add this import
 )
 from github.Repository import Repository
 from github.Commit import Commit
@@ -409,6 +409,7 @@ def test_gh_search_code_success(mock_cache, mock_github):
 
 # --- Tests for gh_get_current_user_info ---
 
+
 def test_gh_get_current_user_info_success(mock_cache, mock_github, mock_logger):
   """Tests successful retrieval of user info."""
   mock_instance = mock_github.return_value
@@ -446,71 +447,87 @@ def test_gh_get_current_user_info_cached(mock_cache, mock_logger):
   assert result == cached_data
   mock_cache.get.assert_called_once_with("github:current_user_info")
   mock_logger.debug.assert_any_call("gh_get_current_user_info called")
-  mock_logger.debug.assert_any_call("Returning cached result for github:current_user_info")
+  mock_logger.debug.assert_any_call(
+    "Returning cached result for github:current_user_info"
+  )
 
 
 def test_gh_get_current_user_info_client_init_fails(mock_cache, mock_logger):
   """Tests failure when GitHub client initialization fails."""
   with patch("devops_mcps.github.initialize_github_client", return_value=None):
-      result = gh_get_current_user_info()
+    result = gh_get_current_user_info()
 
   assert isinstance(result, dict)
   assert result["error"] == "GitHub client not initialized."
   mock_cache.get.assert_called_once_with("github:current_user_info")
-  mock_logger.error.assert_called_once_with("gh_get_current_user_info: GitHub client not initialized.")
+  mock_logger.error.assert_called_once_with(
+    "gh_get_current_user_info: GitHub client not initialized."
+  )
 
 
 def test_gh_get_current_user_info_bad_credentials(mock_cache, mock_github, mock_logger):
   """Tests handling of BadCredentialsException."""
   mock_instance = mock_github.return_value
-  mock_instance.get_user.side_effect = BadCredentialsException(401, {"message": "Bad credentials"})
+  mock_instance.get_user.side_effect = BadCredentialsException(
+    401, {"message": "Bad credentials"}
+  )
 
   with patch("devops_mcps.github.initialize_github_client", return_value=mock_instance):
-      result = gh_get_current_user_info()
+    result = gh_get_current_user_info()
 
   assert isinstance(result, dict)
   assert result["error"] == "Authentication failed. Check your GitHub token."
   mock_cache.get.assert_called_once_with("github:current_user_info")
-  mock_logger.error.assert_called_once_with("gh_get_current_user_info: Invalid credentials.")
+  mock_logger.error.assert_called_once_with(
+    "gh_get_current_user_info: Invalid credentials."
+  )
 
 
 def test_gh_get_current_user_info_rate_limit(mock_cache, mock_github, mock_logger):
   """Tests handling of RateLimitExceededException."""
   mock_instance = mock_github.return_value
-  mock_instance.get_user.side_effect = RateLimitExceededException(403, {"message": "API rate limit exceeded"})
+  mock_instance.get_user.side_effect = RateLimitExceededException(
+    403, {"message": "API rate limit exceeded"}
+  )
 
   with patch("devops_mcps.github.initialize_github_client", return_value=mock_instance):
-      result = gh_get_current_user_info()
+    result = gh_get_current_user_info()
 
   assert isinstance(result, dict)
   assert result["error"] == "GitHub API rate limit exceeded."
   mock_cache.get.assert_called_once_with("github:current_user_info")
-  mock_logger.error.assert_called_once_with("gh_get_current_user_info: GitHub API rate limit exceeded.")
+  mock_logger.error.assert_called_once_with(
+    "gh_get_current_user_info: GitHub API rate limit exceeded."
+  )
 
 
-def test_gh_get_current_user_info_github_exception(mock_cache, mock_github, mock_logger):
+def test_gh_get_current_user_info_github_exception(
+  mock_cache, mock_github, mock_logger
+):
   """Tests handling of a generic GithubException."""
   mock_instance = mock_github.return_value
   mock_instance.get_user.side_effect = GithubException(500, {"message": "Server error"})
 
   with patch("devops_mcps.github.initialize_github_client", return_value=mock_instance):
-      result = gh_get_current_user_info()
+    result = gh_get_current_user_info()
 
   assert isinstance(result, dict)
   assert "GitHub API Error: 500" in result["error"]
   mock_cache.get.assert_called_once_with("github:current_user_info")
-  mock_logger.error.assert_called_once() # Check that some error was logged
+  mock_logger.error.assert_called_once()  # Check that some error was logged
 
 
-def test_gh_get_current_user_info_unexpected_exception(mock_cache, mock_github, mock_logger):
+def test_gh_get_current_user_info_unexpected_exception(
+  mock_cache, mock_github, mock_logger
+):
   """Tests handling of an unexpected Exception."""
   mock_instance = mock_github.return_value
   mock_instance.get_user.side_effect = Exception("Something went wrong")
 
   with patch("devops_mcps.github.initialize_github_client", return_value=mock_instance):
-      result = gh_get_current_user_info()
+    result = gh_get_current_user_info()
 
   assert isinstance(result, dict)
   assert "An unexpected error occurred" in result["error"]
   mock_cache.get.assert_called_once_with("github:current_user_info")
-  mock_logger.error.assert_called_once() # Check that some error was logged
+  mock_logger.error.assert_called_once()  # Check that some error was logged
