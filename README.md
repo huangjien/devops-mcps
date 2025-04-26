@@ -1,49 +1,43 @@
 # DevOps MCP Server
 
-A FastMCP-based MCP server providing DevOps tools and integrations.
+[![PyPI version](https://badge.fury.io/py/devops-mcps.svg)](https://badge.fury.io/py/devops-mcps)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-This a conservative MCP server. It does not add, update or delete anything in your system, does not run any job. Basically, it is read-only. It only retrieves data for analysis, display the information.
+A [FastMCP](https://github.com/modelcontextprotocol/fastmcp)-based MCP server providing a suite of DevOps tools and integrations.
 
-So it is safe for DevOps.
+This server operates in a read-only manner, retrieving data for analysis and display without modifying your systems. It's designed with safety in mind for DevOps environments.
 
 ## Features
 
+The DevOps MCP Server integrates with various essential DevOps platforms:
+
 ### GitHub Integration
-- Repository search and management
-- File content retrieval from repositories
-- Issue tracking and management
-- Code search functionality
-- Commit history viewing
+
+-   **Repository Management**: Search and view repository details.
+-   **File Access**: Retrieve file contents from repositories.
+-   **Issue Tracking**: Manage and track issues.
+-   **Code Search**: Perform targeted code searches.
+-   **Commit History**: View commit history for branches.
+-   **Public & Enterprise Support**: Automatically detects and connects to both public GitHub and GitHub Enterprise instances (configurable via `GITHUB_API_URL`).
 
 ### Jenkins Integration
-- Job listing and management
-- Build log retrieval
-- View management
-- Build parameter inspection
-- Recent failed builds monitoring
 
+-   **Job Management**: List and manage Jenkins jobs.
+-   **Build Logs**: Retrieve and analyze build logs.
+-   **View Management**: Access and manage Jenkins views.
+-   **Build Parameters**: Inspect parameters used for builds.
+-   **Failure Monitoring**: Identify and monitor recent failed builds.
 
 ### Artifactory Integration
 
-The DevOps MCP Server provides integration with JFrog Artifactory, allowing you to:
-
-1. **List Repository Items**: Browse through repositories and directories to view their contents.
-   - Supports both file and directory listings
-   - Results are cached for improved performance
-
-2. **Search Across Repositories**: Search for artifacts by name or path across one or multiple repositories.
-   - Supports filtering by specific repositories
-   - Uses Artifactory Query Language (AQL) for powerful searches
-
-3. **Get Item Information**: Retrieve detailed information about specific artifacts.
-   - For files: includes metadata and properties
-   - For directories: includes child items
-
-All Artifactory operations support both token-based authentication and basic username/password authentication.
+-   **Repository Browsing**: List items (files and directories) within Artifactory repositories.
+-   **Artifact Search**: Search for artifacts by name or path across multiple repositories using Artifactory Query Language (AQL).
+-   **Item Details**: Retrieve metadata and properties for specific files and directories.
+-   **Authentication**: Supports both token-based and username/password authentication.
 
 ## Installation
 
-To install the package, use the following command:
+Install the package using pip:
 
 ```bash
 pip install devops-mcps
@@ -51,68 +45,39 @@ pip install devops-mcps
 
 ## Usage
 
-Run the MCP server:
+Run the MCP server directly:
+
 ```bash
 devops-mcps
 ```
 
-# DevOps MCP Server
-## Configuration
-### Environment Variables
-#### GitHub Configuration
+### Transport Configuration
 
-Set the required environment variable for GitHub API access:
+The server supports two communication transport types:
 
-```bash
-export GITHUB_PERSONAL_ACCESS_TOKEN=your_token_here
-```
+-   `stdio` (default): Standard input/output.
+-   `sse`: Server-Sent Events over HTTP.
 
-#### Jenkins Configuration
-Set the required environment variables for Jenkins API access:
+**Local Usage:**
 
-```bash
-export JENKINS_URL=your_jenkins_url
-export JENKINS_USER=your_jenkins_username
-export JENKINS_TOKEN=your_jenkins_token
-export LOG_LENGTH=5120
-export ARTIFACTORY_URL=https://your-artifactory-instance.example.com
-# Authentication - either use identity token:
-export ARTIFACTORY_IDENTITY_TOKEN=your_token_here
-# OR use username and password:
-export ARTIFACTORY_USERNAME=your_username
-export ARTIFACTORY_PASSWORD=your_password
-```
-
-**Note**: LOG_LENGTH means it will retrieve this length of jenkins log for analysis. It does not always the longer the better.
-
-## UVX Configuration
-
-Install UVX tools:
-```bash
-uvx install
-```
-
-Run with UVX:
-```bash
-uvx devops-mcps
-```
-
-## Transport Configuration
-
-The MCP server supports two transport types:
-- `stdio` (default): Standard input/output communication
-- `sse`: Server-Sent Events for HTTP-based communication
-
-### Local Usage
 ```bash
 # Default stdio transport
 devops-mcps
 
-# SSE transport
+# SSE transport (runs on http://localhost:8000 by default)
 devops-mcps --transport sse
 ```
 
-### UVX Usage
+**UVX Usage:**
+
+If using [UVX](https://github.com/modelcontextprotocol/uvx), first install the tools:
+
+```bash
+uvx install
+```
+
+Then run:
+
 ```bash
 # Default stdio transport
 uvx run devops-mcps
@@ -121,271 +86,215 @@ uvx run devops-mcps
 uvx run devops-mcps-sse
 ```
 
-## Docker Configuration
+## Configuration
+
+Configure the server using environment variables:
+
+**Required:**
+
+```bash
+# GitHub
+export GITHUB_PERSONAL_ACCESS_TOKEN="your_github_token"
+# Optional: For GitHub Enterprise, set your API endpoint
+# export GITHUB_API_URL="https://github.mycompany.com"
+
+# Jenkins
+export JENKINS_URL="your_jenkins_url"
+export JENKINS_USER="your_jenkins_username"
+export JENKINS_TOKEN="your_jenkins_api_token_or_password"
+
+# Artifactory
+export ARTIFACTORY_URL="https://your-artifactory-instance.example.com"
+# Choose ONE authentication method:
+export ARTIFACTORY_IDENTITY_TOKEN="your_artifactory_identity_token"
+# OR
+export ARTIFACTORY_USERNAME="your_artifactory_username"
+export ARTIFACTORY_PASSWORD="your_artifactory_password"
+```
+
+**Optional:**
+
+```bash
+# Jenkins Log Length (default: 5120 bytes)
+export LOG_LENGTH=10240
+```
+
+**Note**: `LOG_LENGTH` controls the amount of Jenkins log data retrieved. Adjust as needed.
+
+## Docker
 
 Build the Docker image:
+
 ```bash
 docker build -t devops-mcps .
 ```
 
 Run the container:
-```bash
-docker run -p 8000:8000 devops-mcps
-```
-
-## GitHub Public and Enterprise Support
-
-This project supports both public GitHub and GitHub Enterprise automatically.
-
-- By default, it connects to public GitHub (`https://api.github.com`).
-- To use with GitHub Enterprise, set the `GITHUB_API_URL` environment variable to your enterprise API endpoint (e.g., `https://github.mycompany.com/api/v3`).
-
-**Example:**
 
 ```bash
-# For public GitHub (default)
-export GITHUB_PERSONAL_ACCESS_TOKEN=your_token_here
+# Stdio transport (interactive)
+docker run -i --rm \
+  -e GITHUB_PERSONAL_ACCESS_TOKEN="..." \
+  -e JENKINS_URL="..." \
+  -e JENKINS_USER="..." \
+  -e JENKINS_TOKEN="..." \
+  -e ARTIFACTORY_URL="..." \
+  -e ARTIFACTORY_IDENTITY_TOKEN="..." \
+  devops-mcps
 
-# For GitHub Enterprise
-export GITHUB_PERSONAL_ACCESS_TOKEN=your_token_here
-export GITHUB_API_URL=https://github.mycompany.com
+# SSE transport (background, port 8000)
+docker run -d -p 8000:8000 --rm \
+  -e TRANSPORT_TYPE=sse \
+  -e GITHUB_PERSONAL_ACCESS_TOKEN="..." \
+  -e JENKINS_URL="..." \
+  -e JENKINS_USER="..." \
+  -e JENKINS_TOKEN="..." \
+  -e ARTIFACTORY_URL="..." \
+  -e ARTIFACTORY_IDENTITY_TOKEN="..." \
+  devops-mcps
 ```
 
-The server will detect the correct API endpoint at runtime.
+Replace `...` with your actual credentials.
 
-## VSCode Configuration
+## VSCode Integration
 
-To use this MCP server in vs code copilot, there are 2 ways to configure it in VSCode settings.json with different transport types:
+Configure the MCP server in VSCode's `settings.json`:
 
-### UVX Configuration
+**Example (UVX with stdio):**
 
-#### stdio Transport (default)
 ```json
 "devops-mcps": {
   "type": "stdio",
   "command": "uvx",
-  "args": ["devops-mcps"],
+  "args": ["run", "devops-mcps"],
   "env": {
-    "GITHUB_PERSONAL_ACCESS_TOKEN": "ghp_xxxxxxxxxxxxxxxxxxxxxxxxxCe",
-    "GITHUB_API_URL": "https://github.mycompany.com",
-    "JENKINS_URL": "jenkins_url_here",
-    "JENKINS_USER": "jenkins_username_here",
-    "JENKINS_TOKEN": "jenkins_password_here",
-    "ARTIFACTORY_IDENTITY_TOKEN": "cmxxxxxxxxxxxxxxxxxxxxxxxxxxxxxdC",
-    "ARTIFACTORY_URL": "URL_ADDRESSifactory.abc.com/artifactory"
+    "GITHUB_PERSONAL_ACCESS_TOKEN": "ghp_...",
+    "GITHUB_API_URL": "https://github.mycompany.com", // Optional for GHE
+    "JENKINS_URL": "...",
+    "JENKINS_USER": "...",
+    "JENKINS_TOKEN": "...",
+    "ARTIFACTORY_URL": "...",
+    "ARTIFACTORY_IDENTITY_TOKEN": "cm..." // Or USERNAME/PASSWORD
   }
 }
 ```
 
-#### SSE Transport
+**Example (Docker with SSE):**
+
+Ensure the Docker container is running with SSE enabled (see Docker section).
+
 ```json
 "devops-mcps": {
   "type": "sse",
-  "command": "uvx",
-  "args": ["devops-mcps-sse"],
+  "url": "http://localhost:8000/sse", // Adjust if Docker host is remote
   "env": {
-    "GITHUB_PERSONAL_ACCESS_TOKEN": "ghp_xxxxxxxxxxxxxxxxxxxxxxxxxCe",
-    "GITHUB_API_URL": "https://github.mycompany.com",
-    "JENKINS_URL": "jenkins_url_here",
-    "JENKINS_USER": "jenkins_username_here",
-    "JENKINS_TOKEN": "jenkins_password_here",
-    "ARTIFACTORY_IDENTITY_TOKEN": "cmxxxxxxxxxxxxxxxxxxxxxxxxxxxxxdC",
-    "ARTIFACTORY_URL": "URL_ADDRESSifactory.abc.com/artifactory"
+    // Environment variables are set in the container,
+    // but can be overridden here if needed.
+    "GITHUB_PERSONAL_ACCESS_TOKEN": "ghp_..."
   }
 }
 ```
 
-### Docker Configuration
-
-#### stdio Transport (default)
-```json
-"devops-mcps": {
-  "command": "docker",
-  "args": [
-    "run",
-    "-i",
-    "huangjien/devops-mcps:latest"
-  ],
-  "env": {
-    "GITHUB_PERSONAL_ACCESS_TOKEN": "ghp_xxxxxxxxxxxxxxxxxxxxxxxxx2Ce",
-    "GITHUB_API_URL": "https://github.mycompany.com",
-    "JENKINS_URL": "jenkins_url_here",
-    "JENKINS_USER": "jenkins_username_here",
-    "JENKINS_TOKEN": "jenkins_password_here",
-    "ARTIFACTORY_IDENTITY_TOKEN": "cmxxxxxxxxxxxxxxxxxxxxxxxxxxxxxdC",
-    "ARTIFACTORY_URL": "URL_ADDRESSifactory.abc.com/artifactory"
-  }
-}
-```
-
-#### SSE Transport (MCP Server Deployed in Remote Docker Container)
-```json
-"devops-mcps": {
-  "type": "sse",
-  "url": "http://[remote ip address]:8000/sse",
-  "env": {
-    "GITHUB_PERSONAL_ACCESS_TOKEN": "ghp_xxxxxxxxxxxxxxxxxxxxxxxxx2Ce",
-    "GITHUB_API_URL": "https://github.mycompany.com",
-    "JENKINS_URL": "jenkins_url_here",
-    "JENKINS_USER": "jenkins_username_here",
-    "JENKINS_TOKEN": "jenkins_password_here",
-    "ARTIFACTORY_IDENTITY_TOKEN": "cmxxxxxxxxxxxxxxxxxxxxxxxxxxxxxdC",
-    "ARTIFACTORY_URL": "URL_ADDRESSifactory.abc.com/artifactory"
-  }
-}
-```
-
-Note: The docker should start like:
-
-```bash
-docker run -p 8000:8000 -e TRANSPORT_TYPE=sse -i huangjien/devops-mcps:latest
-```
+Refer to the initial `README.md` sections for other transport/runner combinations (UVX/SSE, Docker/stdio).
 
 ## Development
 
-Install development dependencies:
-```bash
-uv pip install -e .[dev]
-```
-
-or 
-```bash
-uv sync
-```
-
-Recommend to install vs code extension: **ruff**
-
-Or do it in command line:
-
-To lint (check):
+Set up your development environment:
 
 ```bash
-uvx ruff check
+# Install dependencies (using uv)
+uv pip install -e ".[dev]"
+# Or sync with lock file
+# uv sync --dev
 ```
 
-To format:
+**Linting and Formatting (Ruff):**
 
 ```bash
-uvx ruff format
+# Check code style
+uvx ruff check .
+
+# Format code
+uvx ruff format .
 ```
 
-Run mcp inspector to test or debug:
+**Testing (Pytest):**
 
-```bash
-npx @modelcontextprotocol/inspector uv run devops-mcps
-```
-or
-
-```bash
-npx @modelcontextprotocol/inspector uv run devops-mcps -e GITHUB_PERSONAL_ACCESS_TOKEN=ghp_xxxxxxxxxxxxxxxxxxxxXmY -e JENKINS_URL=https://xxxxxxxxxxxxxxxxx.com -e JENKINS_USER=abc@def.com -e JENKINS_TOKEN=11xxxxxxxxxxxxxxxxxxxxxxf0 -e GITHUB_API_URL=https://api.github.com -e ARTIFACTORY_IDENTITY_TOKEN=cmxxxxxxxxxxxxxxxxxxxxxxxxxxxxxdC -e ARTIFACTORY_URL=https://artifactory.abc.com/artifactory
-```
-
-Test and Coverage
 ```bash
 pytest --cov=src/devops_mcps --cov-report=html tests/
 ```
 
-## CI/CD Pipeline
-
-GitHub Actions workflow will automatically:
-1. Build and publish Python package to PyPI
-2. Build and push Docker image to Docker Hub
-
-### Required Secrets
-Set these secrets in your GitHub repository:
-- `PYPI_API_TOKEN`: Your PyPI API token
-- `DOCKER_HUB_USERNAME`: Your Docker Hub username
-- `DOCKER_HUB_TOKEN`: Your Docker Hub access token
-
-Workflow triggers on push to `main` branch.
-## Packaging and Publishing
-
-### Install tools
+**Debugging with MCP Inspector:**
 
 ```bash
-pip install -U twine build  
+# Basic run
+npx @modelcontextprotocol/inspector uvx run devops-mcps
+
+# Run with specific environment variables
+npx @modelcontextprotocol/inspector uvx run devops-mcps -e GITHUB_PERSONAL_ACCESS_TOKEN=... -e JENKINS_URL=... # Add other vars
 ```
 
-### Build the package
+## CI/CD
+
+A GitHub Actions workflow (`.github/workflows/ci.yml`) handles:
+
+1.  **Linting & Testing**: Runs Ruff and Pytest on pushes and pull requests.
+2.  **Publishing**: Builds and publishes the Python package to PyPI and the Docker image to Docker Hub on pushes to the `main` branch.
+
+**Required Repository Secrets:**
+
+-   `PYPI_API_TOKEN`: PyPI token for package publishing.
+-   `DOCKER_HUB_USERNAME`: Docker Hub username.
+-   `DOCKER_HUB_TOKEN`: Docker Hub access token.
+
+## Packaging and Publishing (Manual)
+
+Ensure you have `build` and `twine` installed:
+
 ```bash
-python -m build
+pip install -U build twine
 ```
 
-### Upload to PyPI
-1. Create a `~/.pypirc` file with your API token:
-    ```ini
-    [pypi]
-    username = __token__
-    password = your_pypi_api_token_here
-    ```
+1.  **Update Version**: Increment the version number in `pyproject.toml`.
+2.  **Build**: `python -m build`
+3.  **Upload**: `twine upload dist/*` (Requires `~/.pypirc` configuration or token input).
 
-2. Upload the package:
-    ```bash
-    twine upload dist/*
-    ```
+## Appendix: GitHub Search Query Syntax
 
-### Important Notes
-- Ensure all classifiers in `pyproject.toml` are valid PyPI classifiers
-- Remove deprecated license classifiers in favor of SPDX license expressions
-- The package will be available at: https://pypi.org/project/devops-mcps/
-- Update the version everytime, or when you push, it will show an error: already exists.
+Leverage GitHub's powerful search syntax within the MCP tools:
 
+**Repository Search (`gh_search_repositories`):**
+
+-   `in:name,description,readme`: Search specific fields.
+    *Example: `fastapi in:name`*
+-   `user:USERNAME` or `org:ORGNAME`: Scope search to a user/org.
+    *Example: `user:tiangolo fastapi`*
+-   `language:LANGUAGE`: Filter by language.
+    *Example: `http client language:python`*
+-   `stars:>N`, `forks:<N`, `created:YYYY-MM-DD`, `pushed:>YYYY-MM-DD`: Filter by metrics and dates.
+    *Example: `language:javascript stars:>1000 pushed:>2024-01-01`*
+-   `topic:TOPIC-NAME`: Filter by topic.
+    *Example: `topic:docker topic:python`*
+-   `license:LICENSE-KEYWORD`: Filter by license (e.g., `mit`, `apache-2.0`).
+    *Example: `language:go license:mit`*
+
+**Code Search (`gh_search_code`):**
+
+-   `in:file,path`: Search file content (default) or path.
+    *Example: `"import requests" in:file`*
+-   `repo:OWNER/REPO`: Scope search to a specific repository.
+    *Example: `"JenkinsAPIException" repo:your-org/your-repo`*
+-   `language:LANGUAGE`: Filter by file language.
+    *Example: `def main language:python`*
+-   `path:PATH/TO/DIR`, `filename:FILENAME.EXT`, `extension:EXT`: Filter by path, filename, or extension.
+    *Example: `"GithubException" path:src/devops_mcps extension:py`*
+
+**References:**
+
+-   [Searching on GitHub](https://docs.github.com/en/search-github/searching-on-github)
+-   [Searching Code](https://docs.github.com/en/search-github/searching-on-github/searching-code)
+-   [Searching Repositories](https://docs.github.com/en/search-github/searching-on-github/searching-for-repositories)
 
 ## License
 
-MIT
-
-## Appendix (Query in Github)
-
-### For Repository Search (gh_search_repositories):
-
-- in:<field>: Search only in specific fields (name, description, readme, or combinations).
-query="fastapi in:name" (Find repos with "fastapi" in their name)
-query="web framework in:readme,description"
-
-- user:<username> or org:<orgname>: Search within a specific user's or organization's repositories.
-query="user:tiangolo fastapi"
-
-- language:<language>: Filter by programming language.
-query="http client language:python"
-
-- stars:<N>, forks:<N>: Filter by number of stars or forks (use ranges like >100, <50, 10..50).
-query="language:javascript stars:>1000"
-
-- created:<YYYY-MM-DD>, pushed:<YYYY-MM-DD>: Filter by creation or last push date (use ranges).
-query="data science pushed:>2024-03-01"
-
-- topic:<topic-name>: Filter by repository topic.
-query="topic:docker topic:python"
-
-- license:<license-keyword>: Filter by license (e.g., mit, apache-2.0).
-query="language:go license:mit"
-
-### For Code Search (gh_search_code):
-
-- in:<field>: Search within file content (default), path, or both.
-q='"import requests" in:file'
-
-- user:<username> or org:<orgname>: Search code within a specific user's or organization's repositories.
-q='"BaseSettings" user:tiangolo'
-
-- repo:<owner>/<repository>: Search code within a specific repository.
-q='"JenkinsAPIException" repo:devops-mcps/devops-mcps'
-
-- language:<language>: Filter by the language of the file containing the code.
-q='def main language:python'
-
-- path:<path>, path:/: Search within specific paths or the root directory.
-q='"GithubException" path:src/devops_mcps'
-
-- filename:<filename>: Search within specific filenames.
-q='TODO filename:core.py'
-
-- extension:<ext>: Search within files having a specific extension.
-q='class Settings extension:py'
-
-This query syntax provides a flexible and powerful way to find exactly what you need on GitHub directly through your MCP tools. You can find the full, official documentation here:
-
-- Searching on GitHub: https://docs.github.com/en/search-github/searching-on-github
-- Searching Code: https://docs.github.com/en/search-github/searching-on-github/searching-code
-- Searching Repositories: https://docs.github.com/en/search-github/searching-on-github/searching-for-repositories
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
