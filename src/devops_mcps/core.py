@@ -367,62 +367,62 @@ if __name__ == "__main__":
 
 @mcp.tool()
 async def list_artifactory_items(
-    repository: str, path: str = "/"
+  repository: str, path: str = "/"
 ) -> Union[List[Dict[str, Any]], Dict[str, str]]:
-    """List items under a given repository and path in Artifactory.
-    
-    Args:
-        repository: The Artifactory repository name.
-        path: The path within the repository (default: "/").
-        
-    Returns:
-        List of item dictionaries or an error dictionary.
-    """
-    logger.debug(f"Executing list_artifactory_items for {repository}/{path}")
-    if not repository:
-        logger.error("Parameter 'repository' cannot be empty")
-        return {"error": "Parameter 'repository' cannot be empty"}
-    return artifactory.artifactory_list_items(repository=repository, path=path)
+  """List items under a given repository and path in Artifactory.
+
+  Args:
+      repository: The Artifactory repository name.
+      path: The path within the repository (default: "/").
+
+  Returns:
+      List of item dictionaries or an error dictionary.
+  """
+  logger.debug(f"Executing list_artifactory_items for {repository}/{path}")
+  if not repository:
+    logger.error("Parameter 'repository' cannot be empty")
+    return {"error": "Parameter 'repository' cannot be empty"}
+  return artifactory.artifactory_list_items(repository=repository, path=path)
 
 
 @mcp.tool()
 async def search_artifactory_items(
-    query: str, repositories: Optional[List[str]] = None
+  query: str, repositories: Optional[List[str]] = None
 ) -> Union[List[Dict[str, Any]], Dict[str, str]]:
-    """Search for items across multiple repositories in Artifactory.
-    
-    Args:
-        query: The search query.
-        repositories: Optional list of repositories to search in (if None, searches all).
-        
-    Returns:
-        List of search result dictionaries or an error dictionary.
-    """
-    logger.debug(f"Executing search_artifactory_items with query: {query}")
-    if not query:
-        logger.error("Parameter 'query' cannot be empty")
-        return {"error": "Parameter 'query' cannot be empty"}
-    return artifactory.artifactory_search_items(query=query, repositories=repositories)
+  """Search for items across multiple repositories in Artifactory.
+
+  Args:
+      query: The search query.
+      repositories: Optional list of repositories to search in (if None, searches all).
+
+  Returns:
+      List of search result dictionaries or an error dictionary.
+  """
+  logger.debug(f"Executing search_artifactory_items with query: {query}")
+  if not query:
+    logger.error("Parameter 'query' cannot be empty")
+    return {"error": "Parameter 'query' cannot be empty"}
+  return artifactory.artifactory_search_items(query=query, repositories=repositories)
 
 
 @mcp.tool()
 async def get_artifactory_item_info(
-    repository: str, path: str
+  repository: str, path: str
 ) -> Union[Dict[str, Any], Dict[str, str]]:
-    """Get information about a specific item in Artifactory.
-    
-    Args:
-        repository: The Artifactory repository name.
-        path: The path to the item within the repository.
-        
-    Returns:
-        Item information dictionary or an error dictionary.
-    """
-    logger.debug(f"Executing get_artifactory_item_info for {repository}/{path}")
-    if not repository:
-        logger.error("Parameter 'repository' cannot be empty")
-        return {"error": "Parameter 'repository' cannot be empty"}
-    if not path:
-        logger.error("Parameter 'path' cannot be empty")
-        return {"error": "Parameter 'path' cannot be empty"}
-    return artifactory.artifactory_get_item_info(repository=repository, path=path)
+  """Get information about a specific item in Artifactory.
+
+  Args:
+      repository: The Artifactory repository name.
+      path: The path to the item within the repository.
+
+  Returns:
+      Item information dictionary or an error dictionary.
+  """
+  logger.debug(f"Executing get_artifactory_item_info for {repository}/{path}")
+  if not repository:
+    logger.error("Parameter 'repository' cannot be empty")
+    return {"error": "Parameter 'repository' cannot be empty"}
+  if not path:
+    logger.error("Parameter 'path' cannot be empty")
+    return {"error": "Parameter 'path' cannot be empty"}
+  return artifactory.artifactory_get_item_info(repository=repository, path=path)

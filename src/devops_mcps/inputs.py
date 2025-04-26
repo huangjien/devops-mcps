@@ -74,15 +74,15 @@ class SearchCodeInput(BaseModel):
 
 
 class ListArtifactoryItemsInput(BaseModel):
-    repository: str
-    path: str = "/"
+  repository: str
+  path: str = "/"
 
 
 class SearchArtifactoryItemsInput(BaseModel):
-    query: str
-    repositories: Optional[List[str]] = None
+  query: str
+  repositories: Optional[List[str]] = None
 
 
 class GetArtifactoryItemInfoInput(BaseModel):
-    repository: str
-    path: str
+  repository: str
+  path: str
