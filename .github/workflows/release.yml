@@ -38,7 +38,7 @@ jobs:
         uv pip install -e ".[dev]"
 
     - name: Run tests
-      run: pytest --cov=src/devops_mcps --cov-report=xml
+      run: .venv/bin/pytest --cov=src/devops_mcps --cov-report=xml
 
     - name: Build package
       run: python -m build
