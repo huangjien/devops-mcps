@@ -51,14 +51,11 @@ package-dir = {"" = "src"}
 dev-dependencies = [
     "pyright>=1.1.389",
     "ruff>=0.7.4",
-    # "pytest>=8.3.5", # Removed
-    # "pytest-cov>=6.1.1", # Removed
-    # "pytest-mock>=3.14.0", # Removed
-    # "pytest-asyncio", # Removed
-    # "fastapi", # Remove fastapi
-    # "httpx",   # Remove httpx for TestClient
+    "pytest>=8.3.5",
+    "pytest-cov>=6.1.1",
+    "pytest-mock>=3.14.0",
+    "pytest-asyncio", 
 ]
-
 [tool.ruff]
 # Exclude a variety of commonly ignored directories.
 exclude = [

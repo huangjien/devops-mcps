@@ -170,7 +170,9 @@ To use this MCP server in vs code copilot, there are 2 ways to configure it in V
     "GITHUB_API_URL": "https://github.mycompany.com",
     "JENKINS_URL": "jenkins_url_here",
     "JENKINS_USER": "jenkins_username_here",
-    "JENKINS_TOKEN": "jenkins_password_here"
+    "JENKINS_TOKEN": "jenkins_password_here",
+    "ARTIFACTORY_IDENTITY_TOKEN": "cmxxxxxxxxxxxxxxxxxxxxxxxxxxxxxdC",
+    "ARTIFACTORY_URL": "URL_ADDRESSifactory.abc.com/artifactory"
   }
 }
 ```
@@ -186,7 +188,9 @@ To use this MCP server in vs code copilot, there are 2 ways to configure it in V
     "GITHUB_API_URL": "https://github.mycompany.com",
     "JENKINS_URL": "jenkins_url_here",
     "JENKINS_USER": "jenkins_username_here",
-    "JENKINS_TOKEN": "jenkins_password_here"
+    "JENKINS_TOKEN": "jenkins_password_here",
+    "ARTIFACTORY_IDENTITY_TOKEN": "cmxxxxxxxxxxxxxxxxxxxxxxxxxxxxxdC",
+    "ARTIFACTORY_URL": "URL_ADDRESSifactory.abc.com/artifactory"
   }
 }
 ```
@@ -207,7 +211,9 @@ To use this MCP server in vs code copilot, there are 2 ways to configure it in V
     "GITHUB_API_URL": "https://github.mycompany.com",
     "JENKINS_URL": "jenkins_url_here",
     "JENKINS_USER": "jenkins_username_here",
-    "JENKINS_TOKEN": "jenkins_password_here"
+    "JENKINS_TOKEN": "jenkins_password_here",
+    "ARTIFACTORY_IDENTITY_TOKEN": "cmxxxxxxxxxxxxxxxxxxxxxxxxxxxxxdC",
+    "ARTIFACTORY_URL": "URL_ADDRESSifactory.abc.com/artifactory"
   }
 }
 ```
@@ -222,7 +228,9 @@ To use this MCP server in vs code copilot, there are 2 ways to configure it in V
     "GITHUB_API_URL": "https://github.mycompany.com",
     "JENKINS_URL": "jenkins_url_here",
     "JENKINS_USER": "jenkins_username_here",
-    "JENKINS_TOKEN": "jenkins_password_here"
+    "JENKINS_TOKEN": "jenkins_password_here",
+    "ARTIFACTORY_IDENTITY_TOKEN": "cmxxxxxxxxxxxxxxxxxxxxxxxxxxxxxdC",
+    "ARTIFACTORY_URL": "URL_ADDRESSifactory.abc.com/artifactory"
   }
 }
 ```
@@ -265,6 +273,11 @@ Run mcp inspector to test or debug:
 
 ```bash
 npx @modelcontextprotocol/inspector uv run devops-mcps
+```
+or
+
+```bash
+npx @modelcontextprotocol/inspector uv run devops-mcps -e GITHUB_PERSONAL_ACCESS_TOKEN=ghp_xxxxxxxxxxxxxxxxxxxxXmY -e JENKINS_URL=https://xxxxxxxxxxxxxxxxx.com -e JENKINS_USER=abc@def.com -e JENKINS_TOKEN=11xxxxxxxxxxxxxxxxxxxxxxf0 -e GITHUB_API_URL=https://api.github.com -e ARTIFACTORY_IDENTITY_TOKEN=cmxxxxxxxxxxxxxxxxxxxxxxxxxxxxxdC -e ARTIFACTORY_URL=https://artifactory.abc.com/artifactory
 ```
 
 Test and Coverage
