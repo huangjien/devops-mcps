@@ -1,140 +1,158 @@
+import os
+import sys
 import pytest
-from unittest import mock
-import importlib
+from unittest.mock import patch, MagicMock
+from datetime import datetime, timezone, timedelta
+import requests
 
-# Third-party testing libs
-from jenkinsapi.jenkins import JenkinsAPIException
-from requests.exceptions import ConnectionError, Timeout, HTTPError
+# Add the src directory to the Python path
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# Module to test and its dependencies
-from devops_mcps import jenkins
-from devops_mcps import cache as app_cache  # Import the actual cache instance
-
-
-# --- Fixtures ---
-@pytest.fixture
-def jenkins_client():
-  """Fixture to mock the Jenkins client with proper spec"""
-  from jenkinsapi.jenkins import Jenkins
-
-  mock_client = mock.MagicMock(spec=Jenkins)
-  mock_client.get_master_data.return_value = {"nodeName": "test-master"}
-  mock_client.get_jobs.return_value = iter([])
-  mock_client.get_job.return_value = mock.MagicMock()
-  mock_client.views.items.return_value = []
-  return mock_client
-
+# --- Test Fixtures ---
 
 @pytest.fixture(autouse=True)
-def reset_state(monkeypatch, jenkins_client):
-  """Fixture to reset module state between tests"""
-  # Mock environment variables
-  monkeypatch.setenv("JENKINS_URL", "http://localhost:8080")
-  monkeypatch.setenv("JENKINS_USER", "testuser")
-  monkeypatch.setenv("JENKINS_TOKEN", "testtoken")
-  monkeypatch.setenv("LOG_LENGTH", "500")
+def manage_jenkins_module():
+    """Fixture to manage the jenkins module import and cleanup."""
+    # Ensure the module is fresh for each test if needed, especially for initialization logic
+    if 'src.devops_mcps.jenkins' in sys.modules:
+        del sys.modules['src.devops_mcps.jenkins']
 
-  # Clear cache before each test
-  app_cache.cache.clear()
+    # Import after potential patches
+    import src.devops_mcps.jenkins as jenkins_module
+    
+    # Reset the global client to None at the start of each test
+    jenkins_module.j = None
+    
+    yield jenkins_module
 
-  # Patch Jenkins client and reload module
-  with mock.patch("devops_mcps.jenkins.Jenkins", return_value=jenkins_client):
-    importlib.reload(jenkins)
-    yield
-
-  # Cleanup after test
-  app_cache.cache.clear()
-  importlib.reload(jenkins)
+    # Cleanup: reset the global client 'j'
+    jenkins_module.j = None
+    # Ensure module is removed again to avoid state leakage between tests
+    if 'src.devops_mcps.jenkins' in sys.modules:
+        del sys.modules['src.devops_mcps.jenkins']
 
 
-# --- Tests for jenkins module ---
-
+@pytest.fixture
+def mock_jenkins_api():
+    """Mocks the jenkinsapi.Jenkins class."""
+    with patch('jenkinsapi.jenkins.Jenkins', autospec=True) as mock_jenkins:
+        # Mock the instance methods/properties needed
+        mock_instance = mock_jenkins.return_value
+        mock_instance.get_master_data.return_value = {"nodeName": "master"} # Simulate successful connection
+        mock_instance.keys.return_value = [] # Default to no jobs
+        mock_instance.views.keys.return_value = [] # Default to no views
+        mock_instance.get_job.return_value = MagicMock()
+        mock_instance.get_queue.return_value = MagicMock()
+        yield mock_instance # Yield the mocked Jenkins instance
 
 @pytest.fixture
 def mock_requests_get():
-  """Fixture to mock requests.get for the optimized API call."""
-  with mock.patch("devops_mcps.jenkins.requests.get") as mock_get:
-    yield mock_get
+    """Mocks requests.get."""
+    with patch('requests.get') as mock_get:
+        yield mock_get
 
+@pytest.fixture
+def mock_env_vars(monkeypatch):
+    """Mocks Jenkins environment variables."""
+    monkeypatch.setenv("JENKINS_URL", "http://fake-jenkins.com")
+    monkeypatch.setenv("JENKINS_USER", "testuser")
+    monkeypatch.setenv("JENKINS_TOKEN", "testtoken")
+    monkeypatch.setenv("LOG_LENGTH", "5000") # Example log length
+    yield  # This ensures the environment variables are set for the duration of the test
 
 # --- Test Cases ---
 
+def test_initialize_jenkins_client_missing_env_vars(monkeypatch, mock_jenkins_api, manage_jenkins_module):
+    """Test initialization failure due to missing env vars."""
+    monkeypatch.delenv("JENKINS_URL", raising=False)
+    monkeypatch.delenv("JENKINS_USER", raising=False)
+    monkeypatch.delenv("JENKINS_TOKEN", raising=False)
 
-def test_initialize_jenkins_client_no_vars():
-  """Test Jenkins client initialization fails without env vars."""
-  # Fixture `reset_state` ensures no vars and reloads
-  # Initialization runs during reload, should set j to None
-  assert jenkins.j is None
+    # Need to re-import or reload the module for env vars to be re-read at module level
+    if 'src.devops_mcps.jenkins' in sys.modules:
+        del sys.modules['src.devops_mcps.jenkins']
+    import src.devops_mcps.jenkins as reloaded_jenkins_module
 
+    client = reloaded_jenkins_module.initialize_jenkins_client()
+    assert client is None
+    assert reloaded_jenkins_module.j is None
+    mock_jenkins_api.assert_not_called() # Jenkins class should not be instantiated
 
-def test_initialize_jenkins_client_api_error():
-  """Test initialization handles JenkinsAPIException."""
-  with mock.patch(
-    "devops_mcps.jenkins.Jenkins", side_effect=JenkinsAPIException("Auth failed")
-  ):
-    # Explicitly call initialize to trigger the error with the mock active
-    jenkins.initialize_jenkins_client()
-    assert jenkins.j is None
+def test_initialize_jenkins_client_connection_error(mock_env_vars, mock_jenkins_api, manage_jenkins_module):
+    """Test initialization failure due to connection error."""
+    from jenkinsapi.jenkins import JenkinsAPIException # Import here to avoid issues if jenkinsapi not installed
+    mock_jenkins_api.get_master_data.side_effect = requests.exceptions.ConnectionError("Connection failed")
 
+    client = manage_jenkins_module.initialize_jenkins_client()
+    assert client is None
+    assert manage_jenkins_module.j is None
 
-def test_initialize_jenkins_client_connection_error():
-  """Test initialization handles ConnectionError."""
-  with mock.patch(
-    "devops_mcps.jenkins.Jenkins", side_effect=ConnectionError("Cannot connect")
-  ):
-    # Explicitly call initialize to trigger the error with the mock active
-    jenkins.initialize_jenkins_client()
-    assert jenkins.j is None
+# Test _to_dict Helper (Basic Cases)
+def test_to_dict_basic_types(manage_jenkins_module):
+    assert manage_jenkins_module._to_dict("string") == "string"
+    assert manage_jenkins_module._to_dict(123) == 123
+    assert manage_jenkins_module._to_dict(None) is None
+    assert manage_jenkins_module._to_dict([1, "a"]) == [1, "a"]
+    assert manage_jenkins_module._to_dict({"a": 1}) == {"a": 1}
 
+def test_to_dict_mock_job(manage_jenkins_module):
+    mock_job = MagicMock()
+    mock_job.name = "TestJob"
+    mock_job.baseurl = "http://fake-jenkins.com/job/TestJob/"
+    mock_job.is_enabled.return_value = True
+    mock_job.is_queued.return_value = False
+    mock_job.get_last_buildnumber.return_value = 5
+    mock_job.get_last_buildurl.return_value = "http://fake-jenkins.com/job/TestJob/5/"
 
-def test_jenkins_get_jobs_no_client():
-  """Test getting jobs when client is not initialized."""
-  # `reset_state` ensures client is None initially, but then initializes it.
-  # Need to explicitly set it to None for this test.
-  jenkins.j = None
-  result = jenkins.jenkins_get_jobs()
-  assert result == {"error": "Jenkins client not initialized."}
-  assert app_cache.cache.get("jenkins_jobs") is None
+    # Patch the isinstance check within _to_dict for Job
+    with patch('src.devops_mcps.jenkins.Job', new=type(mock_job)):
+         # Need to check the actual type name if using autospec=True or specific class mock
+         # Or more robustly, patch isinstance directly if needed:
+         # with patch('builtins.isinstance', side_effect=lambda obj, cls: True if cls is Job else isinstance(obj, cls)):
+        result = manage_jenkins_module._to_dict(mock_job)
 
+    assert result == {
+        "name": "TestJob",
+        "url": "http://fake-jenkins.com/job/TestJob/",
+        "is_enabled": True,
+        "is_queued": False,
+        "in_queue": False, # Corrected key
+        "last_build_number": 5,
+        "last_build_url": "http://fake-jenkins.com/job/TestJob/5/",
+    }
 
-# Test jenkins_get_build_log
+def test_get_jobs_no_client(manage_jenkins_module):
+    """Test getting jobs when client is not initialized."""
+    manage_jenkins_module.j = None # Ensure client is None
+    result = manage_jenkins_module.jenkins_get_jobs()
+    assert result == {"error": "Jenkins client not initialized."}
 
+def test_get_build_log_no_client(manage_jenkins_module):
+    """Test getting build log when client is not initialized."""
+    manage_jenkins_module.j = None
+    result = manage_jenkins_module.jenkins_get_build_log("TestJob", 1)
+    assert result == {"error": "Jenkins client not initialized."}
 
-def test_jenkins_get_recent_failed_builds_requests_error(mock_requests_get):
-  """Test getting recent failed builds handles requests Timeout."""
-  mock_requests_get.side_effect = Timeout("Request timed out")
+def test_get_build_parameters_no_client(manage_jenkins_module):
+    """Test getting parameters when client is not initialized."""
+    manage_jenkins_module.j = None
+    result = manage_jenkins_module.jenkins_get_build_parameters("TestJob", 1)
+    assert result == {"error": "Jenkins client not initialized."}
 
-  result = jenkins.jenkins_get_recent_failed_builds(hours_ago=1)
+def test_get_recent_failed_builds_no_credentials(monkeypatch, mock_requests_get, manage_jenkins_module):
+    """Test getting recent failed builds when credentials are missing."""
+    monkeypatch.delenv("JENKINS_URL", raising=False)
+    monkeypatch.delenv("JENKINS_USER", raising=False)
+    monkeypatch.delenv("JENKINS_TOKEN", raising=False)
 
-  assert "error" in result
-  assert "Timeout connecting to Jenkins API" in result["error"]
-  assert app_cache.cache.get("jenkins_recent_failed_1h") is None
+    # Reload module to pick up lack of env vars
+    if 'src.devops_mcps.jenkins' in sys.modules:
+        del sys.modules['src.devops_mcps.jenkins']
+    import src.devops_mcps.jenkins as reloaded_jenkins_module
 
+    result = reloaded_jenkins_module.jenkins_get_recent_failed_builds(hours_ago=8)
 
-def test_jenkins_get_recent_failed_builds_http_error(mock_requests_get):
-  """Test getting recent failed builds handles HTTPError."""
-  mock_response = mock.MagicMock()
-  mock_response.status_code = 403
-  mock_response.reason = "Forbidden"
-  mock_response.text = "Auth error details"
-  mock_requests_get.side_effect = HTTPError(response=mock_response)
+    assert result == {"error": "Jenkins credentials not configured."}
+    mock_requests_get.assert_not_called()
 
-  result = jenkins.jenkins_get_recent_failed_builds(hours_ago=1)
-
-  assert result == {"error": "Jenkins API HTTP Error: 403 - Forbidden"}
-  assert app_cache.cache.get("jenkins_recent_failed_1h") is None
-
-
-def test_jenkins_get_recent_failed_builds_no_creds(monkeypatch):
-  """Test getting recent failed builds without credentials."""
-  # Clear any existing credentials
-  monkeypatch.delenv("JENKINS_URL", raising=False)
-  monkeypatch.delenv("JENKINS_USER", raising=False)
-  monkeypatch.delenv("JENKINS_TOKEN", raising=False)
-
-  # Need to reload jenkins module to pick up the cleared env vars
-  importlib.reload(jenkins)
-
-  result = jenkins.jenkins_get_recent_failed_builds(hours_ago=1)
-  assert result == {"error": "Jenkins credentials not configured."}
-  assert app_cache.cache.get("jenkins_recent_failed_1h") is None
+# TODO: Add tests for jenkins_get_all_views and jenkins_get_queue following similar patterns

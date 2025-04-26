@@ -3,6 +3,7 @@ name: Release Package and Docker Image
 on:
   push:
     branches: [ main ]
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -31,7 +32,11 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install build twine
+        pip install build twine uv
+        uv pip install -e ".[dev]"
+
+    - name: Run tests
+      run: pytest --cov=src/devops_mcps --cov-report=xml
 
     - name: Build package
       run: python -m build

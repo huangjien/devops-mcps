@@ -71,3 +71,18 @@ class SearchCodeInput(BaseModel):
     if v not in ["asc", "desc"]:
       raise ValueError("order must be 'asc' or 'desc'")
     return v
+
+
+class ListArtifactoryItemsInput(BaseModel):
+    repository: str
+    path: str = "/"
+
+
+class SearchArtifactoryItemsInput(BaseModel):
+    query: str
+    repositories: Optional[List[str]] = None
+
+
+class GetArtifactoryItemInfoInput(BaseModel):
+    repository: str
+    path: str

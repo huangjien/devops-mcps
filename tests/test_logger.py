@@ -15,12 +15,8 @@ from devops_mcps import logger  # Adjust import path as needed
 @pytest.fixture(autouse=True)
 def reset_logging_and_env():
   """Ensure clean state for each test."""
-  # --- Start Modification ---
-  # Store original handlers to restore them later
-  # This helps prevent interference between tests or with pytest's logging capture
   original_handlers = logging.root.handlers[:]
   original_level = logging.root.level
-  # --- End Modification ---
 
   logging.shutdown()  # Shut down existing handlers (might be redundant now but safe)
   logging.root.handlers.clear()  # Explicitly clear root handlers
@@ -49,14 +45,12 @@ def reset_logging_and_env():
   # --- Reload logger module again after test to reflect restored env (optional but good practice) ---
   importlib.reload(logger)
 
-  # --- Start Modification ---
   # Restore original logging state
   logging.shutdown()
   logging.root.handlers.clear()
   logging.root.setLevel(original_level)
   for handler in original_handlers:
     logging.root.addHandler(handler)
-  # --- End Modification ---
 
 
 def test_logger_default_level_info():
