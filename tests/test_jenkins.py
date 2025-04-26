@@ -176,4 +176,8 @@ def test_get_recent_failed_builds_no_credentials(
   mock_requests_get.assert_not_called()
 
 
-# TODO: Add tests for jenkins_get_all_views and jenkins_get_queue following similar patterns
+def test_jenkins_get_all_views_no_client(manage_jenkins_module):
+  """Test jenkins_get_all_views when client is not initialized."""
+  manage_jenkins_module.j = None  # Ensure client is None
+  result = manage_jenkins_module.jenkins_get_all_views()
+  assert result == {"error": "Jenkins client not initialized."}

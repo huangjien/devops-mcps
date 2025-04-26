@@ -15,15 +15,13 @@ from devops_mcps.github import (
   gh_list_commits,
   gh_list_issues,
   gh_get_repository,
-  gh_search_code,
-  gh_get_current_user_info,  # Add this import
+  gh_search_code,  # Add this import
 )
 from github import (
   UnknownObjectException,
   BadCredentialsException,
   RateLimitExceededException,  # Add this import
-  GithubException,
-  NamedUser,  # Add this import
+  GithubException,  # Add this import
 )
 from github.Repository import Repository
 from github.Commit import Commit
@@ -408,62 +406,89 @@ def test_gh_search_code_success(mock_cache, mock_github):
 
 
 def test_gh_get_current_user_info_success(mock_cache, mock_logger):
-    with patch("devops_mcps.github.initialize_github_client") as mock_init_client:
-        mock_user = Mock()
-        mock_user.login = "testuser"
-        mock_user.name = "Test User"
-        mock_user.email = "testuser@example.com"
-        mock_user.id = 12345
-        mock_user.html_url = "https://github.com/testuser"
-        mock_user.type = "User"
-        mock_client = Mock()
-        mock_client.get_user.return_value = mock_user
-        mock_init_client.return_value = mock_client
-        from devops_mcps.github import gh_get_current_user_info
-        result = gh_get_current_user_info()
-        assert result["login"] == "testuser"
-        assert result["name"] == "Test User"
-        assert result["email"] == "testuser@example.com"
-        assert result["id"] == 12345
-        assert result["html_url"] == "https://github.com/testuser"
-        assert result["type"] == "User"
+  with patch("devops_mcps.github.initialize_github_client") as mock_init_client:
+    mock_user = Mock()
+    mock_user.login = "testuser"
+    mock_user.name = "Test User"
+    mock_user.email = "testuser@example.com"
+    mock_user.id = 12345
+    mock_user.html_url = "https://github.com/testuser"
+    mock_user.type = "User"
+    mock_client = Mock()
+    mock_client.get_user.return_value = mock_user
+    mock_init_client.return_value = mock_client
+    from devops_mcps.github import gh_get_current_user_info
+
+    result = gh_get_current_user_info()
+    assert result["login"] == "testuser"
+    assert result["name"] == "Test User"
+    assert result["email"] == "testuser@example.com"
+    assert result["id"] == 12345
+    assert result["html_url"] == "https://github.com/testuser"
+    assert result["type"] == "User"
+
 
 def test_gh_get_current_user_info_invalid_credentials(mock_cache, mock_logger):
-    with patch("devops_mcps.github.initialize_github_client") as mock_init_client:
-        mock_client = Mock()
-        mock_client.get_user.side_effect = BadCredentialsException(401, {"message": "Bad credentials"})
-        mock_init_client.return_value = mock_client
-        from devops_mcps.github import gh_get_current_user_info
-        result = gh_get_current_user_info()
-        assert "error" in result
-        assert "Authentication failed" in result["error"]
+  with patch("devops_mcps.github.initialize_github_client") as mock_init_client:
+    mock_client = Mock()
+    mock_client.get_user.side_effect = BadCredentialsException(
+      401, {"message": "Bad credentials"}
+    )
+    mock_init_client.return_value = mock_client
+    from devops_mcps.github import gh_get_current_user_info
+
+    result = gh_get_current_user_info()
+    assert "error" in result
+    assert "Authentication failed" in result["error"]
+
+
+def test_gh_get_current_user_info_unexpected_error(mock_cache, mock_logger):
+  with patch("devops_mcps.github.initialize_github_client") as mock_init_client:
+    mock_client = Mock()
+    mock_client.get_user.side_effect = Exception("Unexpected error")
+    mock_init_client.return_value = mock_client
+    from devops_mcps.github import gh_get_current_user_info
+
+    result = gh_get_current_user_info()
+    assert "error" in result
+    assert "An unexpected error occurred" in result["error"]
+
 
 def test_gh_get_current_user_info_rate_limit_exceeded(mock_cache, mock_logger):
-    with patch("devops_mcps.github.initialize_github_client") as mock_init_client:
-        mock_client = Mock()
-        mock_client.get_user.side_effect = RateLimitExceededException(403, {"message": "API rate limit exceeded"})
-        mock_init_client.return_value = mock_client
-        from devops_mcps.github import gh_get_current_user_info
-        result = gh_get_current_user_info()
-        assert "error" in result
-        assert "rate limit" in result["error"].lower()
+  with patch("devops_mcps.github.initialize_github_client") as mock_init_client:
+    mock_client = Mock()
+    mock_client.get_user.side_effect = RateLimitExceededException(
+      403, {"message": "API rate limit exceeded"}
+    )
+    mock_init_client.return_value = mock_client
+    from devops_mcps.github import gh_get_current_user_info
+
+    result = gh_get_current_user_info()
+    assert "error" in result
+    assert "rate limit" in result["error"].lower()
+
 
 def test_gh_get_current_user_info_github_exception(mock_cache, mock_logger):
-    with patch("devops_mcps.github.initialize_github_client") as mock_init_client:
-        mock_client = Mock()
-        mock_client.get_user.side_effect = GithubException(500, {"message": "Internal error"})
-        mock_init_client.return_value = mock_client
-        from devops_mcps.github import gh_get_current_user_info
-        result = gh_get_current_user_info()
-        assert "error" in result
-        assert "GitHub API Error" in result["error"]
+  with patch("devops_mcps.github.initialize_github_client") as mock_init_client:
+    mock_client = Mock()
+    mock_client.get_user.side_effect = GithubException(
+      500, {"message": "Internal error"}
+    )
+    mock_init_client.return_value = mock_client
+    from devops_mcps.github import gh_get_current_user_info
+
+    result = gh_get_current_user_info()
+    assert "error" in result
+    assert "GitHub API Error" in result["error"]
+
 
 def test_gh_get_current_user_info_unexpected_exception(mock_cache, mock_logger):
-    with patch("devops_mcps.github.initialize_github_client") as mock_init_client:
-        mock_client = Mock()
-        mock_client.get_user.side_effect = Exception("Unexpected failure")
-        mock_init_client.return_value = mock_client
-        from devops_mcps.github import gh_get_current_user_info
-        result = gh_get_current_user_info()
-        assert "error" in result
-        assert "unexpected error" in result["error"].lower()
+  with patch("devops_mcps.github.initialize_github_client") as mock_init_client:
+    mock_client = Mock()
+    mock_client.get_user.side_effect = Exception("Unexpected failure")
+    mock_init_client.return_value = mock_client
+    from devops_mcps.github import gh_get_current_user_info
+
+    result = gh_get_current_user_info()
+    assert "error" in result
+    assert "unexpected error" in result["error"].lower()
