@@ -22,7 +22,7 @@ LOG_LENGTH = os.environ.get("LOG_LENGTH", 10240)  # Default to 10KB if not set
 j: Optional[Jenkins] = None
 
 
-def initialize_jenkins_client():
+def initialize_jenkins_client() -> Optional[Jenkins]:
   """Initializes the global Jenkins client 'j'."""
   global j
   if j:  # Already initialized
@@ -61,7 +61,7 @@ initialize_jenkins_client()
 # --- Helper Functions for Object Conversion (to Dict) ---
 
 
-def _to_dict(obj: Any) -> Any:
+def _to_dict(obj: Any) -> Dict[str, Any]:
   """Converts common Jenkins objects to dictionaries. Handles basic types and lists."""
   if isinstance(obj, (str, int, float, bool, type(None))):
     return obj
@@ -100,7 +100,7 @@ def _to_dict(obj: Any) -> Any:
 # These functions contain the core Jenkins interaction logic
 
 
-def jenkins_get_jobs() -> Union[List[Dict[str, Any]], Dict[str, str]]:
+def jenkins_get_jobs() -> List[Dict[str, Any]]:
   """Internal logic for getting all jobs."""
   logger.debug("jenkins_get_jobs called")
   if not j:
@@ -120,7 +120,7 @@ def jenkins_get_jobs() -> Union[List[Dict[str, Any]], Dict[str, str]]:
 
 def jenkins_get_build_log(
   job_name: str, build_number: int
-) -> Union[str, Dict[str, str]]:
+) -> str:
   """Internal logic for getting a build log (last 5KB).
   If build_number <= 0, returns the latest build log."""
   logger.debug(
