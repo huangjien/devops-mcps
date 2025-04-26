@@ -252,11 +252,11 @@ async def get_jenkins_build_log(
     f"Executing get_jenkins_build_log for job: {job_name}, build: {build_number}"
   )
   if not job_name:
-    logger.error("参数 job_name 不能为空")
-    return {"error": "参数 job_name 不能为空"}
+    logger.error("Parameter job_name cannot be empty")
+    return {"error": "Parameter job_name cannot be empty"}
   if build_number is None:
-    logger.error("参数 build_number 不能为空")
-    return {"error": "参数 build_number 不能为空"}
+    logger.error("Parameter build_number cannot be empty")
+    return {"error": "Parameter build_number cannot be empty"}
   return jenkins.jenkins_get_build_log(job_name=job_name, build_number=build_number)
 
 
