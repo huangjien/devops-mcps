@@ -50,6 +50,64 @@ def get_failed_jobs() -> List[str]:
         return []
 
 
+def jenkins_failure_diagnosis_prompt(job_name: str, log: str) -> dict:
+    """Analyze Jenkins build failure and generate diagnostic steps."""
+    error_patterns = {
+        'Build timeout': ['Check resource allocation', 'Review build configuration'],
+        'Compilation error': ['Verify source code', 'Check dependencies'],
+        'Test failure': ['Review test cases', 'Check test environment']
+    }
+
+    steps = []
+    suggestions = []
+
+    for pattern, actions in error_patterns.items():
+        if pattern in log:
+            steps.extend(actions)
+            suggestions.append(f"Investigate {pattern} issues")
+
+    if not steps:
+        steps = ['Review build logs', 'Check system resources']
+        suggestions = ['No specific patterns detected']
+
+    return {
+        'job_name': job_name,
+        'steps': steps,
+        'suggestions': suggestions
+    }
+
+
+def get_jenkins_diagnosis_prompt(job_name: str, build_number: int) -> dict:
+    """Get diagnostic prompt for a Jenkins build."""
+    try:
+        job_instance = jenkins.get_job(job_name)
+        if not job_instance:
+            logger.error(f"Job {job_name} not found")
+            return {}
+
+        build = job_instance.get_build(build_number)
+        if not build:
+            logger.error(f"Build {build_number} not found for job {job_name}")
+            return {}
+
+        log = build.get_console()
+        if not log:
+            logger.warning(f"No console output for build {build_number}")
+            return {}
+
+        result = jenkins_failure_diagnosis_prompt(job_name, log)
+        result['build_number'] = build_number
+        result['additional_resources'] = [
+            'Jenkins documentation',
+            'Build configuration guide',
+            'Troubleshooting manual'
+        ]
+        return result
+    except Exception as e:
+        logger.error(f"Failed to get diagnosis prompt: {e}")
+        return {}
+
+
 def diagnose_failure(job_name: str) -> None:
     """Diagnose the root cause of a failed Jenkins job."""
     try:

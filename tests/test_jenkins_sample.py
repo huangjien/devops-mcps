@@ -1,10 +1,9 @@
 import unittest
 import logging
 from io import StringIO
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 import os
-from unittest.mock import patch
-from devops_mcps.jenkins_sample import get_failed_jobs, diagnose_failure
+from devops_mcps.jenkins_sample import get_failed_jobs, diagnose_failure, jenkins_failure_diagnosis_prompt, get_jenkins_diagnosis_prompt
 
 # Setup logging for tests
 logging.basicConfig(level=logging.DEBUG)
@@ -16,6 +15,20 @@ os.environ['JENKINS_TOKEN'] = 'testtoken'
 from unittest.mock import patch
 
 class TestJenkinsSample(unittest.TestCase):
+
+    def test_jenkins_failure_diagnosis_prompt(self):
+        # Test with error patterns
+        log = "Build timeout occurred"
+        result = jenkins_failure_diagnosis_prompt('test_job', log)
+        self.assertIn('Build timeout', result['suggestions'][0])
+        self.assertEqual(len(result['steps']), 2)
+
+        # Test without error patterns
+        log = "Build successful"
+        result = jenkins_failure_diagnosis_prompt('test_job', log)
+        self.assertIn('No specific patterns detected', result['suggestions'][0])
+
+
     def setUp(self):
         # Mock Jenkins API
         self.mock_job_instance = MagicMock()
@@ -86,6 +99,45 @@ class TestJenkinsSample(unittest.TestCase):
             diagnose_failure('job1')
         self.mock_jenkins.get_job.assert_called_once_with('job1')
         self.assertIn('INFO:jenkins_sample:No specific error found in job job1.', log.output)
+
+    def test_jenkins_failure_diagnosis_prompt_error_handling(self):
+        # Test error handling in jenkins_failure_diagnosis_prompt
+        with self.assertRaises(TypeError) as cm:
+            jenkins_failure_diagnosis_prompt(None, None)
+            self.assertEqual(str(cm.exception), "argument of type 'NoneType' is not iterable")
+            jenkins_failure_diagnosis_prompt(None, None)
+            self.assertEqual(str(cm.exception), "argument of type 'NoneType' is not iterable")
+
+    def test_get_jenkins_diagnosis_prompt_error_handling(self):
+        # Test error handling in get_jenkins_diagnosis_prompt
+        with self.assertRaises(TypeError) as cm:
+            jenkins_failure_diagnosis_prompt(None, None)
+            self.assertEqual(str(cm.exception), "argument of type 'NoneType' is not iterable")
+            get_jenkins_diagnosis_prompt(None, None)
+        self.assertEqual(str(cm.exception), "argument of type 'NoneType' is not iterable")
+
+    def test_jenkins_failure_diagnosis_prompt_log_analysis(self):
+        # Test log analysis functionality
+        log = "Compilation error: missing dependency"
+        result = jenkins_failure_diagnosis_prompt('test_job', log)
+        self.assertIn('Verify source code', result['steps'])
+        self.assertIn('Check dependencies', result['steps'])
+
+    def test_get_jenkins_diagnosis_prompt_log_analysis(self):
+        # Test log analysis functionality
+        mock_log = "Test failure: assertion error"
+        with patch('devops_mcps.jenkins_sample.jenkins_failure_diagnosis_prompt') as mock_diagnosis:
+            mock_diagnosis.return_value = {
+                'job_name': 'test_job',
+                'steps': ['Review test cases', 'Check test environment'],
+                'suggestions': ['Investigate Test failure issues'],
+                'build_number': 123,
+                'additional_resources': ['Jenkins documentation']
+            }
+            result = get_jenkins_diagnosis_prompt('test_job', 123)
+            self.assertEqual(result['job_name'], 'test_job')
+            self.assertEqual(result['build_number'], 123)
+            self.assertIn('Review test cases', result['steps'])
 
 if __name__ == '__main__':
     unittest.main()
