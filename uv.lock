@@ -211,7 +211,7 @@ wheels = [
 
 [[package]]
 name = "devops-mcps"
-version = "0.6.6"
+version = "0.6.8"
 source = { editable = "." }
 dependencies = [
     { name = "dotenv" },
@@ -224,7 +224,7 @@ dependencies = [
     { name = "toml" },
 ]
 
-[package.dev-dependencies]
+[package.optional-dependencies]
 dev = [
     { name = "pyright" },
     { name = "pytest" },
@@ -242,19 +242,16 @@ requires-dist = [
     { name = "jenkinsapi", specifier = "==0.3.14" },
     { name = "pydantic" },
     { name = "pygithub", specifier = ">=2.6.1" },
+    { name = "pyright", marker = "extra == 'dev'", specifier = ">=1.1.389" },
+    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.3.5" },
+    { name = "pytest-asyncio", marker = "extra == 'dev'" },
+    { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=6.1.1" },
+    { name = "pytest-mock", marker = "extra == 'dev'", specifier = ">=3.14.0" },
     { name = "python-dotenv" },
+    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.7.4" },
     { name = "toml" },
 ]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "pyright", specifier = ">=1.1.389" },
-    { name = "pytest", specifier = ">=8.3.5" },
-    { name = "pytest-asyncio" },
-    { name = "pytest-cov", specifier = ">=6.1.1" },
-    { name = "pytest-mock", specifier = ">=3.14.0" },
-    { name = "ruff", specifier = ">=0.7.4" },
-]
+provides-extras = ["dev"]
 
 [[package]]
 name = "dotenv"
