@@ -57,7 +57,8 @@ class MCPClient:
         return "## Error\n\nNo suitable tool found for the query."
 
       # Execute the selected tool
-      result = await self.mcp.execute_tool(selected_tool["name"], query)
+      logger.debug(f"Executing tool '{selected_tool['name']}' with query: {query}")
+      result = await self.mcp.execute_tool(selected_tool["name"], query) # Pass the raw query string
 
       # Convert the result to markdown format
       if isinstance(result, dict):

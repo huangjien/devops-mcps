@@ -62,33 +62,35 @@ async def process_query(query: str) -> str:
 
 
 @click.command()
-@click.argument("query", type=str)
+@click.option('--transport', type=click.Choice(['stdio', 'sse']), default='stdio', help='Transport type to use.')
 @click.option("--verbose", is_flag=True, help="Enable verbose logging.")
-def main(query: str, verbose: bool):
-  """
-  DevOps MCP CLI - Query DevOps information using natural language.
+@click.argument("query", type=str, required=True)
+def main(transport: str, verbose: bool, query: str):
+    """
+    DevOps MCP CLI - Query DevOps information using natural language.
 
-  QUERY: The natural language query (e.g., "list recent failed Jenkins builds").
-  """
-  if verbose:
-    # Set root logger level to DEBUG
-    logging.getLogger().setLevel(logging.DEBUG)
-    # Ensure handler level is also DEBUG if it was set higher
-    for handler in logging.getLogger().handlers:
-      handler.setLevel(logging.DEBUG)
+    Provide the query as a single argument (use quotes if it contains spaces).
+    Example: devops-mcps --verbose --transport sse "list recent failed builds"
+    """
+    query_str = query
+    
+    if verbose:
+        logging.getLogger().setLevel(logging.DEBUG)
+        for handler in logging.getLogger().handlers:
+            handler.setLevel(logging.DEBUG)
     logger.debug("Verbose logging enabled.")
 
-  logger.info(f"Received query: '{query}'")
+    logger.info(f"Received query: '{query_str}'")
 
-  try:
-    # Run the async function using asyncio.run()
-    markdown_result = asyncio.run(process_query(query))
-    click.echo(markdown_result)
-  except Exception as e:
-    logger.error(f"An error occurred during query processing: {e}", exc_info=True)
-    # Output a user-friendly error message to stderr
-    click.echo(f"Error: {e}", err=True)
-    sys.exit(1)  # Exit with a non-zero status code to indicate failure
+    try:
+      # Run the async function using asyncio.run()
+      markdown_result = asyncio.run(process_query(query_str))
+      click.echo(markdown_result)
+    except Exception as e:
+      logger.error(f"An error occurred during query processing: {e}", exc_info=True)
+      # Output a user-friendly error message to stderr
+      click.echo(f"Error: {e}", err=True)
+      sys.exit(1)  # Exit with a non-zero status code to indicate failure
 
 
 if __name__ == "__main__":

@@ -43,6 +43,38 @@ Install the package using pip:
 pip install devops-mcps
 ```
 
+## CLI Usage
+
+### Configuration
+Set environment variables:
+```bash
+export MCP_HOST=your_mcp_host
+export MCP_PORT=your_mcp_port
+```
+
+### Basic Usage
+```bash
+devops-mcps "Your natural language query"
+```
+
+### Examples
+**Jenkins Integration:**
+```bash
+devops-mcps "Show last 5 failed Jenkins builds in the past 24 hours"
+```
+
+**Artifactory Query:**
+```bash
+devops-mcps "List all Docker images in Artifactory with vulnerabilities"
+```
+
+### Verbose Mode
+```bash
+devops-mcps "Check Kubernetes cluster health" --verbose
+```
+
+## Features
+
 ## Usage
 
 Run the MCP server directly:
