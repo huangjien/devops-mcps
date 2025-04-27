@@ -12,7 +12,6 @@ from importlib.metadata import version, PackageNotFoundError
 from . import github, jenkins
 from . import artifactory
 from . import jenkins_sample
-from . import jenkins_prompt
 
 # MCP imports
 from mcp.server.fastmcp import FastMCP
@@ -43,8 +42,6 @@ except PackageNotFoundError:
 
 # --- MCP Server Setup ---
 
-# Register jenkins_prompt tools
-from .jenkins_prompt import *
 
 mcp = FastMCP(
   f"DevOps MCP Server v{package_version} (Github & Jenkins)",
@@ -432,33 +429,27 @@ async def get_artifactory_item_info(
     return {"error": "Parameter 'path' cannot be empty"}
   return artifactory.artifactory_get_item_info(repository=repository, path=path)
 
+
 @mcp.tool()
 async def get_failed_jobs() -> list:
-    """Get the list of failed Jenkins jobs (sample)."""
-    return jenkins_sample.get_failed_jobs()
+  """Get the list of failed Jenkins jobs (sample)."""
+  return jenkins_sample.get_failed_jobs()
+
 
 @mcp.tool()
 async def jenkins_failure_diagnosis_prompt(job_name: str, log: str) -> dict:
-    """Diagnose Jenkins job failure using a prompt (sample)."""
-    return jenkins_sample.jenkins_failure_diagnosis_prompt(job_name, log)
+  """Diagnose Jenkins job failure using a prompt (sample)."""
+  return jenkins_sample.jenkins_failure_diagnosis_prompt(job_name, log)
+
 
 @mcp.tool()
 async def get_jenkins_diagnosis_prompt(job_name: str, build_number: int) -> dict:
-    """Get Jenkins diagnosis prompt for a job and build number (sample)."""
-    return jenkins_sample.get_jenkins_diagnosis_prompt(job_name, build_number)
+  """Get Jenkins diagnosis prompt for a job and build number (sample)."""
+  return jenkins_sample.get_jenkins_diagnosis_prompt(job_name, build_number)
+
 
 @mcp.tool()
 async def diagnose_failure(job_name: str) -> None:
-    """Diagnose failure for a Jenkins job (sample)."""
-    return jenkins_sample.diagnose_failure(job_name)
-
-@mcp.prompt()
-def get_jenkins_diagnosis_prompt(job_name: str, build_number: int) -> dict:
-    """Get Jenkins diagnosis prompt for a job and build number (sample)."""
-    return jenkins_sample.get_jenkins_diagnosis_prompt(job_name, build_number)
-@mcp.prompt()
-def diagnose_failure(job_name: str) -> None:
-    """Diagnose failure for a Jenkins job (sample)."""
-    return jenkins_sample.diagnose_failure(job_name)  
-
+  """Diagnose failure for a Jenkins job (sample)."""
+  return jenkins_sample.diagnose_failure(job_name)
 

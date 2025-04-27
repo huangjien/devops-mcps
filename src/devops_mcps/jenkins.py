@@ -118,9 +118,7 @@ def jenkins_get_jobs() -> List[Dict[str, Any]]:
     return {"error": f"An unexpected error occurred: {e}"}
 
 
-def jenkins_get_build_log(
-  job_name: str, build_number: int
-) -> str:
+def jenkins_get_build_log(job_name: str, build_number: int) -> str:
   """Internal logic for getting a build log (last 5KB).
   If build_number <= 0, returns the latest build log."""
   logger.debug(
