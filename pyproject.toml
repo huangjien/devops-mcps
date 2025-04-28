@@ -1,6 +1,6 @@
 [project]
 name = "devops-mcps"
-version = "0.6.8"
+version = "0.6.9"
 description = "A FastMCP-based MCP server for DevOps"
 authors = [{ name = "Jien Huang", email = "huangjien@gmail.com" }]
 readme = "README.md"
@@ -28,6 +28,10 @@ dependencies = [
     "pygithub>=2.6.1",
     "jenkinsapi==0.3.14",
     "fastapi>=0.115.12",
+    "azure-identity>=1.15.0",
+    "azure-mgmt-compute>=30.6.0",
+    "azure-mgmt-containerservice>=28.1.0",
+    "azure-mgmt-subscription>=3.1.1",
 ]
 requires-python = ">=3.12"
 
