@@ -234,6 +234,17 @@ npx @modelcontextprotocol/inspector uvx run devops-mcps
 npx @modelcontextprotocol/inspector uvx run devops-mcps -e GITHUB_PERSONAL_ACCESS_TOKEN=... -e JENKINS_URL=... # Add other vars
 ```
 
+**Checking for package dependencies outdated**
+
+```bash
+uv pip list --outdated
+```
+
+**Updating package dependencies**
+```bash
+uv lock --upgrade
+```
+
 ## CI/CD
 
 A GitHub Actions workflow (`.github/workflows/ci.yml`) handles:
