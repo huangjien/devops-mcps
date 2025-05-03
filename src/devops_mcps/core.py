@@ -52,48 +52,55 @@ mcp = FastMCP(
 # (No changes needed in the tool definitions themselves)
 # Debug logs added previously will now be shown due to LOG_LEVEL change
 
+
 # --- Azure Tools ---
 @mcp.tool()
 async def get_azure_subscriptions() -> Union[List[Dict[str, Any]], Dict[str, str]]:
-    """Get list of Azure subscriptions.
+  """Get list of Azure subscriptions.
 
-    Returns:
-        List of subscription dictionaries or an error dictionary.
-    """
-    logger.debug("Executing get_azure_subscriptions")
-    return azure.get_subscriptions()
+  Returns:
+      List of subscription dictionaries or an error dictionary.
+  """
+  logger.debug("Executing get_azure_subscriptions")
+  return azure.get_subscriptions()
 
-@mcp.tool()
-async def list_azure_vms(subscription_id: str) -> Union[List[Dict[str, Any]], Dict[str, str]]:
-    """List all virtual machines in an Azure subscription.
-
-    Args:
-        subscription_id: Azure subscription ID.
-
-    Returns:
-        List of VM dictionaries or an error dictionary.
-    """
-    logger.debug(f"Executing list_azure_vms for subscription: {subscription_id}")
-    if not subscription_id:
-        logger.error("Parameter 'subscription_id' cannot be empty")
-        return {"error": "Parameter 'subscription_id' cannot be empty"}
-    return azure.list_virtual_machines(subscription_id)
 
 @mcp.tool()
-async def list_aks_clusters(subscription_id: str) -> Union[List[Dict[str, Any]], Dict[str, str]]:
-    """List all AKS clusters in an Azure subscription.
+async def list_azure_vms(
+  subscription_id: str,
+) -> Union[List[Dict[str, Any]], Dict[str, str]]:
+  """List all virtual machines in an Azure subscription.
 
-    Args:
-        subscription_id: Azure subscription ID.
+  Args:
+      subscription_id: Azure subscription ID.
 
-    Returns:
-        List of AKS cluster dictionaries or an error dictionary.enve
-    """
-    logger.debug(f"Executing list_aks_clusters for subscription: {subscription_id}")
-    if not subscription_id:
-        logger.error("Parameter 'subscription_id' cannot be empty")
-        return {"error": "Parameter 'subscription_id' cannot be empty"}
-    return azure.list_aks_clusters(subscription_id)
+  Returns:
+      List of VM dictionaries or an error dictionary.
+  """
+  logger.debug(f"Executing list_azure_vms for subscription: {subscription_id}")
+  if not subscription_id:
+    logger.error("Parameter 'subscription_id' cannot be empty")
+    return {"error": "Parameter 'subscription_id' cannot be empty"}
+  return azure.list_virtual_machines(subscription_id)
+
+
+@mcp.tool()
+async def list_aks_clusters(
+  subscription_id: str,
+) -> Union[List[Dict[str, Any]], Dict[str, str]]:
+  """List all AKS clusters in an Azure subscription.
+
+  Args:
+      subscription_id: Azure subscription ID.
+
+  Returns:
+      List of AKS cluster dictionaries or an error dictionary.enve
+  """
+  logger.debug(f"Executing list_aks_clusters for subscription: {subscription_id}")
+  if not subscription_id:
+    logger.error("Parameter 'subscription_id' cannot be empty")
+    return {"error": "Parameter 'subscription_id' cannot be empty"}
+  return azure.list_aks_clusters(subscription_id)
 
 
 @mcp.tool()
