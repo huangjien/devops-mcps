@@ -281,6 +281,18 @@ A GitHub Actions workflow (`.github/workflows/ci.yml`) handles:
 -   `DOCKER_HUB_USERNAME`: Docker Hub username.
 -   `DOCKER_HUB_TOKEN`: Docker Hub access token.
 
+**Test Coverage Report:**
+
+The `release.yml` workflow runs tests and generates a code coverage report (`coverage.xml`). This report is uploaded as an artifact named `coverage-report`.
+
+To view the report:
+1. Go to the Actions tab of the repository.
+2. Select the `Release Package and Docker Image` workflow.
+3. Click on the specific workflow run you are interested in.
+4. Scroll down to the "Artifacts" section.
+5. Download the `coverage-report` artifact.
+6. Unzip the downloaded file to find `coverage.xml`.
+
 ## Packaging and Publishing (Manual)
 
 Ensure you have `build` and `twine` installed:
