@@ -28,6 +28,10 @@ The DevOps MCP Server integrates with various essential DevOps platforms:
 -   **Build Parameters**: Inspect parameters used for builds.
 -   **Failure Monitoring**: Identify and monitor recent failed builds.
 
+### Azure Integration
+
+-   **Resource Management**: List Azure resources (e.g., VMs, Clusters).
+
 ### Artifactory Integration
 
 -   **Repository Browsing**: List items (files and directories) within Artifactory repositories.
@@ -110,6 +114,12 @@ export ARTIFACTORY_IDENTITY_TOKEN="your_artifactory_identity_token"
 # OR
 export ARTIFACTORY_USERNAME="your_artifactory_username"
 export ARTIFACTORY_PASSWORD="your_artifactory_password"
+
+# Azure (Using Service Principal with Client Secret)
+export AZURE_TENANT_ID="your_azure_tenant_id"
+export AZURE_CLIENT_ID="your_azure_client_id"
+export AZURE_CLIENT_SECRET="your_azure_client_secret"
+export AZURE_SUBSCRIPTION_ID="your_azure_subscription_id"
 ```
 
 **Optional:**
@@ -140,6 +150,10 @@ docker run -i --rm \
   -e JENKINS_TOKEN="..." \
   -e ARTIFACTORY_URL="..." \
   -e ARTIFACTORY_IDENTITY_TOKEN="..." \
+  -e AZURE_TENANT_ID="..." \
+  -e AZURE_CLIENT_ID="..." \
+  -e AZURE_CLIENT_SECRET="..." \
+  -e AZURE_SUBSCRIPTION_ID="..." \
   devops-mcps
 
 # SSE transport (background, port 8000)
@@ -151,6 +165,10 @@ docker run -d -p 8000:8000 --rm \
   -e JENKINS_TOKEN="..." \
   -e ARTIFACTORY_URL="..." \
   -e ARTIFACTORY_IDENTITY_TOKEN="..." \
+  -e AZURE_TENANT_ID="..." \
+  -e AZURE_CLIENT_ID="..." \
+  -e AZURE_CLIENT_SECRET="..." \
+  -e AZURE_SUBSCRIPTION_ID="..." \
   devops-mcps
 ```
 
@@ -174,7 +192,11 @@ Configure the MCP server in VSCode's `settings.json`:
     "JENKINS_USER": "...",
     "JENKINS_TOKEN": "...",
     "ARTIFACTORY_URL": "...",
-    "ARTIFACTORY_IDENTITY_TOKEN": "cm..." // Or USERNAME/PASSWORD
+    "ARTIFACTORY_IDENTITY_TOKEN": "cm...", // Or USERNAME/PASSWORD
+    "AZURE_TENANT_ID": "...",
+    "AZURE_CLIENT_ID": "...",
+    "AZURE_CLIENT_SECRET": "...",
+    "AZURE_SUBSCRIPTION_ID": "..."
   }
 }
 ```
@@ -191,6 +213,7 @@ Ensure the Docker container is running with SSE enabled (see Docker section).
     // Environment variables are set in the container,
     // but can be overridden here if needed.
     "GITHUB_PERSONAL_ACCESS_TOKEN": "ghp_..."
+    // Azure variables are typically set in the container for Docker/SSE
   }
 }
 ```
