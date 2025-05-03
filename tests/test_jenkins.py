@@ -11,13 +11,13 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
 @pytest.fixture(autouse=True)
-def manage_jenkins_module():
+def manage_jenkins_module():  # Remove mock_jenkins_api dependency
   """Fixture to manage the jenkins module import and cleanup."""
   # Ensure the module is fresh for each test if needed, especially for initialization logic
   if "src.devops_mcps.jenkins" in sys.modules:
     del sys.modules["src.devops_mcps.jenkins"]
 
-  # Import after potential patches
+  # Import after potential patches (or lack thereof in this simpler version)
   import src.devops_mcps.jenkins as jenkins_module
 
   # Reset the global client to None at the start of each test
@@ -130,7 +130,7 @@ def test_to_dict_mock_job(manage_jenkins_module):
     "url": "http://fake-jenkins.com/job/TestJob/",
     "is_enabled": True,
     "is_queued": False,
-    "in_queue": False,  # Corrected key
+    "in_queue": False,
     "last_build_number": 5,
     "last_build_url": "http://fake-jenkins.com/job/TestJob/5/",
   }

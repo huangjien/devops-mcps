@@ -138,7 +138,15 @@ def jenkins_get_build_log(
     if not build:
       return {"error": f"Build #{build_number} not found for job {job_name}"}
     log = build.get_console()
-    return log[-LOG_LENGTH:]  # Return only the last 5KB
+    # Sanitize the log content to handle special characters
+    if isinstance(log, str):
+      # Replace or remove problematic control characters while preserving valid whitespace
+      log = "".join(
+        char if char.isprintable() or char in "\n\r\t" else " " for char in log
+      )
+      # Ensure proper UTF-8 encoding
+      log = log.encode("utf-8", errors="replace").decode("utf-8")
+    return log[-LOG_LENGTH:]  # Return only the last portion
   except JenkinsAPIException as e:
     logger.error(f"jenkins_get_build_log Jenkins Error: {e}", exc_info=True)
     return {"error": f"Jenkins API Error: {e}"}
