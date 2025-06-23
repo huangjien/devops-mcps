@@ -93,66 +93,68 @@ async def test_search_code_valid(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_gh_get_issue_content_success(monkeypatch):
-    """Test successful retrieval of GitHub issue content including assignees and creator.
+  """Test successful retrieval of GitHub issue content including assignees and creator.
 
-    Args:
-        monkeypatch: pytest fixture for patching.
-    """
-    expected_result = {
-        "title": "Sample Issue",
-        "body": "Issue body text",
-        "assignees": ["user1", "user2"],
-        "creator": "creator_user",
-        "state": "open",
-        "number": 42,
-    }
-    monkeypatch.setattr(
-        core.github,
-        "gh_get_issue_content",
-        lambda owner, repo, number: expected_result,
-    )
-    result = await core.get_github_issue_content("owner", "repo", 42)
-    assert result == expected_result
-    assert "assignees" in result
-    assert "creator" in result
+  Args:
+      monkeypatch: pytest fixture for patching.
+  """
+  expected_result = {
+    "title": "Sample Issue",
+    "body": "Issue body text",
+    "assignees": ["user1", "user2"],
+    "creator": "creator_user",
+    "state": "open",
+    "number": 42,
+  }
+  monkeypatch.setattr(
+    core.github,
+    "gh_get_issue_content",
+    lambda owner, repo, number: expected_result,
+  )
+  result = await core.get_github_issue_content("owner", "repo", 42)
+  assert result == expected_result
+  assert "assignees" in result
+  assert "creator" in result
+
 
 @pytest.mark.asyncio
 async def test_gh_get_issue_content_error(monkeypatch):
-    """Test error handling when GitHub API returns an error.
+  """Test error handling when GitHub API returns an error.
 
-    Args:
-        monkeypatch: pytest fixture for patching.
-    """
-    monkeypatch.setattr(
-        core.github,
-        "gh_get_issue_content",
-        lambda owner, repo, number: {"error": "Not Found"},
-    )
-    result = await core.get_github_issue_content("owner", "repo", 999)
-    assert isinstance(result, dict)
-    assert "error" in result
-    assert result["error"] == "Not Found"
+  Args:
+      monkeypatch: pytest fixture for patching.
+  """
+  monkeypatch.setattr(
+    core.github,
+    "gh_get_issue_content",
+    lambda owner, repo, number: {"error": "Not Found"},
+  )
+  result = await core.get_github_issue_content("owner", "repo", 999)
+  assert isinstance(result, dict)
+  assert "error" in result
+  assert result["error"] == "Not Found"
+
 
 @pytest.mark.asyncio
 async def test_gh_get_issue_content_no_assignees(monkeypatch):
-    """Test retrieval of issue content when there are no assignees.
+  """Test retrieval of issue content when there are no assignees.
 
-    Args:
-        monkeypatch: pytest fixture for patching.
-    """
-    expected_result = {
-        "title": "No Assignees",
-        "body": "No one assigned",
-        "assignees": [],
-        "creator": "creator_user",
-        "state": "open",
-        "number": 43,
-    }
-    monkeypatch.setattr(
-        core.github,
-        "gh_get_issue_content",
-        lambda owner, repo, number: expected_result,
-    )
-    result = await core.get_github_issue_content("owner", "repo", 43)
-    assert result["assignees"] == []
-    assert result["creator"] == "creator_user"
+  Args:
+      monkeypatch: pytest fixture for patching.
+  """
+  expected_result = {
+    "title": "No Assignees",
+    "body": "No one assigned",
+    "assignees": [],
+    "creator": "creator_user",
+    "state": "open",
+    "number": 43,
+  }
+  monkeypatch.setattr(
+    core.github,
+    "gh_get_issue_content",
+    lambda owner, repo, number: expected_result,
+  )
+  result = await core.get_github_issue_content("owner", "repo", 43)
+  assert result["assignees"] == []
+  assert result["creator"] == "creator_user"

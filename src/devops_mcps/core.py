@@ -16,7 +16,6 @@ from . import artifactory
 from mcp.server.fastmcp import FastMCP
 
 # Local imports
-from .github import gh_get_issue_content
 from .logger import setup_logging
 
 # Setup logging before importing github/jenkins
@@ -481,15 +480,15 @@ async def get_artifactory_item_info(
 
 @mcp.tool()
 async def get_github_issue_content(owner: str, repo: str, issue_number: int) -> dict:
-    """Get GitHub issue content including comments, metadata, assignees, and creator.
+  """Get GitHub issue content including comments, metadata, assignees, and creator.
 
-    Args:
-        owner: Repository owner username or organization.
-        repo: Repository name.
-        issue_number: GitHub issue number.
+  Args:
+      owner: Repository owner username or organization.
+      repo: Repository name.
+      issue_number: GitHub issue number.
 
-    Returns:
-        dict: A dictionary containing issue details including title, body, labels,
-            created_at, updated_at, comments, assignees, creator, and error status.
-    """
-    return github.gh_get_issue_content(owner, repo, issue_number)
+  Returns:
+      dict: A dictionary containing issue details including title, body, labels,
+          created_at, updated_at, comments, assignees, creator, and error status.
+  """
+  return github.gh_get_issue_content(owner, repo, issue_number)

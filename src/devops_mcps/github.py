@@ -93,91 +93,117 @@ def initialize_github_client(force: bool = False):
 # Call initialization when the module is loaded
 # initialize_github_client()  # 移除模块级自动初始化，避免影响测试 patch
 
+
 def gh_get_issue_content(owner: str, repo: str, issue_number: int) -> dict:
-    """Retrieve GitHub issue content including comments, metadata, assignees, and creator.
+  """Retrieve GitHub issue content including comments, metadata, assignees, and creator.
 
-    Args:
-        owner: Repository owner username or organization.
-        repo: Repository name.
-        issue_number: GitHub issue number.
+  Args:
+      owner: Repository owner username or organization.
+      repo: Repository name.
+      issue_number: GitHub issue number.
 
-    Returns:
-        dict: A dictionary containing issue details.
-            On success: includes 'title', 'body', 'labels',
-            'created_at' (ISO 8601), 'updated_at' (ISO 8601),
-            'comments' (list of dicts with 'body', 'user',
-            'created_at' (ISO 8601)), 'assignees' (list of usernames),
-            'creator' (username of the issue author), and 'error' (None).
-            On failure: includes 'error' (str message) and all other
-            keys set to None.
-    """
-    initialize_github_client()
-    error_response_template = {
-        "title": None,
-        "body": None,
-        "labels": None,
-        "created_at": None,
-        "updated_at": None,
-        "comments": None,
-        "assignees": None,
-        "creator": None,
+  Returns:
+      dict: A dictionary containing issue details.
+          On success: includes 'title', 'body', 'labels',
+          'created_at' (ISO 8601), 'updated_at' (ISO 8601),
+          'comments' (list of dicts with 'body', 'user',
+          'created_at' (ISO 8601)), 'assignees' (list of usernames),
+          'creator' (username of the issue author), and 'error' (None).
+          On failure: includes 'error' (str message) and all other
+          keys set to None.
+  """
+  initialize_github_client()
+  error_response_template = {
+    "title": None,
+    "body": None,
+    "labels": None,
+    "created_at": None,
+    "updated_at": None,
+    "comments": None,
+    "assignees": None,
+    "creator": None,
+  }
+
+  if not g:
+    logger.warning("GitHub client not initialized for gh_get_issue_content.")
+    return {
+      **error_response_template,
+      "error": "GitHub client not initialized",
     }
 
-    if not g:
-        logger.warning(
-            "GitHub client not initialized for gh_get_issue_content."
-        )
-        return {
-            **error_response_template,
-            "error": "GitHub client not initialized",
+  try:
+    repo_obj = g.get_repo(f"{owner}/{repo}")
+    issue = repo_obj.get_issue(issue_number)
+
+    comments_data = []
+    for comment in issue.get_comments():
+      body = str(comment.body) if comment.body is not None else None
+      user = (
+        str(comment.user.login)
+        if comment.user and comment.user.login is not None
+        else None
+      )
+      created_at = (
+        comment.created_at.isoformat()
+        if hasattr(comment.created_at, "isoformat")
+        else str(comment.created_at)
+      )
+      comments_data.append(
+        {
+          "body": body,
+          "user": user,
+          "created_at": created_at,
         }
+      )
 
-    try:
-        repo_obj = g.get_repo(f"{owner}/{repo}")
-        issue = repo_obj.get_issue(issue_number)
+    title = str(issue.title) if issue.title is not None else None
+    body = str(issue.body) if issue.body is not None else None
+    labels = (
+      [str(label.name) for label in issue.labels] if issue.labels is not None else []
+    )
+    created_at = (
+      issue.created_at.isoformat()
+      if hasattr(issue.created_at, "isoformat")
+      else str(issue.created_at)
+    )
+    updated_at = (
+      issue.updated_at.isoformat()
+      if hasattr(issue.updated_at, "isoformat")
+      else str(issue.updated_at)
+    )
+    assignees = (
+      [str(assignee.login) for assignee in issue.assignees]
+      if issue.assignees is not None
+      else []
+    )
+    creator = (
+      str(issue.user.login) if issue.user and issue.user.login is not None else None
+    )
 
-        comments_data = []
-        for comment in issue.get_comments():
-            body = str(comment.body) if comment.body is not None else None
-            user = str(comment.user.login) if comment.user and comment.user.login is not None else None
-            created_at = comment.created_at.isoformat() if hasattr(comment.created_at, "isoformat") else str(comment.created_at)
-            comments_data.append({
-                "body": body,
-                "user": user,
-                "created_at": created_at,
-            })
+    return {
+      "title": title,
+      "body": body,
+      "labels": labels,
+      "created_at": created_at,
+      "updated_at": updated_at,
+      "comments": comments_data,
+      "assignees": assignees,
+      "creator": creator,
+      "error": None,
+    }
+  except UnknownObjectException:
+    msg = f"Issue #{issue_number} not found in {owner}/{repo}"
+    logger.error(msg)
+    return {**error_response_template, "error": msg}
+  except GithubException as e:
+    msg = f"GitHub API error: {str(e)}"
+    logger.error(f"GitHub API error in gh_get_issue_content: {e}")
+    return {**error_response_template, "error": msg}
+  except Exception as e:
+    msg = f"Unexpected error: {str(e)}"
+    logger.error(f"Unexpected error in gh_get_issue_content: {e}")
+    return {**error_response_template, "error": msg}
 
-        title = str(issue.title) if issue.title is not None else None
-        body = str(issue.body) if issue.body is not None else None
-        labels = [str(label.name) for label in issue.labels] if issue.labels is not None else []
-        created_at = issue.created_at.isoformat() if hasattr(issue.created_at, "isoformat") else str(issue.created_at)
-        updated_at = issue.updated_at.isoformat() if hasattr(issue.updated_at, "isoformat") else str(issue.updated_at)
-        assignees = [str(assignee.login) for assignee in issue.assignees] if issue.assignees is not None else []
-        creator = str(issue.user.login) if issue.user and issue.user.login is not None else None
-
-        return {
-            "title": title,
-            "body": body,
-            "labels": labels,
-            "created_at": created_at,
-            "updated_at": updated_at,
-            "comments": comments_data,
-            "assignees": assignees,
-            "creator": creator,
-            "error": None,
-        }
-    except UnknownObjectException:
-        msg = f"Issue #{issue_number} not found in {owner}/{repo}"
-        logger.error(msg)
-        return {**error_response_template, "error": msg}
-    except GithubException as e:
-        msg = f"GitHub API error: {str(e)}"
-        logger.error(f"GitHub API error in gh_get_issue_content: {e}")
-        return {**error_response_template, "error": msg}
-    except Exception as e:
-        msg = f"Unexpected error: {str(e)}"
-        logger.error(f"Unexpected error in gh_get_issue_content: {e}")
-        return {**error_response_template, "error": msg}
 
 # --- Helper Functions for Object Conversion (to Dict) ---
 
@@ -781,14 +807,20 @@ def gh_get_issue_details(owner: str, repo: str, issue_number: int) -> Dict[str, 
       "labels": [label.name for label in issue.labels],
       "timestamp": issue.created_at.isoformat(),
       "description": issue.body,
-      "comments": [comment.body for comment in comments]
+      "comments": [comment.body for comment in comments],
     }
-    logger.debug(f"Successfully retrieved issue details for {owner}/{repo} issue #{issue_number}")
+    logger.debug(
+      f"Successfully retrieved issue details for {owner}/{repo} issue #{issue_number}"
+    )
     cache.set(cache_key, issue_details, ttl=300)  # Cache for 5 minutes
     return issue_details
   except GithubException as e:
-    logger.error(f"gh_get_issue_details GitHub Error: {e.status} - {e.data}", exc_info=True)
-    return {"error": f"GitHub API Error: {e.status} - {e.data.get('message', 'Unknown GitHub error')}"}
+    logger.error(
+      f"gh_get_issue_details GitHub Error: {e.status} - {e.data}", exc_info=True
+    )
+    return {
+      "error": f"GitHub API Error: {e.status} - {e.data.get('message', 'Unknown GitHub error')}"
+    }
   except Exception as e:
     logger.error(f"Unexpected error in gh_get_issue_details: {e}", exc_info=True)
     return {"error": f"An unexpected error occurred: {e}"}
