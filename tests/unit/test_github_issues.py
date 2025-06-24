@@ -99,7 +99,7 @@ def test_gh_get_issue_content_no_client():
     with patch("devops_mcps.github.g", None):  # Fix: Ensure g is None
       result = gh_get_issue_content("owner", "repo", 1)
 
-      assert result["error"] == "GitHub client not initialized"
+      assert result["error"] == "GitHub client not initialized. Please set the GITHUB_PERSONAL_ACCESS_TOKEN environment variable."
       assert result["title"] is None
       assert result["body"] is None
       assert result["labels"] is None

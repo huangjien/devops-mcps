@@ -158,3 +158,385 @@ async def test_gh_get_issue_content_no_assignees(monkeypatch):
   result = await core.get_github_issue_content("owner", "repo", 43)
   assert result["assignees"] == []
   assert result["creator"] == "creator_user"
+
+
+# --- Azure Tools Tests ---
+@pytest.mark.asyncio
+async def test_get_azure_subscriptions_valid(monkeypatch):
+  """Test successful retrieval of Azure subscriptions."""
+  expected_result = [{"id": "sub1", "name": "Subscription 1"}]
+  monkeypatch.setattr(core.azure, "get_subscriptions", lambda: expected_result)
+  result = await core.get_azure_subscriptions()
+  assert result == expected_result
+
+
+@pytest.mark.asyncio
+async def test_list_azure_vms_valid(monkeypatch):
+  """Test successful listing of Azure VMs."""
+  expected_result = [{"id": "vm1", "name": "VM 1"}]
+  monkeypatch.setattr(
+    core.azure, "list_virtual_machines", lambda subscription_id: expected_result
+  )
+  result = await core.list_azure_vms("sub1")
+  assert result == expected_result
+
+
+@pytest.mark.asyncio
+async def test_list_azure_vms_empty_subscription_id():
+  """Test list_azure_vms with empty subscription_id."""
+  result = await core.list_azure_vms("")
+  assert isinstance(result, dict)
+  assert "error" in result
+  assert result["error"] == "Parameter 'subscription_id' cannot be empty"
+
+
+@pytest.mark.asyncio
+async def test_list_aks_clusters_valid(monkeypatch):
+  """Test successful listing of AKS clusters."""
+  expected_result = [{"id": "aks1", "name": "AKS Cluster 1"}]
+  monkeypatch.setattr(
+    core.azure, "list_aks_clusters", lambda subscription_id: expected_result
+  )
+  result = await core.list_aks_clusters("sub1")
+  assert result == expected_result
+
+
+@pytest.mark.asyncio
+async def test_list_aks_clusters_empty_subscription_id():
+  """Test list_aks_clusters with empty subscription_id."""
+  result = await core.list_aks_clusters("")
+  assert isinstance(result, dict)
+  assert "error" in result
+  assert result["error"] == "Parameter 'subscription_id' cannot be empty"
+
+
+# --- GitHub Tools Parameter Validation Tests ---
+@pytest.mark.asyncio
+async def test_get_file_contents_empty_owner():
+  """Test get_file_contents with empty owner."""
+  result = await core.get_file_contents("", "repo", "path")
+  assert isinstance(result, dict)
+  assert "error" in result
+  assert result["error"] == "Parameter 'owner' cannot be empty"
+
+
+@pytest.mark.asyncio
+async def test_get_file_contents_empty_repo():
+  """Test get_file_contents with empty repo."""
+  result = await core.get_file_contents("owner", "", "path")
+  assert isinstance(result, dict)
+  assert "error" in result
+  assert result["error"] == "Parameter 'repo' cannot be empty"
+
+
+@pytest.mark.asyncio
+async def test_get_file_contents_empty_path():
+  """Test get_file_contents with empty path."""
+  result = await core.get_file_contents("owner", "repo", "")
+  assert isinstance(result, dict)
+  assert "error" in result
+  assert result["error"] == "Parameter 'path' cannot be empty"
+
+
+@pytest.mark.asyncio
+async def test_list_commits_empty_owner():
+  """Test list_commits with empty owner."""
+  result = await core.list_commits("", "repo")
+  assert isinstance(result, dict)
+  assert "error" in result
+  assert result["error"] == "Parameter 'owner' cannot be empty"
+
+
+@pytest.mark.asyncio
+async def test_list_commits_empty_repo():
+  """Test list_commits with empty repo."""
+  result = await core.list_commits("owner", "")
+  assert isinstance(result, dict)
+  assert "error" in result
+  assert result["error"] == "Parameter 'repo' cannot be empty"
+
+
+@pytest.mark.asyncio
+async def test_list_issues_empty_owner():
+  """Test list_issues with empty owner."""
+  result = await core.list_issues("", "repo")
+  assert isinstance(result, dict)
+  assert "error" in result
+  assert result["error"] == "Parameter 'owner' cannot be empty"
+
+
+@pytest.mark.asyncio
+async def test_list_issues_empty_repo():
+  """Test list_issues with empty repo."""
+  result = await core.list_issues("owner", "")
+  assert isinstance(result, dict)
+  assert "error" in result
+  assert result["error"] == "Parameter 'repo' cannot be empty"
+
+
+@pytest.mark.asyncio
+async def test_get_repository_empty_owner():
+  """Test get_repository with empty owner."""
+  result = await core.get_repository("", "repo")
+  assert isinstance(result, dict)
+  assert "error" in result
+  assert result["error"] == "Parameter 'owner' cannot be empty"
+
+
+@pytest.mark.asyncio
+async def test_get_repository_empty_repo():
+  """Test get_repository with empty repo."""
+  result = await core.get_repository("owner", "")
+  assert isinstance(result, dict)
+  assert "error" in result
+  assert result["error"] == "Parameter 'repo' cannot be empty"
+
+
+@pytest.mark.asyncio
+async def test_search_code_empty_query():
+  """Test search_code with empty query."""
+  result = await core.search_code("")
+  assert isinstance(result, dict)
+  assert "error" in result
+  assert result["error"] == "Parameter 'query' cannot be empty"
+
+
+# --- Jenkins Tools Tests ---
+@pytest.mark.asyncio
+async def test_get_jenkins_jobs_valid(monkeypatch):
+  """Test successful retrieval of Jenkins jobs."""
+  expected_result = [{"name": "job1", "url": "http://jenkins/job/job1"}]
+  monkeypatch.setattr(core.jenkins, "jenkins_get_jobs", lambda: expected_result)
+  result = await core.get_jenkins_jobs()
+  assert result == expected_result
+
+
+@pytest.mark.asyncio
+async def test_get_jenkins_build_log_valid(monkeypatch):
+  """Test successful retrieval of Jenkins build log."""
+  expected_result = "Build log content"
+  monkeypatch.setattr(
+    core.jenkins,
+    "jenkins_get_build_log",
+    lambda job_name, build_number: expected_result,
+  )
+  result = await core.get_jenkins_build_log("job1", 1)
+  assert result == expected_result
+
+
+@pytest.mark.asyncio
+async def test_get_jenkins_build_log_empty_job_name():
+  """Test get_jenkins_build_log with empty job_name."""
+  result = await core.get_jenkins_build_log("", 1)
+  assert isinstance(result, dict)
+  assert "error" in result
+  assert result["error"] == "Parameter job_name cannot be empty"
+
+
+@pytest.mark.asyncio
+async def test_get_jenkins_build_log_none_build_number():
+  """Test get_jenkins_build_log with None build_number."""
+  result = await core.get_jenkins_build_log("job1", None)
+  assert isinstance(result, dict)
+  assert "error" in result
+  assert result["error"] == "Parameter build_number cannot be empty"
+
+
+@pytest.mark.asyncio
+async def test_get_all_jenkins_views_valid(monkeypatch):
+  """Test successful retrieval of Jenkins views."""
+  expected_result = [{"name": "view1", "url": "http://jenkins/view/view1"}]
+  monkeypatch.setattr(
+    core.jenkins, "jenkins_get_all_views", lambda: expected_result
+  )
+  result = await core.get_all_jenkins_views()
+  assert result == expected_result
+
+
+@pytest.mark.asyncio
+async def test_get_recent_failed_jenkins_builds_valid(monkeypatch):
+  """Test successful retrieval of recent failed Jenkins builds."""
+  expected_result = [
+    {
+      "job_name": "failed_job",
+      "build_number": 10,
+      "status": "FAILURE",
+      "timestamp_utc": "2023-01-01T10:00:00Z",
+      "url": "http://jenkins/job/failed_job/10",
+    }
+  ]
+  monkeypatch.setattr(
+    core.jenkins,
+    "jenkins_get_recent_failed_builds",
+    lambda hours_ago=8: expected_result,
+  )
+  result = await core.get_recent_failed_jenkins_builds()
+  assert result == expected_result
+
+
+@pytest.mark.asyncio
+async def test_get_recent_failed_jenkins_builds_custom_hours(monkeypatch):
+  """Test get_recent_failed_jenkins_builds with custom hours_ago parameter."""
+  expected_result = []
+  
+  def mock_jenkins_get_recent_failed_builds(hours_ago=8):
+    assert hours_ago == 24  # Verify the parameter is passed correctly
+    return expected_result
+  
+  monkeypatch.setattr(
+    core.jenkins,
+    "jenkins_get_recent_failed_builds",
+    mock_jenkins_get_recent_failed_builds,
+  )
+  result = await core.get_recent_failed_jenkins_builds(24)
+  assert result == expected_result
+
+
+# --- Artifactory Tools Tests ---
+@pytest.mark.asyncio
+async def test_list_artifactory_items_valid(monkeypatch):
+  """Test successful listing of Artifactory items."""
+  expected_result = [{"name": "item1", "path": "/item1"}]
+  monkeypatch.setattr(
+    core.artifactory,
+    "artifactory_list_items",
+    lambda repository, path="/": expected_result,
+  )
+  result = await core.list_artifactory_items("repo1")
+  assert result == expected_result
+
+
+@pytest.mark.asyncio
+async def test_list_artifactory_items_empty_repository():
+  """Test list_artifactory_items with empty repository."""
+  result = await core.list_artifactory_items("")
+  assert isinstance(result, dict)
+  assert "error" in result
+  assert result["error"] == "Parameter 'repository' cannot be empty"
+
+
+@pytest.mark.asyncio
+async def test_search_artifactory_items_valid(monkeypatch):
+  """Test successful search of Artifactory items."""
+  expected_result = [{"name": "search_result1", "repository": "repo1"}]
+  monkeypatch.setattr(
+    core.artifactory,
+    "artifactory_search_items",
+    lambda query, repositories=None: expected_result,
+  )
+  result = await core.search_artifactory_items("test")
+  assert result == expected_result
+
+
+@pytest.mark.asyncio
+async def test_search_artifactory_items_empty_query():
+  """Test search_artifactory_items with empty query."""
+  result = await core.search_artifactory_items("")
+  assert isinstance(result, dict)
+  assert "error" in result
+  assert result["error"] == "Parameter 'query' cannot be empty"
+
+
+@pytest.mark.asyncio
+async def test_get_artifactory_item_info_valid(monkeypatch):
+  """Test successful retrieval of Artifactory item info."""
+  expected_result = {"name": "item1", "size": 1024, "created": "2023-01-01"}
+  monkeypatch.setattr(
+    core.artifactory,
+    "artifactory_get_item_info",
+    lambda repository, path: expected_result,
+  )
+  result = await core.get_artifactory_item_info("repo1", "/item1")
+  assert result == expected_result
+
+
+@pytest.mark.asyncio
+async def test_get_artifactory_item_info_empty_repository():
+  """Test get_artifactory_item_info with empty repository."""
+  result = await core.get_artifactory_item_info("", "/item1")
+  assert isinstance(result, dict)
+  assert "error" in result
+  assert result["error"] == "Parameter 'repository' cannot be empty"
+
+
+@pytest.mark.asyncio
+async def test_get_artifactory_item_info_empty_path():
+  """Test get_artifactory_item_info with empty path."""
+  result = await core.get_artifactory_item_info("repo1", "")
+  assert isinstance(result, dict)
+  assert "error" in result
+  assert result["error"] == "Parameter 'path' cannot be empty"
+
+
+# --- GitHub User Info Tests ---
+@pytest.mark.asyncio
+async def test_github_get_current_user_info_valid(monkeypatch):
+  """Test successful retrieval of GitHub user info."""
+  expected_result = {"name": "John Doe", "email": "john@example.com"}
+  monkeypatch.setattr(
+    core.github, "gh_get_current_user_info", lambda: expected_result
+  )
+  result = await core.github_get_current_user_info()
+  assert result == expected_result
+
+
+@pytest.mark.asyncio
+async def test_github_get_current_user_info_error(monkeypatch):
+  """Test error handling in GitHub user info retrieval."""
+  expected_result = {"error": "Authentication failed"}
+  monkeypatch.setattr(
+    core.github, "gh_get_current_user_info", lambda: expected_result
+  )
+  result = await core.github_get_current_user_info()
+  assert result == expected_result
+  assert "error" in result
+
+
+# --- Additional Function Tests ---
+
+
+@pytest.mark.asyncio
+async def test_list_artifactory_items_with_path(monkeypatch):
+  """Test list_artifactory_items with custom path."""
+  expected_result = [{"name": "subitem1", "path": "/custom/subitem1"}]
+  
+  def mock_artifactory_list_items(repository, path="/"):
+    assert repository == "repo1"
+    assert path == "/custom/path"
+    return expected_result
+  
+  monkeypatch.setattr(
+    core.artifactory,
+    "artifactory_list_items",
+    mock_artifactory_list_items,
+  )
+  result = await core.list_artifactory_items("repo1", "/custom/path")
+  assert result == expected_result
+
+
+@pytest.mark.asyncio
+async def test_search_artifactory_items_with_repositories(monkeypatch):
+  """Test search_artifactory_items with specific repositories."""
+  expected_result = [{"name": "search_result1", "repository": "repo1"}]
+  
+  def mock_artifactory_search_items(query, repositories=None):
+    assert query == "test"
+    assert repositories == ["repo1", "repo2"]
+    return expected_result
+  
+  monkeypatch.setattr(
+    core.artifactory,
+    "artifactory_search_items",
+    mock_artifactory_search_items,
+  )
+  result = await core.search_artifactory_items("test", ["repo1", "repo2"])
+  assert result == expected_result
+
+
+# --- Package Version Test ---
+def test_package_version_exists():
+  """Test that package_version is defined in the core module."""
+  assert hasattr(core, 'package_version')
+  assert isinstance(core.package_version, str)
+  # The version should either be a real version or the fallback
+  assert core.package_version != ""

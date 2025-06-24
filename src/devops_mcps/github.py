@@ -128,7 +128,7 @@ def gh_get_issue_content(owner: str, repo: str, issue_number: int) -> dict:
     logger.warning("GitHub client not initialized for gh_get_issue_content.")
     return {
       **error_response_template,
-      "error": "GitHub client not initialized",
+      "error": "GitHub client not initialized. Please set the GITHUB_PERSONAL_ACCESS_TOKEN environment variable.",
     }
 
   try:
@@ -414,6 +414,12 @@ def gh_get_current_user_info() -> Dict[str, Any]:
   """Internal logic for getting the authenticated user's info."""
   logger.debug("gh_get_current_user_info called")
 
+  # Check if token is available first, since this is an authenticated-only endpoint
+  github_token = os.environ.get("GITHUB_PERSONAL_ACCESS_TOKEN")
+  if not github_token:
+    logger.error("gh_get_current_user_info: No GitHub token provided.")
+    return {"error": "GitHub client not initialized. Please set the GITHUB_PERSONAL_ACCESS_TOKEN environment variable."}
+
   # Check cache first (optional, but good practice if info doesn't change often)
   cache_key = "github:current_user_info"
   cached = cache.get(cache_key)
@@ -424,7 +430,7 @@ def gh_get_current_user_info() -> Dict[str, Any]:
   github_client = initialize_github_client(force=True)  # Ensure client is initialized
   if not github_client:
     logger.error("gh_get_current_user_info: GitHub client not initialized.")
-    return {"error": "GitHub client not initialized."}
+    return {"error": "GitHub client not initialized. Please set the GITHUB_PERSONAL_ACCESS_TOKEN environment variable."}
 
   try:
     user = github_client.get_user()
@@ -474,7 +480,7 @@ def gh_search_repositories(
   github_client = initialize_github_client(force=True)
   if not github_client:
     logger.error("gh_search_repositories: GitHub client not initialized.")
-    return {"error": "GitHub client not initialized."}
+    return {"error": "GitHub client not initialized. Please set the GITHUB_PERSONAL_ACCESS_TOKEN environment variable."}
   try:
     input_data = SearchRepositoriesInput(query=query)
     repositories: PaginatedList = github_client.search_repositories(
@@ -515,7 +521,7 @@ def gh_get_file_contents(
   github_client = initialize_github_client(force=True)
   if not github_client:
     logger.error("gh_get_file_contents: GitHub client not initialized.")
-    return {"error": "GitHub client not initialized."}
+    return {"error": "GitHub client not initialized. Please set the GITHUB_PERSONAL_ACCESS_TOKEN environment variable."}
   try:
     input_data = GetFileContentsInput(owner=owner, repo=repo, path=path, branch=branch)
     repo_obj = github_client.get_repo(f"{input_data.owner}/{input_data.repo}")
@@ -601,7 +607,7 @@ def gh_list_commits(
   github_client = initialize_github_client(force=True)
   if not github_client:
     logger.error("gh_list_commits: GitHub client not initialized.")
-    return {"error": "GitHub client not initialized."}
+    return {"error": "GitHub client not initialized. Please set the GITHUB_PERSONAL_ACCESS_TOKEN environment variable."}
   try:
     input_data = ListCommitsInput(owner=owner, repo=repo, branch=branch)
     repo_obj = github_client.get_repo(f"{input_data.owner}/{input_data.repo}")
@@ -663,7 +669,7 @@ def gh_list_issues(
   github_client = initialize_github_client(force=True)
   if not github_client:
     logger.error("gh_list_issues: GitHub client not initialized.")
-    return {"error": "GitHub client not initialized."}
+    return {"error": "GitHub client not initialized. Please set the GITHUB_PERSONAL_ACCESS_TOKEN environment variable."}
   try:
     input_data = ListIssuesInput(
       owner=owner, repo=repo, state=state, labels=labels, sort=sort, direction=direction
@@ -711,7 +717,7 @@ def gh_get_repository(owner: str, repo: str) -> Union[Dict[str, Any], Dict[str, 
   github_client = initialize_github_client(force=True)
   if not github_client:
     logger.error("gh_get_repository: GitHub client not initialized.")
-    return {"error": "GitHub client not initialized."}
+    return {"error": "GitHub client not initialized. Please set the GITHUB_PERSONAL_ACCESS_TOKEN environment variable."}
   try:
     input_data = GetRepositoryInput(owner=owner, repo=repo)
     repo_obj = github_client.get_repo(f"{input_data.owner}/{input_data.repo}")
@@ -750,7 +756,7 @@ def gh_search_code(
   github_client = initialize_github_client(force=True)
   if not github_client:
     logger.error("gh_search_code: GitHub client not initialized.")
-    return {"error": "GitHub client not initialized."}
+    return {"error": "GitHub client not initialized. Please set the GITHUB_PERSONAL_ACCESS_TOKEN environment variable."}
   try:
     input_data = SearchCodeInput(q=q, sort=sort, order=order)
     search_kwargs = {"sort": input_data.sort, "order": input_data.order}
@@ -797,7 +803,7 @@ def gh_get_issue_details(owner: str, repo: str, issue_number: int) -> Dict[str, 
   github_client = initialize_github_client(force=True)
   if not github_client:
     logger.error("gh_get_issue_details: GitHub client not initialized.")
-    return {"error": "GitHub client not initialized."}
+    return {"error": "GitHub client not initialized. Please set the GITHUB_PERSONAL_ACCESS_TOKEN environment variable."}
 
   try:
     issue = github_client.get_issue(owner, repo, issue_number)

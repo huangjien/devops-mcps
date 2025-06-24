@@ -55,7 +55,9 @@ def initialize_jenkins_client():
 
 
 # Call initialization when the module is loaded
-initialize_jenkins_client()
+import sys
+if not any('pytest' in arg or 'unittest' in arg for arg in sys.argv):
+  initialize_jenkins_client()
 
 
 # --- Helper Functions for Object Conversion (to Dict) ---
@@ -105,7 +107,10 @@ def jenkins_get_jobs() -> Union[List[Dict[str, Any]], Dict[str, str]]:
   logger.debug("jenkins_get_jobs called")
   if not j:
     logger.error("jenkins_get_jobs: Jenkins client not initialized.")
-    return {"error": "Jenkins client not initialized."}
+    if not JENKINS_URL or not JENKINS_USER or not JENKINS_TOKEN:
+      logger.error("Jenkins credentials not configured.")
+      return {"error": "Jenkins client not initialized. Please set the JENKINS_URL, JENKINS_USER, and JENKINS_TOKEN environment variables."}
+    return {"error": "Jenkins client not initialized. Please set the JENKINS_URL, JENKINS_USER, and JENKINS_TOKEN environment variables."}
   try:
     jobs = j.keys()
     logger.debug(f"Found {len(jobs)} jobs.")
@@ -128,7 +133,10 @@ def jenkins_get_build_log(
   )
   if not j:
     logger.error("jenkins_get_build_log: Jenkins client not initialized.")
-    return {"error": "Jenkins client not initialized."}
+    if not JENKINS_URL or not JENKINS_USER or not JENKINS_TOKEN:
+      logger.error("Jenkins credentials not configured.")
+      return {"error": "Jenkins client not initialized. Please set the JENKINS_URL, JENKINS_USER, and JENKINS_TOKEN environment variables."}
+    return {"error": "Jenkins client not initialized. Please set the JENKINS_URL, JENKINS_USER, and JENKINS_TOKEN environment variables."}
   try:
     job = j.get_job(job_name)
     if build_number <= 0:
@@ -161,7 +169,10 @@ def jenkins_get_all_views() -> Union[List[Dict[str, Any]], Dict[str, str]]:
   logger.debug("jenkins_get_all_views called")
   if not j:
     logger.error("jenkins_get_all_views: Jenkins client not initialized.")
-    return {"error": "Jenkins client not initialized."}
+    if not JENKINS_URL or not JENKINS_USER or not JENKINS_TOKEN:
+      logger.error("Jenkins credentials not configured.")
+      return {"error": "Jenkins client not initialized. Please set the JENKINS_URL, JENKINS_USER, and JENKINS_TOKEN environment variables."}
+    return {"error": "Jenkins client not initialized. Please set the JENKINS_URL, JENKINS_USER, and JENKINS_TOKEN environment variables."}
   try:
     views = j.views.keys()
     logger.debug(f"Found {len(views)} views.")
@@ -184,7 +195,10 @@ def jenkins_get_build_parameters(
   )
   if not j:
     logger.error("jenkins_get_build_parameters: Jenkins client not initialized.")
-    return {"error": "Jenkins client not initialized."}
+    if not JENKINS_URL or not JENKINS_USER or not JENKINS_TOKEN:
+      logger.error("Jenkins credentials not configured.")
+      return {"error": "Jenkins client not initialized. Please set the JENKINS_URL, JENKINS_USER, and JENKINS_TOKEN environment variables."}
+    return {"error": "Jenkins client not initialized. Please set the JENKINS_URL, JENKINS_USER, and JENKINS_TOKEN environment variables."}
   try:
     job: Job = j.get_job(job_name)
     build: Optional[Build] = job.get_build(build_number)
@@ -219,7 +233,10 @@ def jenkins_get_queue() -> Union[Dict[str, Any], Dict[str, str]]:
   logger.debug("jenkins_get_queue called")
   if not j:
     logger.error("jenkins_get_queue: Jenkins client not initialized.")
-    return {"error": "Jenkins client not initialized."}
+    if not JENKINS_URL or not JENKINS_USER or not JENKINS_TOKEN:
+      logger.error("Jenkins credentials not configured.")
+      return {"error": "Jenkins client not initialized. Please set the JENKINS_URL, JENKINS_USER, and JENKINS_TOKEN environment variables."}
+    return {"error": "Jenkins client not initialized. Please set the JENKINS_URL, JENKINS_USER, and JENKINS_TOKEN environment variables."}
   try:
     queue_info = j.get_queue().get_queue_items()  # Example: get items
     logger.debug(f"Retrieved queue info: {queue_info}")
@@ -256,7 +273,7 @@ def jenkins_get_recent_failed_builds(
   # Need credentials even if not using the 'j' client object directly for API calls
   if not JENKINS_URL or not JENKINS_USER or not JENKINS_TOKEN:
     logger.error("Jenkins credentials (URL, USER, TOKEN) not configured.")
-    return {"error": "Jenkins credentials not configured."}
+    return {"error": "Jenkins client not initialized. Please set the JENKINS_URL, JENKINS_USER, and JENKINS_TOKEN environment variables."}
 
   recent_failed_builds = []
   try:
@@ -378,3 +395,8 @@ def jenkins_get_recent_failed_builds(
       exc_info=True,
     )
     return {"error": f"An unexpected error occurred: {e}"}
+
+
+def set_jenkins_client_for_testing(client):
+  global j
+  j = client

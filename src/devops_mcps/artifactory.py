@@ -46,11 +46,11 @@ def _validate_artifactory_config():
 
   if not url:
     logger.error("Artifactory URL not configured")
-    return False
+    return {"error": "Artifactory URL not configured. Please set the ARTIFACTORY_URL environment variable."}
 
   if not (identity_token or (username and password)):
     logger.error("Artifactory authentication not configured")
-    return False
+    return {"error": "Artifactory authentication not configured. Please set either ARTIFACTORY_IDENTITY_TOKEN or both ARTIFACTORY_USERNAME and ARTIFACTORY_PASSWORD environment variables."}
 
   return True
 
@@ -77,8 +77,9 @@ def artifactory_list_items(
     return cached
 
   # Validate configuration
-  if not _validate_artifactory_config():
-    return {"error": "Artifactory configuration is incomplete"}
+  config_result = _validate_artifactory_config()
+  if config_result is not True:
+    return config_result
 
   try:
     input_data = ListArtifactoryItemsInput(repository=repository, path=path)
@@ -153,8 +154,9 @@ def artifactory_search_items(
     return cached
 
   # Validate configuration
-  if not _validate_artifactory_config():
-    return {"error": "Artifactory configuration is incomplete"}
+  config_result = _validate_artifactory_config()
+  if config_result is not True:
+    return config_result
 
   try:
     input_data = SearchArtifactoryItemsInput(query=query, repositories=repositories)
@@ -217,8 +219,9 @@ def artifactory_get_item_info(
     return cached
 
   # Validate configuration
-  if not _validate_artifactory_config():
-    return {"error": "Artifactory configuration is incomplete"}
+  config_result = _validate_artifactory_config()
+  if config_result is not True:
+    return config_result
 
   try:
     input_data = GetArtifactoryItemInfoInput(repository=repository, path=path)

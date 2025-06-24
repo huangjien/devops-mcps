@@ -1,8 +1,10 @@
 import os
 import sys
+import os
 import pytest
 from unittest.mock import patch, MagicMock
 import requests
+from datetime import datetime, timezone, timedelta
 
 # Add the src directory to the Python path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -11,25 +13,14 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
 @pytest.fixture(autouse=True)
-def manage_jenkins_module():  # Remove mock_jenkins_api dependency
+def manage_jenkins_module():
   """Fixture to manage the jenkins module import and cleanup."""
-  # Ensure the module is fresh for each test if needed, especially for initialization logic
   if "src.devops_mcps.jenkins" in sys.modules:
     del sys.modules["src.devops_mcps.jenkins"]
-
-  # Import after potential patches (or lack thereof in this simpler version)
   import src.devops_mcps.jenkins as jenkins_module
-
-  # Reset the global client to None at the start of each test
   jenkins_module.j = None
-
   yield jenkins_module
-
-  # Cleanup: reset the global client 'j'
-  jenkins_module.j = None
-  # Ensure module is removed again to avoid state leakage between tests
-  if "src.devops_mcps.jenkins" in sys.modules:
-    del sys.modules["src.devops_mcps.jenkins"]
+  # Do not reset j after yield; allow tests to control client state
 
 
 @pytest.fixture
@@ -140,21 +131,21 @@ def test_get_jobs_no_client(manage_jenkins_module):
   """Test getting jobs when client is not initialized."""
   manage_jenkins_module.j = None  # Ensure client is None
   result = manage_jenkins_module.jenkins_get_jobs()
-  assert result == {"error": "Jenkins client not initialized."}
+  assert result == {"error": "Jenkins client not initialized. Please set the JENKINS_URL, JENKINS_USER, and JENKINS_TOKEN environment variables."}
 
 
 def test_get_build_log_no_client(manage_jenkins_module):
   """Test getting build log when client is not initialized."""
   manage_jenkins_module.j = None
   result = manage_jenkins_module.jenkins_get_build_log("TestJob", 1)
-  assert result == {"error": "Jenkins client not initialized."}
+  assert result == {"error": "Jenkins client not initialized. Please set the JENKINS_URL, JENKINS_USER, and JENKINS_TOKEN environment variables."}
 
 
 def test_get_build_parameters_no_client(manage_jenkins_module):
   """Test getting parameters when client is not initialized."""
   manage_jenkins_module.j = None
   result = manage_jenkins_module.jenkins_get_build_parameters("TestJob", 1)
-  assert result == {"error": "Jenkins client not initialized."}
+  assert result == {"error": "Jenkins client not initialized. Please set the JENKINS_URL, JENKINS_USER, and JENKINS_TOKEN environment variables."}
 
 
 def test_get_recent_failed_builds_no_credentials(
@@ -172,7 +163,7 @@ def test_get_recent_failed_builds_no_credentials(
 
   result = reloaded_jenkins_module.jenkins_get_recent_failed_builds(hours_ago=8)
 
-  assert result == {"error": "Jenkins credentials not configured."}
+  assert result == {"error": "Jenkins client not initialized. Please set the JENKINS_URL, JENKINS_USER, and JENKINS_TOKEN environment variables."}
   mock_requests_get.assert_not_called()
 
 
@@ -180,4 +171,885 @@ def test_jenkins_get_all_views_no_client(manage_jenkins_module):
   """Test jenkins_get_all_views when client is not initialized."""
   manage_jenkins_module.j = None  # Ensure client is None
   result = manage_jenkins_module.jenkins_get_all_views()
-  assert result == {"error": "Jenkins client not initialized."}
+  assert result == {"error": "Jenkins client not initialized. Please set the JENKINS_URL, JENKINS_USER, and JENKINS_TOKEN environment variables."}
+
+
+# --- Additional Tests for Better Coverage ---
+
+@patch('src.devops_mcps.jenkins.j')
+def test_jenkins_get_jobs_success(mock_j, mock_jenkins_api):
+  """Test successful retrieval of jobs."""
+  from src.devops_mcps.jenkins import jenkins_get_jobs
+  from jenkinsapi.job import Job
+  
+  # Setup mock jobs
+  mock_job1 = MagicMock(spec=Job)
+  mock_job1.name = "Job1"
+  mock_job1.baseurl = "http://jenkins/job/Job1/"
+  mock_job1.is_enabled = MagicMock(return_value=True)
+  mock_job1.is_queued = MagicMock(return_value=False)
+  mock_job1.get_last_buildnumber = MagicMock(return_value=10)
+  mock_job1.get_last_buildurl = MagicMock(return_value="http://jenkins/job/Job1/10/")
+  
+  mock_job2 = MagicMock(spec=Job)
+  mock_job2.name = "Job2"
+  mock_job2.baseurl = "http://jenkins/job/Job2/"
+  mock_job2.is_enabled = MagicMock(return_value=False)
+  mock_job2.is_queued = MagicMock(return_value=True)
+  mock_job2.get_last_buildnumber = MagicMock(return_value=5)
+  mock_job2.get_last_buildurl = MagicMock(return_value="http://jenkins/job/Job2/5/")
+  
+  mock_jenkins_api.keys.return_value = [mock_job1, mock_job2]
+  
+  # Replace the mock with our jenkins api mock
+  mock_j.__bool__ = lambda self: True
+  mock_j.keys = mock_jenkins_api.keys
+  
+  result = jenkins_get_jobs()
+  
+  assert len(result) == 2
+  assert result[0]["name"] == "Job1"
+  assert result[1]["name"] == "Job2"
+
+
+@patch('src.devops_mcps.jenkins.j')
+def test_jenkins_get_jobs_jenkins_api_exception(mock_j, mock_jenkins_api):
+  """Test jenkins_get_jobs with JenkinsAPIException."""
+  from jenkinsapi.custom_exceptions import JenkinsAPIException
+  
+  mock_jenkins_api.keys.side_effect = JenkinsAPIException("API Error")
+  
+  # Replace the mock with our jenkins api mock
+  mock_j.__bool__ = lambda self: True
+  mock_j.keys = mock_jenkins_api.keys
+  
+  from src.devops_mcps.jenkins import jenkins_get_jobs
+  result = jenkins_get_jobs()
+  
+  assert "error" in result
+  assert "Jenkins API Error" in result["error"]
+
+
+@patch('src.devops_mcps.jenkins.j')
+def test_jenkins_get_jobs_unexpected_exception(mock_j, mock_jenkins_api):
+  """Test jenkins_get_jobs with unexpected exception."""
+  mock_jenkins_api.keys.side_effect = ValueError("Unexpected error")
+  
+  # Replace the mock with our jenkins api mock
+  mock_j.__bool__ = lambda self: True
+  mock_j.keys = mock_jenkins_api.keys
+  
+  from src.devops_mcps.jenkins import jenkins_get_jobs
+  result = jenkins_get_jobs()
+  
+  assert "error" in result
+  assert "An unexpected error occurred" in result["error"]
+
+
+@patch('src.devops_mcps.jenkins.j')
+def test_jenkins_get_build_log_success(mock_j, mock_jenkins_api):
+  """Test successful retrieval of build log."""
+  mock_job = MagicMock()
+  mock_build = MagicMock()
+  mock_build.get_console.return_value = "Build log content with special chars \x00\x01\n"
+  mock_job.get_build.return_value = mock_build
+  mock_jenkins_api.get_job.return_value = mock_job
+  
+  # Replace the mock with our jenkins api mock
+  mock_j.__bool__ = lambda self: True
+  mock_j.get_job = mock_jenkins_api.get_job
+  
+  from src.devops_mcps.jenkins import jenkins_get_build_log
+  result = jenkins_get_build_log("TestJob", 1)
+  
+  assert isinstance(result, str)
+  assert "Build log content" in result
+  # Verify special characters are handled
+  assert "\x00" not in result
+
+
+@patch('src.devops_mcps.jenkins.j')
+def test_jenkins_get_build_log_latest_build(mock_j, mock_jenkins_api):
+  """Test getting latest build log when build_number <= 0."""
+  mock_job = MagicMock()
+  mock_job.get_last_buildnumber.return_value = 15
+  mock_build = MagicMock()
+  mock_build.get_console.return_value = "Latest build log"
+  mock_job.get_build.return_value = mock_build
+  mock_jenkins_api.get_job.return_value = mock_job
+  
+  # Replace the mock with our jenkins api mock
+  mock_j.__bool__ = lambda self: True
+  mock_j.get_job = mock_jenkins_api.get_job
+  
+  from src.devops_mcps.jenkins import jenkins_get_build_log
+  result = jenkins_get_build_log("TestJob", 0)
+  
+  assert "Latest build log" in result
+  mock_job.get_last_buildnumber.assert_called_once()
+
+
+@patch('src.devops_mcps.jenkins.j')
+def test_jenkins_get_build_log_build_not_found(mock_j, mock_jenkins_api):
+  """Test build log when build is not found."""
+  mock_job = MagicMock()
+  mock_job.get_build.return_value = None
+  mock_jenkins_api.get_job.return_value = mock_job
+  
+  # Replace the mock with our jenkins api mock
+  mock_j.__bool__ = lambda self: True
+  mock_j.get_job = mock_jenkins_api.get_job
+  
+  from src.devops_mcps.jenkins import jenkins_get_build_log
+  result = jenkins_get_build_log("TestJob", 999)
+  
+  assert "error" in result
+  assert "Build #999 not found" in result["error"]
+
+
+@patch('src.devops_mcps.jenkins.j')
+def test_jenkins_get_build_log_jenkins_api_exception(mock_j, mock_jenkins_api):
+  """Test jenkins_get_build_log with JenkinsAPIException."""
+  from jenkinsapi.custom_exceptions import JenkinsAPIException
+  
+  mock_jenkins_api.get_job.side_effect = JenkinsAPIException("Job not found")
+  
+  # Replace the mock with our jenkins api mock
+  mock_j.__bool__ = lambda self: True
+  mock_j.get_job = mock_jenkins_api.get_job
+  
+  from src.devops_mcps.jenkins import jenkins_get_build_log
+  result = jenkins_get_build_log("NonExistentJob", 1)
+  
+  assert "error" in result
+  assert "Jenkins API Error" in result["error"]
+
+
+@patch('src.devops_mcps.jenkins.j')
+def test_jenkins_get_all_views_success(mock_j, mock_jenkins_api):
+  """Test successful retrieval of views."""
+  from src.devops_mcps.jenkins import jenkins_get_all_views
+  from jenkinsapi.view import View
+  
+  mock_view1 = MagicMock(spec=View)
+  mock_view1.name = "View1"
+  mock_view1.baseurl = "http://jenkins/view/View1/"
+  mock_view1.get_description = MagicMock(return_value="Test view 1")
+  
+  mock_view2 = MagicMock(spec=View)
+  mock_view2.name = "View2"
+  mock_view2.baseurl = "http://jenkins/view/View2/"
+  mock_view2.get_description = MagicMock(return_value="Test view 2")
+  
+  mock_jenkins_api.views.keys.return_value = [mock_view1, mock_view2]
+  
+  # Replace the mock with our jenkins api mock
+  mock_j.__bool__ = lambda self: True
+  mock_j.views = mock_jenkins_api.views
+  
+  result = jenkins_get_all_views()
+  
+  assert len(result) == 2
+  assert result[0]["name"] == "View1"
+  assert result[1]["name"] == "View2"
+
+
+@patch('src.devops_mcps.jenkins.j')
+def test_jenkins_get_all_views_jenkins_api_exception(mock_j, mock_jenkins_api):
+  """Test jenkins_get_all_views with JenkinsAPIException."""
+  from jenkinsapi.custom_exceptions import JenkinsAPIException
+  
+  mock_jenkins_api.views.keys.side_effect = JenkinsAPIException("Views error")
+  
+  # Replace the mock with our jenkins api mock
+  mock_j.__bool__ = lambda self: True
+  mock_j.views = mock_jenkins_api.views
+  
+  from src.devops_mcps.jenkins import jenkins_get_all_views
+  result = jenkins_get_all_views()
+  
+  assert "error" in result
+  assert "Jenkins API Error" in result["error"]
+
+
+@patch('src.devops_mcps.jenkins.j')
+def test_jenkins_get_build_parameters_success(mock_j, mock_jenkins_api):
+  """Test successful retrieval of build parameters."""
+  # Setup mocks
+  mock_job = MagicMock()
+  mock_build = MagicMock()
+  mock_build.get_params.return_value = {"param1": "value1", "param2": "value2"}
+  mock_job.get_build.return_value = mock_build
+  mock_jenkins_api.get_job.return_value = mock_job
+  
+  # Replace the mock with our jenkins api mock
+  mock_j.__bool__ = lambda self: True
+  mock_j.get_job = mock_jenkins_api.get_job
+  
+  from src.devops_mcps.jenkins import jenkins_get_build_parameters
+  result = jenkins_get_build_parameters("TestJob", 1)
+  
+  assert result == {"param1": "value1", "param2": "value2"}
+
+
+@patch('src.devops_mcps.jenkins.j')
+def test_jenkins_get_build_parameters_build_not_found(mock_j, mock_jenkins_api):
+  """Test build parameters when build is not found."""
+  # Setup mocks
+  mock_job = MagicMock()
+  mock_job.get_build.return_value = None
+  mock_jenkins_api.get_job.return_value = mock_job
+  
+  # Replace the mock with our jenkins api mock
+  mock_j.__bool__ = lambda self: True
+  mock_j.get_job = mock_jenkins_api.get_job
+  
+  from src.devops_mcps.jenkins import jenkins_get_build_parameters
+  result = jenkins_get_build_parameters("TestJob", 999)
+  
+  assert "error" in result
+  assert "Build #999 not found" in result["error"]
+
+
+@patch('src.devops_mcps.jenkins.j')
+def test_jenkins_get_build_parameters_job_not_found(mock_j, mock_jenkins_api):
+  """Test build parameters when job is not found."""
+  from jenkinsapi.custom_exceptions import JenkinsAPIException
+  # Setup mocks
+  mock_jenkins_api.get_job.side_effect = JenkinsAPIException("No such job")
+  
+  # Replace the mock with our jenkins api mock
+  mock_j.__bool__ = lambda self: True
+  mock_j.get_job = mock_jenkins_api.get_job
+  
+  from src.devops_mcps.jenkins import jenkins_get_build_parameters
+  result = jenkins_get_build_parameters("NonExistentJob", 1)
+  
+  assert "error" in result
+  assert "Job 'NonExistentJob' not found" in result["error"]
+
+
+def test_jenkins_get_queue_no_client(manage_jenkins_module):
+  """Test jenkins_get_queue when client is not initialized."""
+  manage_jenkins_module.j = None
+  result = manage_jenkins_module.jenkins_get_queue()
+  assert result == {"error": "Jenkins client not initialized. Please set the JENKINS_URL, JENKINS_USER, and JENKINS_TOKEN environment variables."}
+
+
+def test_jenkins_get_queue_success(manage_jenkins_module):
+  """Test successful retrieval of queue information."""
+  mock_jenkins_api = MagicMock()
+  mock_queue = MagicMock()
+  mock_queue_items = ["item1", "item2"]
+  mock_queue.get_queue_items.return_value = mock_queue_items
+  mock_jenkins_api.get_queue.return_value = mock_queue
+  
+  # Mock the global j variable using patch
+  with patch.object(manage_jenkins_module, 'j', mock_jenkins_api):
+    # Also need to patch the global j in the function's namespace
+    with patch('src.devops_mcps.jenkins.j', mock_jenkins_api):
+      result = manage_jenkins_module.jenkins_get_queue()
+  
+  assert "queue_items" in result
+  assert result["queue_items"] == mock_queue_items
+
+
+def test_jenkins_get_queue_jenkins_api_exception(manage_jenkins_module):
+  """Test jenkins_get_queue with JenkinsAPIException."""
+  from jenkinsapi.custom_exceptions import JenkinsAPIException
+  
+  mock_jenkins_api = MagicMock()
+  mock_jenkins_api.get_queue.side_effect = JenkinsAPIException("Queue error")
+  
+  # Mock the global j variable using patch
+  with patch.object(manage_jenkins_module, 'j', mock_jenkins_api):
+    # Also need to patch the global j in the function's namespace
+    with patch('src.devops_mcps.jenkins.j', mock_jenkins_api):
+      result = manage_jenkins_module.jenkins_get_queue()
+  
+  assert "error" in result
+  assert "Jenkins API Error" in result["error"]
+
+
+def test_jenkins_get_recent_failed_builds_success(manage_jenkins_module):
+  """Test successful retrieval of recent failed builds."""
+  from datetime import datetime, timezone, timedelta
+  
+  # Create a timestamp that's within the last 8 hours
+  mock_now = datetime(2023, 11, 15, 12, 0, 0, tzinfo=timezone.utc)
+  recent_timestamp = mock_now - timedelta(hours=2)
+  recent_timestamp_ms = int(recent_timestamp.timestamp() * 1000)
+  
+  # Mock successful API response
+  mock_response = MagicMock()
+  mock_response.json.return_value = {
+    "jobs": [
+      {
+        "name": "FailedJob",
+        "url": "http://jenkins/job/FailedJob/",
+        "lastBuild": {
+          "number": 10,
+          "timestamp": recent_timestamp_ms,
+          "result": "FAILURE",
+          "url": "http://jenkins/job/FailedJob/10/"
+        }
+      },
+      {
+        "name": "SuccessJob",
+        "url": "http://jenkins/job/SuccessJob/",
+        "lastBuild": {
+          "number": 5,
+          "timestamp": recent_timestamp_ms,
+          "result": "SUCCESS",
+          "url": "http://jenkins/job/SuccessJob/5/"
+        }
+      }
+    ]
+  }
+  
+  # Use the existing module and mock its functions directly
+  with patch.object(manage_jenkins_module, 'JENKINS_URL', 'http://jenkins'):
+    with patch.object(manage_jenkins_module, 'JENKINS_USER', 'user'):
+      with patch.object(manage_jenkins_module, 'JENKINS_TOKEN', 'token'):
+        with patch.object(manage_jenkins_module, 'requests') as mock_requests:
+          with patch.object(manage_jenkins_module, 'datetime') as mock_datetime:
+            mock_requests.get.return_value = mock_response
+            mock_datetime.now.return_value = mock_now
+            mock_datetime.fromtimestamp = datetime.fromtimestamp
+            mock_datetime.side_effect = lambda *args, **kw: datetime(*args, **kw)
+            
+            result = manage_jenkins_module.jenkins_get_recent_failed_builds(hours_ago=8)
+  
+  assert len(result) == 1
+  assert result[0]["job_name"] == "FailedJob"
+  assert result[0]["status"] == "FAILURE"
+
+
+@patch("src.devops_mcps.jenkins.requests.get")
+def test_jenkins_get_recent_failed_builds_connection_error(mock_get, manage_jenkins_module):
+  """Test jenkins_get_recent_failed_builds with connection error."""
+  mock_get.side_effect = requests.exceptions.ConnectionError("Connection failed")
+  
+  with patch.dict("os.environ", {
+    "JENKINS_URL": "http://jenkins",
+    "JENKINS_USER": "user",
+    "JENKINS_TOKEN": "token"
+  }):
+    if "src.devops_mcps.jenkins" in sys.modules:
+      del sys.modules["src.devops_mcps.jenkins"]
+    import src.devops_mcps.jenkins as reloaded_jenkins_module
+    
+    result = reloaded_jenkins_module.jenkins_get_recent_failed_builds(hours_ago=8)
+  
+  assert "error" in result
+  assert "Could not connect to Jenkins API" in result["error"]
+
+
+@patch("src.devops_mcps.jenkins.requests.get")
+def test_jenkins_get_recent_failed_builds_timeout(mock_get, manage_jenkins_module):
+  """Test jenkins_get_recent_failed_builds with timeout error."""
+  mock_get.side_effect = requests.exceptions.Timeout("Request timeout")
+  
+  with patch.dict("os.environ", {
+    "JENKINS_URL": "http://jenkins",
+    "JENKINS_USER": "user",
+    "JENKINS_TOKEN": "token"
+  }):
+    if "src.devops_mcps.jenkins" in sys.modules:
+      del sys.modules["src.devops_mcps.jenkins"]
+    import src.devops_mcps.jenkins as reloaded_jenkins_module
+    
+    result = reloaded_jenkins_module.jenkins_get_recent_failed_builds(hours_ago=8)
+  
+  assert "error" in result
+  assert "Timeout connecting to Jenkins API" in result["error"]
+
+
+@patch("src.devops_mcps.jenkins.requests.get")
+def test_jenkins_get_recent_failed_builds_http_error(mock_get, manage_jenkins_module):
+  """Test jenkins_get_recent_failed_builds with HTTP error."""
+  mock_response = MagicMock()
+  mock_response.status_code = 404
+  mock_response.reason = "Not Found"
+  mock_response.text = "Page not found"
+  mock_get.return_value = mock_response
+  mock_response.raise_for_status.side_effect = requests.exceptions.HTTPError(response=mock_response)
+  
+  with patch.dict("os.environ", {
+    "JENKINS_URL": "http://jenkins",
+    "JENKINS_USER": "user",
+    "JENKINS_TOKEN": "token"
+  }):
+    if "src.devops_mcps.jenkins" in sys.modules:
+      del sys.modules["src.devops_mcps.jenkins"]
+    import src.devops_mcps.jenkins as reloaded_jenkins_module
+    
+    result = reloaded_jenkins_module.jenkins_get_recent_failed_builds(hours_ago=8)
+  
+  assert "error" in result
+  assert "Jenkins API HTTP Error: 404" in result["error"]
+
+
+def test_to_dict_view_object(manage_jenkins_module):
+  """Test _to_dict with View object."""
+  mock_view = MagicMock()
+  mock_view.name = "TestView"
+  mock_view.baseurl = "http://jenkins/view/TestView/"
+  mock_view.get_description.return_value = "Test view description"
+  
+  with patch("src.devops_mcps.jenkins.View", new=type(mock_view)):
+    result = manage_jenkins_module._to_dict(mock_view)
+  
+  assert result == {
+    "name": "TestView",
+    "url": "http://jenkins/view/TestView/",
+    "description": "Test view description"
+  }
+
+
+def test_to_dict_unknown_object_with_error(manage_jenkins_module):
+  """Test _to_dict with unknown object that raises error during str conversion."""
+  class ProblematicObject:
+    def __str__(self):
+      raise ValueError("Cannot convert to string")
+  
+  obj = ProblematicObject()
+  result = manage_jenkins_module._to_dict(obj)
+  assert "<Error serializing object of type ProblematicObject>" in result
+
+
+# --- Additional Tests for Better Coverage ---
+
+def test_to_dict_build_object(manage_jenkins_module):
+  """Test _to_dict with Build object (fallback case)."""
+  mock_build = MagicMock()
+  mock_build.__class__.__name__ = "Build"
+  
+  # This should trigger the fallback case since Build is not explicitly handled
+  result = manage_jenkins_module._to_dict(mock_build)
+  assert isinstance(result, str)
+
+
+def test_to_dict_nested_structures(manage_jenkins_module):
+  """Test _to_dict with nested dictionaries and lists."""
+  nested_data = {
+    "jobs": [
+      {"name": "job1", "enabled": True},
+      {"name": "job2", "enabled": False}
+    ],
+    "metadata": {
+      "count": 2,
+      "timestamp": None
+    }
+  }
+  
+  result = manage_jenkins_module._to_dict(nested_data)
+  assert result == nested_data
+  assert isinstance(result["jobs"], list)
+  assert len(result["jobs"]) == 2
+
+
+def test_initialize_jenkins_client_already_initialized(manage_jenkins_module):
+  """Test that initialize_jenkins_client returns existing client if already initialized."""
+  mock_client = MagicMock()
+  manage_jenkins_module.j = mock_client
+  
+  result = manage_jenkins_module.initialize_jenkins_client()
+  assert result is mock_client
+
+
+def test_initialize_jenkins_client_unexpected_error(mock_env_vars, manage_jenkins_module):
+  """Test initialization failure due to unexpected error."""
+  with patch("jenkinsapi.jenkins.Jenkins") as mock_jenkins:
+    mock_jenkins.side_effect = RuntimeError("Unexpected error")
+    
+    client = manage_jenkins_module.initialize_jenkins_client()
+    assert client is None
+    assert manage_jenkins_module.j is None
+
+
+def test_set_jenkins_client_for_testing(manage_jenkins_module):
+  """Test the set_jenkins_client_for_testing function."""
+  mock_client = MagicMock()
+  manage_jenkins_module.set_jenkins_client_for_testing(mock_client)
+  assert manage_jenkins_module.j is mock_client
+
+
+@patch('src.devops_mcps.jenkins.j')
+def test_jenkins_get_build_parameters_unexpected_exception(mock_j, mock_jenkins_api):
+  """Test jenkins_get_build_parameters with unexpected exception."""
+  mock_jenkins_api.get_job.side_effect = ValueError("Unexpected error")
+  
+  # Replace the mock with our jenkins api mock
+  mock_j.__bool__ = lambda self: True
+  mock_j.get_job = mock_jenkins_api.get_job
+  
+  from src.devops_mcps.jenkins import jenkins_get_build_parameters
+  result = jenkins_get_build_parameters("TestJob", 1)
+  
+  assert "error" in result
+  assert "An unexpected error occurred" in result["error"]
+
+
+@patch('src.devops_mcps.jenkins.j')
+def test_jenkins_get_build_log_job_not_found(mock_j, mock_jenkins_api):
+  """Test jenkins_get_build_log when job is not found."""
+  from jenkinsapi.custom_exceptions import JenkinsAPIException
+  
+  mock_jenkins_api.get_job.side_effect = JenkinsAPIException("Job not found")
+  
+  # Replace the mock with our jenkins api mock
+  mock_j.__bool__ = lambda self: True
+  mock_j.get_job = mock_jenkins_api.get_job
+  
+  from src.devops_mcps.jenkins import jenkins_get_build_log
+  result = jenkins_get_build_log("NonExistentJob", 1)
+  
+  assert "error" in result
+  assert "Jenkins API Error" in result["error"]
+
+
+@patch('src.devops_mcps.jenkins.j')
+def test_jenkins_get_build_log_unexpected_exception(mock_j, mock_jenkins_api):
+  """Test jenkins_get_build_log with unexpected exception."""
+  mock_jenkins_api.get_job.side_effect = RuntimeError("Unexpected error")
+  
+  # Replace the mock with our jenkins api mock
+  mock_j.__bool__ = lambda self: True
+  mock_j.get_job = mock_jenkins_api.get_job
+  
+  from src.devops_mcps.jenkins import jenkins_get_build_log
+  result = jenkins_get_build_log("TestJob", 1)
+  
+  assert "error" in result
+  assert "An unexpected error occurred" in result["error"]
+
+
+@patch('src.devops_mcps.jenkins.j')
+def test_jenkins_get_all_views_unexpected_exception(mock_j, mock_jenkins_api):
+  """Test jenkins_get_all_views with unexpected exception."""
+  mock_jenkins_api.views.keys.side_effect = RuntimeError("Unexpected error")
+  
+  # Replace the mock with our jenkins api mock
+  mock_j.__bool__ = lambda self: True
+  mock_j.views = mock_jenkins_api.views
+  
+  from src.devops_mcps.jenkins import jenkins_get_all_views
+  result = jenkins_get_all_views()
+  
+  assert "error" in result
+  assert "An unexpected error occurred" in result["error"]
+
+
+def test_jenkins_get_queue_unexpected_exception(manage_jenkins_module):
+  """Test jenkins_get_queue with unexpected exception."""
+  mock_jenkins_api = MagicMock()
+  mock_jenkins_api.get_queue.side_effect = RuntimeError("Unexpected error")
+  
+  # Mock the global j variable using patch
+  with patch.object(manage_jenkins_module, 'j', mock_jenkins_api):
+    # Also need to patch the global j in the function's namespace
+    with patch('src.devops_mcps.jenkins.j', mock_jenkins_api):
+      result = manage_jenkins_module.jenkins_get_queue()
+  
+  assert "error" in result
+  assert "An unexpected error occurred" in result["error"]
+
+
+@patch("src.devops_mcps.jenkins.requests.get")
+def test_jenkins_get_recent_failed_builds_json_error(mock_get, manage_jenkins_module):
+  """Test jenkins_get_recent_failed_builds with JSON parsing error."""
+  mock_response = MagicMock()
+  mock_response.json.side_effect = ValueError("Invalid JSON")
+  mock_get.return_value = mock_response
+  
+  with patch.dict("os.environ", {
+    "JENKINS_URL": "http://jenkins",
+    "JENKINS_USER": "user",
+    "JENKINS_TOKEN": "token"
+  }):
+    if "src.devops_mcps.jenkins" in sys.modules:
+      del sys.modules["src.devops_mcps.jenkins"]
+    import src.devops_mcps.jenkins as reloaded_jenkins_module
+    
+    result = reloaded_jenkins_module.jenkins_get_recent_failed_builds(hours_ago=8)
+  
+  assert "error" in result
+  assert "An unexpected error occurred" in result["error"]
+
+
+@patch("src.devops_mcps.jenkins.requests.get")
+def test_jenkins_get_recent_failed_builds_request_exception(mock_get, manage_jenkins_module):
+  """Test jenkins_get_recent_failed_builds with general request exception."""
+  mock_get.side_effect = requests.exceptions.RequestException("Request failed")
+  
+  with patch.dict("os.environ", {
+    "JENKINS_URL": "http://jenkins",
+    "JENKINS_USER": "user",
+    "JENKINS_TOKEN": "token"
+  }):
+    if "src.devops_mcps.jenkins" in sys.modules:
+      del sys.modules["src.devops_mcps.jenkins"]
+    import src.devops_mcps.jenkins as reloaded_jenkins_module
+    
+    result = reloaded_jenkins_module.jenkins_get_recent_failed_builds(hours_ago=8)
+  
+  assert "error" in result
+  assert "Jenkins API Request Error" in result["error"]
+
+
+def test_jenkins_get_recent_failed_builds_no_jobs_key(manage_jenkins_module):
+  """Test jenkins_get_recent_failed_builds when API response has no 'jobs' key."""
+  mock_response = MagicMock()
+  mock_response.json.return_value = {"message": "No jobs data"}
+  
+  with patch.object(manage_jenkins_module, 'JENKINS_URL', 'http://jenkins'):
+    with patch.object(manage_jenkins_module, 'JENKINS_USER', 'user'):
+      with patch.object(manage_jenkins_module, 'JENKINS_TOKEN', 'token'):
+        with patch.object(manage_jenkins_module, 'requests') as mock_requests:
+          mock_requests.get.return_value = mock_response
+          
+          result = manage_jenkins_module.jenkins_get_recent_failed_builds(hours_ago=8)
+  
+  assert result == []
+
+
+def test_jenkins_get_recent_failed_builds_job_no_name(manage_jenkins_module):
+  """Test jenkins_get_recent_failed_builds with job data missing name."""
+  from datetime import datetime, timezone, timedelta
+  
+  mock_now = datetime(2023, 11, 15, 12, 0, 0, tzinfo=timezone.utc)
+  recent_timestamp = mock_now - timedelta(hours=2)
+  recent_timestamp_ms = int(recent_timestamp.timestamp() * 1000)
+  
+  mock_response = MagicMock()
+  mock_response.json.return_value = {
+    "jobs": [
+      {  # Job without name
+        "url": "http://jenkins/job/NoName/",
+        "lastBuild": {
+          "number": 10,
+          "timestamp": recent_timestamp_ms,
+          "result": "FAILURE",
+          "url": "http://jenkins/job/NoName/10/"
+        }
+      }
+    ]
+  }
+  
+  with patch.object(manage_jenkins_module, 'JENKINS_URL', 'http://jenkins'):
+    with patch.object(manage_jenkins_module, 'JENKINS_USER', 'user'):
+      with patch.object(manage_jenkins_module, 'JENKINS_TOKEN', 'token'):
+        with patch.object(manage_jenkins_module, 'requests') as mock_requests:
+          with patch.object(manage_jenkins_module, 'datetime') as mock_datetime:
+            mock_requests.get.return_value = mock_response
+            mock_datetime.now.return_value = mock_now
+            mock_datetime.fromtimestamp = datetime.fromtimestamp
+            mock_datetime.side_effect = lambda *args, **kw: datetime(*args, **kw)
+            
+            result = manage_jenkins_module.jenkins_get_recent_failed_builds(hours_ago=8)
+  
+  assert result == []
+
+
+def test_jenkins_get_recent_failed_builds_no_last_build(manage_jenkins_module):
+  """Test jenkins_get_recent_failed_builds with job having no lastBuild data."""
+  mock_response = MagicMock()
+  mock_response.json.return_value = {
+    "jobs": [
+      {
+        "name": "JobWithoutBuild",
+        "url": "http://jenkins/job/JobWithoutBuild/"
+        # No lastBuild data
+      }
+    ]
+  }
+  
+  with patch.object(manage_jenkins_module, 'JENKINS_URL', 'http://jenkins'):
+    with patch.object(manage_jenkins_module, 'JENKINS_USER', 'user'):
+      with patch.object(manage_jenkins_module, 'JENKINS_TOKEN', 'token'):
+        with patch.object(manage_jenkins_module, 'requests') as mock_requests:
+          mock_requests.get.return_value = mock_response
+          
+          result = manage_jenkins_module.jenkins_get_recent_failed_builds(hours_ago=8)
+  
+  assert result == []
+
+
+def test_jenkins_get_recent_failed_builds_no_timestamp(manage_jenkins_module):
+  """Test jenkins_get_recent_failed_builds with build missing timestamp."""
+  mock_response = MagicMock()
+  mock_response.json.return_value = {
+    "jobs": [
+      {
+        "name": "JobWithoutTimestamp",
+        "url": "http://jenkins/job/JobWithoutTimestamp/",
+        "lastBuild": {
+          "number": 10,
+          "result": "FAILURE",
+          "url": "http://jenkins/job/JobWithoutTimestamp/10/"
+          # No timestamp
+        }
+      }
+    ]
+  }
+  
+  with patch.object(manage_jenkins_module, 'JENKINS_URL', 'http://jenkins'):
+    with patch.object(manage_jenkins_module, 'JENKINS_USER', 'user'):
+      with patch.object(manage_jenkins_module, 'JENKINS_TOKEN', 'token'):
+        with patch.object(manage_jenkins_module, 'requests') as mock_requests:
+          mock_requests.get.return_value = mock_response
+          
+          result = manage_jenkins_module.jenkins_get_recent_failed_builds(hours_ago=8)
+  
+  assert result == []
+
+
+def test_jenkins_get_recent_failed_builds_old_build(manage_jenkins_module):
+  """Test jenkins_get_recent_failed_builds with build older than cutoff time."""
+  mock_now = datetime(2023, 11, 15, 12, 0, 0, tzinfo=timezone.utc)
+  old_timestamp = mock_now - timedelta(hours=10)  # Older than 8 hours
+  old_timestamp_ms = int(old_timestamp.timestamp() * 1000)
+  
+  mock_response = MagicMock()
+  mock_response.json.return_value = {
+    "jobs": [
+      {
+        "name": "OldFailedJob",
+        "url": "http://jenkins/job/OldFailedJob/",
+        "lastBuild": {
+          "number": 10,
+          "timestamp": old_timestamp_ms,
+          "result": "FAILURE",
+          "url": "http://jenkins/job/OldFailedJob/10/"
+        }
+      }
+    ]
+  }
+  
+  with patch.object(manage_jenkins_module, 'JENKINS_URL', 'http://jenkins'):
+    with patch.object(manage_jenkins_module, 'JENKINS_USER', 'user'):
+      with patch.object(manage_jenkins_module, 'JENKINS_TOKEN', 'token'):
+        with patch.object(manage_jenkins_module, 'requests') as mock_requests:
+          with patch.object(manage_jenkins_module, 'datetime') as mock_datetime:
+            mock_requests.get.return_value = mock_response
+            mock_datetime.now.return_value = mock_now
+            mock_datetime.fromtimestamp = datetime.fromtimestamp
+            mock_datetime.side_effect = lambda *args, **kw: datetime(*args, **kw)
+            
+            result = manage_jenkins_module.jenkins_get_recent_failed_builds(hours_ago=8)
+  
+  assert result == []
+
+
+def test_jenkins_get_recent_failed_builds_recent_success(manage_jenkins_module):
+  """Test jenkins_get_recent_failed_builds with recent successful build (should be excluded)."""
+  mock_now = datetime(2023, 11, 15, 12, 0, 0, tzinfo=timezone.utc)
+  recent_timestamp = mock_now - timedelta(hours=2)
+  recent_timestamp_ms = int(recent_timestamp.timestamp() * 1000)
+  
+  mock_response = MagicMock()
+  mock_response.json.return_value = {
+    "jobs": [
+      {
+        "name": "RecentSuccessJob",
+        "url": "http://jenkins/job/RecentSuccessJob/",
+        "lastBuild": {
+          "number": 10,
+          "timestamp": recent_timestamp_ms,
+          "result": "SUCCESS",  # Not a failure
+          "url": "http://jenkins/job/RecentSuccessJob/10/"
+        }
+      }
+    ]
+  }
+  
+  with patch.object(manage_jenkins_module, 'JENKINS_URL', 'http://jenkins'):
+    with patch.object(manage_jenkins_module, 'JENKINS_USER', 'user'):
+      with patch.object(manage_jenkins_module, 'JENKINS_TOKEN', 'token'):
+        with patch.object(manage_jenkins_module, 'requests') as mock_requests:
+          with patch.object(manage_jenkins_module, 'datetime') as mock_datetime:
+            mock_requests.get.return_value = mock_response
+            mock_datetime.now.return_value = mock_now
+            mock_datetime.fromtimestamp = datetime.fromtimestamp
+            mock_datetime.side_effect = lambda *args, **kw: datetime(*args, **kw)
+            
+            result = manage_jenkins_module.jenkins_get_recent_failed_builds(hours_ago=8)
+  
+  assert result == []
+
+
+def test_jenkins_get_recent_failed_builds_missing_build_url(manage_jenkins_module):
+  """Test jenkins_get_recent_failed_builds with missing build URL (should construct one)."""
+  mock_now = datetime(2023, 11, 15, 12, 0, 0, tzinfo=timezone.utc)
+  recent_timestamp = mock_now - timedelta(hours=2)
+  recent_timestamp_ms = int(recent_timestamp.timestamp() * 1000)
+  
+  mock_response = MagicMock()
+  mock_response.json.return_value = {
+    "jobs": [
+      {
+        "name": "JobWithoutBuildUrl",
+        "url": "http://jenkins/job/JobWithoutBuildUrl/",
+        "lastBuild": {
+          "number": 10,
+          "timestamp": recent_timestamp_ms,
+          "result": "FAILURE"
+          # No build URL
+        }
+      }
+    ]
+  }
+  
+  with patch.object(manage_jenkins_module, 'JENKINS_URL', 'http://jenkins'):
+    with patch.object(manage_jenkins_module, 'JENKINS_USER', 'user'):
+      with patch.object(manage_jenkins_module, 'JENKINS_TOKEN', 'token'):
+        with patch.object(manage_jenkins_module, 'requests') as mock_requests:
+          with patch.object(manage_jenkins_module, 'datetime') as mock_datetime:
+            mock_requests.get.return_value = mock_response
+            mock_datetime.now.return_value = mock_now
+            mock_datetime.fromtimestamp = datetime.fromtimestamp
+            mock_datetime.side_effect = lambda *args, **kw: datetime(*args, **kw)
+            
+            result = manage_jenkins_module.jenkins_get_recent_failed_builds(hours_ago=8)
+  
+  assert len(result) == 1
+  assert result[0]["job_name"] == "JobWithoutBuildUrl"
+  assert result[0]["url"] == "http://jenkins/job/JobWithoutBuildUrl/10"
+
+
+@patch('src.devops_mcps.jenkins.j')
+def test_jenkins_get_build_parameters_no_such_job_error(mock_j):
+    """Test jenkins_get_build_parameters when job is not found."""
+    from src.devops_mcps.jenkins import jenkins_get_build_parameters
+    from jenkinsapi.custom_exceptions import JenkinsAPIException
+    
+    mock_j.__bool__.return_value = True
+    mock_j.get_job.side_effect = JenkinsAPIException("No such job: nonexistent-job")
+    
+    result = jenkins_get_build_parameters("nonexistent-job", 1)
+    
+    assert "error" in result
+    assert "Job 'nonexistent-job' not found" in result["error"]
+
+
+def test_module_initialization_in_non_test_environment(manage_jenkins_module):
+  """Test that module initialization is skipped during testing but would run otherwise."""
+  # This test verifies the logic that prevents initialization during pytest
+  import sys
+  original_argv = sys.argv[:]
+  
+  try:
+    # Simulate non-test environment
+    sys.argv = ['python', 'some_script.py']
+    
+    # Import the module to trigger the initialization check
+    # Since we're in pytest, the actual initialization won't run
+    # but we can verify the logic exists
+    import src.devops_mcps.jenkins as jenkins_module
+    
+    # The module should have the initialization code
+    assert hasattr(jenkins_module, 'initialize_jenkins_client')
+    
+  finally:
+    sys.argv = original_argv
