@@ -46,11 +46,15 @@ def _validate_artifactory_config():
 
   if not url:
     logger.error("Artifactory URL not configured")
-    return {"error": "Artifactory URL not configured. Please set the ARTIFACTORY_URL environment variable."}
+    return {
+      "error": "Artifactory URL not configured. Please set the ARTIFACTORY_URL environment variable."
+    }
 
   if not (identity_token or (username and password)):
     logger.error("Artifactory authentication not configured")
-    return {"error": "Artifactory authentication not configured. Please set either ARTIFACTORY_IDENTITY_TOKEN or both ARTIFACTORY_USERNAME and ARTIFACTORY_PASSWORD environment variables."}
+    return {
+      "error": "Artifactory authentication not configured. Please set either ARTIFACTORY_IDENTITY_TOKEN or both ARTIFACTORY_USERNAME and ARTIFACTORY_PASSWORD environment variables."
+    }
 
   return True
 

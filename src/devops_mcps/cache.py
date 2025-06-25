@@ -15,7 +15,7 @@ class CacheManager:
     """Initialize in-memory cache."""
     self._cache: Dict[str, Dict[str, Any]] = {}
     self._lock = threading.Lock()
-    self.default_ttl = 3600  # 1 hour default
+    self.default_ttl = 600  # 1 hour default
     logger.info("Initialized in-memory cache")
 
   def get(self, key: str) -> Optional[Any]:

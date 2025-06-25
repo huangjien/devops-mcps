@@ -1,6 +1,6 @@
 [project]
 name = "devops-mcps"
-version = "0.6.20"
+version = "0.6.21"
 description = "A FastMCP-based MCP server for DevOps"
 authors = [{ name = "Jien Huang", email = "huangjien@gmail.com" }]
 readme = "README.md"
@@ -51,7 +51,7 @@ dev = [
 
 [project.scripts]
 devops-mcps = "devops_mcps.core:main"
-devops-mcps-sse = "devops_mcps.core:main_sse"
+devops-mcps-stream-http = "devops_mcps.core:main_stream_http"
 
 [build-system]
 requires = ["setuptools", "wheel"]

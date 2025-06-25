@@ -28,5 +28,5 @@ EXPOSE 8000
 ENV TRANSPORT_TYPE=stdio
 
 # Command to run the MCP server using uv with transport type selection
-ENTRYPOINT ["/bin/sh", "-c", "if [ \"$TRANSPORT_TYPE\" = \"sse\" ]; then /app/.venv/bin/uv run devops-mcps-sse; else /app/.venv/bin/uv run devops-mcps; fi"]
+ENTRYPOINT ["/bin/sh", "-c", "if [ \"$TRANSPORT_TYPE\" = \"stream_http\" ]; then /app/.venv/bin/uv run devops-mcps-stream-http; else /app/.venv/bin/uv run devops-mcps; fi"]
 

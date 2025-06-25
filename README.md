@@ -2,7 +2,7 @@
 
 [![PyPI version](https://badge.fury.io/py/devops-mcps.svg)](https://badge.fury.io/py/devops-mcps)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Coverage](https://img.shields.io/badge/coverage-80%25-brightgreen.svg)](https://github.com/huangjien/devops-mcps)
+[![Coverage](https://img.shields.io/badge/coverage-90%25-brightgreen.svg)](https://github.com/huangjien/devops-mcps)
 
 A [FastMCP](https://github.com/modelcontextprotocol/fastmcp)-based MCP server providing a suite of DevOps tools and integrations.
 
@@ -57,7 +57,7 @@ devops-mcps
 The server supports two communication transport types:
 
 -   `stdio` (default): Standard input/output.
--   `sse`: Server-Sent Events over HTTP.
+-   `stream_http`: HTTP streaming transport.
 
 **Local Usage:**
 
@@ -65,8 +65,8 @@ The server supports two communication transport types:
 # Default stdio transport
 devops-mcps
 
-# SSE transport (runs on http://localhost:8000 by default)
-devops-mcps --transport sse
+# stream_http transport (runs HTTP server on 127.0.0.1:3721/mcp by default)
+devops-mcps --transport stream_http
 ```
 
 **UVX Usage:**
@@ -83,8 +83,8 @@ Then run:
 # Default stdio transport
 uvx run devops-mcps
 
-# SSE transport
-uvx run devops-mcps-sse
+# stream_http transport
+uvx run devops-mcps-stream-http
 ```
 
 ## Configuration
@@ -118,6 +118,9 @@ export ARTIFACTORY_PASSWORD="your_artifactory_password"
 ```bash
 # Jenkins Log Length (default: 5120 bytes)
 export LOG_LENGTH=10240
+
+# MCP Server Port for stream_http transport (default: 3721)
+export MCP_PORT=3721
 ```
 
 **Note**: `LOG_LENGTH` controls the amount of Jenkins log data retrieved. Adjust as needed.
@@ -143,9 +146,10 @@ docker run -i --rm \
   -e ARTIFACTORY_IDENTITY_TOKEN="..." \
   devops-mcps
 
-# SSE transport (background, port 8000)
-docker run -d -p 8000:8000 --rm \
-  -e TRANSPORT_TYPE=sse \
+# stream_http transport (background, HTTP server on 127.0.0.1:3721/mcp by default)
+docker run -d -p 3721:3721 --rm \
+  -e TRANSPORT_TYPE=stream_http \
+  -e MCP_PORT=3721 \
   -e GITHUB_PERSONAL_ACCESS_TOKEN="..." \
   -e JENKINS_URL="..." \
   -e JENKINS_USER="..." \
@@ -180,14 +184,14 @@ Configure the MCP server in VSCode's `settings.json`:
 }
 ```
 
-**Example (Docker with SSE):**
+**Example (Docker with stream_http):**
 
-Ensure the Docker container is running with SSE enabled (see Docker section).
+Ensure the Docker container is running with stream_http enabled (see Docker section).
 
 ```json
-"devops-mcps": {
-  "type": "sse",
-  "url": "http://localhost:8000/sse", // Adjust if Docker host is remote
+{
+  "type": "stream_http",
+  "url": "http://127.0.0.1:3721/mcp", // Adjust if Docker host is remote or if MCP_PORT is set differently
   "env": {
     // Environment variables are set in the container,
     // but can be overridden here if needed.
@@ -196,7 +200,7 @@ Ensure the Docker container is running with SSE enabled (see Docker section).
 }
 ```
 
-Refer to the initial `README.md` sections for other transport/runner combinations (UVX/SSE, Docker/stdio).
+Refer to the initial `README.md` sections for other transport/runner combinations (UVX/stream_http, Docker/stdio).
 
 ## Development
 

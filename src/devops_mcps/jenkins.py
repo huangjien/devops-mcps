@@ -1,6 +1,7 @@
 # /Users/huangjien/workspace/devops-mcps/src/devops_mcps/jenkins.py
 import logging
 import os
+import sys
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional, Dict, Any, Union
 import requests
@@ -11,6 +12,9 @@ from jenkinsapi.job import Job
 from jenkinsapi.view import View
 from jenkinsapi.build import Build
 from requests.exceptions import ConnectionError
+
+# Internal imports
+from .cache import cache
 
 logger = logging.getLogger(__name__)
 
@@ -55,8 +59,7 @@ def initialize_jenkins_client():
 
 
 # Call initialization when the module is loaded
-import sys
-if not any('pytest' in arg or 'unittest' in arg for arg in sys.argv):
+if not any("pytest" in arg or "unittest" in arg for arg in sys.argv):
   initialize_jenkins_client()
 
 
@@ -105,16 +108,30 @@ def _to_dict(obj: Any) -> Any:
 def jenkins_get_jobs() -> Union[List[Dict[str, Any]], Dict[str, str]]:
   """Internal logic for getting all jobs."""
   logger.debug("jenkins_get_jobs called")
+
+  # Check cache first
+  cache_key = "jenkins:jobs:all"
+  cached = cache.get(cache_key)
+  if cached:
+    logger.debug(f"Returning cached result for {cache_key}")
+    return cached
+
   if not j:
     logger.error("jenkins_get_jobs: Jenkins client not initialized.")
     if not JENKINS_URL or not JENKINS_USER or not JENKINS_TOKEN:
       logger.error("Jenkins credentials not configured.")
-      return {"error": "Jenkins client not initialized. Please set the JENKINS_URL, JENKINS_USER, and JENKINS_TOKEN environment variables."}
-    return {"error": "Jenkins client not initialized. Please set the JENKINS_URL, JENKINS_USER, and JENKINS_TOKEN environment variables."}
+      return {
+        "error": "Jenkins client not initialized. Please set the JENKINS_URL, JENKINS_USER, and JENKINS_TOKEN environment variables."
+      }
+    return {
+      "error": "Jenkins client not initialized. Please set the JENKINS_URL, JENKINS_USER, and JENKINS_TOKEN environment variables."
+    }
   try:
     jobs = j.keys()
     logger.debug(f"Found {len(jobs)} jobs.")
-    return [_to_dict(job) for job in jobs]  # modified to use .values()
+    result = [_to_dict(job) for job in jobs]  # modified to use .values()
+    cache.set(cache_key, result, ttl=300)  # Cache for 5 minutes
+    return result
   except JenkinsAPIException as e:
     logger.error(f"jenkins_get_jobs Jenkins Error: {e}", exc_info=True)
     return {"error": f"Jenkins API Error: {e}"}
@@ -131,17 +148,31 @@ def jenkins_get_build_log(
   logger.debug(
     f"jenkins_get_build_log called for job: {job_name}, build: {build_number}"
   )
+
   if not j:
     logger.error("jenkins_get_build_log: Jenkins client not initialized.")
     if not JENKINS_URL or not JENKINS_USER or not JENKINS_TOKEN:
       logger.error("Jenkins credentials not configured.")
-      return {"error": "Jenkins client not initialized. Please set the JENKINS_URL, JENKINS_USER, and JENKINS_TOKEN environment variables."}
-    return {"error": "Jenkins client not initialized. Please set the JENKINS_URL, JENKINS_USER, and JENKINS_TOKEN environment variables."}
+      return {
+        "error": "Jenkins client not initialized. Please set the JENKINS_URL, JENKINS_USER, and JENKINS_TOKEN environment variables."
+      }
+    return {
+      "error": "Jenkins client not initialized. Please set the JENKINS_URL, JENKINS_USER, and JENKINS_TOKEN environment variables."
+    }
+
   try:
     job = j.get_job(job_name)
     if build_number <= 0:
       build_number = job.get_last_buildnumber()
       logger.debug(f"Using latest build number: {build_number}")
+
+    # Check cache after we know the actual build number
+    cache_key = f"jenkins:build_log:{job_name}:{build_number}"
+    cached = cache.get(cache_key)
+    if cached:
+      logger.debug(f"Returning cached result for {cache_key}")
+      return cached
+
     build = job.get_build(build_number)
     if not build:
       return {"error": f"Build #{build_number} not found for job {job_name}"}
@@ -154,7 +185,9 @@ def jenkins_get_build_log(
       )
       # Ensure proper UTF-8 encoding
       log = log.encode("utf-8", errors="replace").decode("utf-8")
-    return log[-LOG_LENGTH:]  # Return only the last portion
+    result = log[-LOG_LENGTH:]  # Return only the last portion
+    cache.set(cache_key, result, ttl=1800)  # Cache for 30 minutes
+    return result
   except JenkinsAPIException as e:
     logger.error(f"jenkins_get_build_log Jenkins Error: {e}", exc_info=True)
     return {"error": f"Jenkins API Error: {e}"}
@@ -167,16 +200,30 @@ def jenkins_get_build_log(
 def jenkins_get_all_views() -> Union[List[Dict[str, Any]], Dict[str, str]]:
   """Get all the views from the Jenkins."""
   logger.debug("jenkins_get_all_views called")
+
+  # Check cache first
+  cache_key = "jenkins:views:all"
+  cached = cache.get(cache_key)
+  if cached:
+    logger.debug(f"Returning cached result for {cache_key}")
+    return cached
+
   if not j:
     logger.error("jenkins_get_all_views: Jenkins client not initialized.")
     if not JENKINS_URL or not JENKINS_USER or not JENKINS_TOKEN:
       logger.error("Jenkins credentials not configured.")
-      return {"error": "Jenkins client not initialized. Please set the JENKINS_URL, JENKINS_USER, and JENKINS_TOKEN environment variables."}
-    return {"error": "Jenkins client not initialized. Please set the JENKINS_URL, JENKINS_USER, and JENKINS_TOKEN environment variables."}
+      return {
+        "error": "Jenkins client not initialized. Please set the JENKINS_URL, JENKINS_USER, and JENKINS_TOKEN environment variables."
+      }
+    return {
+      "error": "Jenkins client not initialized. Please set the JENKINS_URL, JENKINS_USER, and JENKINS_TOKEN environment variables."
+    }
   try:
     views = j.views.keys()
     logger.debug(f"Found {len(views)} views.")
-    return [_to_dict(view) for view in views]  # modified to use .values()
+    result = [_to_dict(view) for view in views]  # modified to use .values()
+    cache.set(cache_key, result, ttl=600)  # Cache for 10 minutes
+    return result
   except JenkinsAPIException as e:
     logger.error(f"jenkins_get_all_views Jenkins Error: {e}", exc_info=True)
     return {"error": f"Jenkins API Error: {e}"}
@@ -193,12 +240,24 @@ def jenkins_get_build_parameters(
   logger.debug(
     f"jenkins_get_build_parameters called for job: {job_name}, build: {build_number}"
   )
+
+  # Check cache first
+  cache_key = f"jenkins:build_parameters:{job_name}:{build_number}"
+  cached = cache.get(cache_key)
+  if cached:
+    logger.debug(f"Returning cached result for {cache_key}")
+    return cached
+
   if not j:
     logger.error("jenkins_get_build_parameters: Jenkins client not initialized.")
     if not JENKINS_URL or not JENKINS_USER or not JENKINS_TOKEN:
       logger.error("Jenkins credentials not configured.")
-      return {"error": "Jenkins client not initialized. Please set the JENKINS_URL, JENKINS_USER, and JENKINS_TOKEN environment variables."}
-    return {"error": "Jenkins client not initialized. Please set the JENKINS_URL, JENKINS_USER, and JENKINS_TOKEN environment variables."}
+      return {
+        "error": "Jenkins client not initialized. Please set the JENKINS_URL, JENKINS_USER, and JENKINS_TOKEN environment variables."
+      }
+    return {
+      "error": "Jenkins client not initialized. Please set the JENKINS_URL, JENKINS_USER, and JENKINS_TOKEN environment variables."
+    }
   try:
     job: Job = j.get_job(job_name)
     build: Optional[Build] = job.get_build(build_number)
@@ -209,6 +268,7 @@ def jenkins_get_build_parameters(
 
     params: Dict[str, Any] = build.get_params()  # Get the parameters
     logger.debug(f"Retrieved parameters for build {job_name}#{build_number}: {params}")
+    cache.set(cache_key, params, ttl=3600)  # Cache for 1 hour
     return params  # Return the dictionary directly
 
   except JenkinsAPIException as e:
@@ -231,17 +291,33 @@ def jenkins_get_build_parameters(
 def jenkins_get_queue() -> Union[Dict[str, Any], Dict[str, str]]:
   """Get the current Jenkins queue information."""
   logger.debug("jenkins_get_queue called")
+
+  # Check cache first
+  cache_key = "jenkins:queue:current"
+  cached = cache.get(cache_key)
+  if cached:
+    logger.debug(f"Returning cached result for {cache_key}")
+    return cached
+
   if not j:
     logger.error("jenkins_get_queue: Jenkins client not initialized.")
     if not JENKINS_URL or not JENKINS_USER or not JENKINS_TOKEN:
       logger.error("Jenkins credentials not configured.")
-      return {"error": "Jenkins client not initialized. Please set the JENKINS_URL, JENKINS_USER, and JENKINS_TOKEN environment variables."}
-    return {"error": "Jenkins client not initialized. Please set the JENKINS_URL, JENKINS_USER, and JENKINS_TOKEN environment variables."}
+      return {
+        "error": "Jenkins client not initialized. Please set the JENKINS_URL, JENKINS_USER, and JENKINS_TOKEN environment variables."
+      }
+    return {
+      "error": "Jenkins client not initialized. Please set the JENKINS_URL, JENKINS_USER, and JENKINS_TOKEN environment variables."
+    }
   try:
     queue_info = j.get_queue().get_queue_items()  # Example: get items
     logger.debug(f"Retrieved queue info: {queue_info}")
     # Note: jenkinsapi might return specific objects here, adjust _to_dict or processing as needed
-    return {"queue_items": _to_dict(queue_info)}  # Wrap in a dict for clarity
+    result = {"queue_items": _to_dict(queue_info)}  # Wrap in a dict for clarity
+    cache.set(
+      cache_key, result, ttl=60
+    )  # Cache for 1 minute (queue changes frequently)
+    return result
   except JenkinsAPIException as e:
     logger.error(f"jenkins_get_queue Jenkins Error: {e}", exc_info=True)
     return {"error": f"Jenkins API Error: {str(e)}"}
@@ -270,10 +346,19 @@ def jenkins_get_recent_failed_builds(
     f"jenkins_get_recent_failed_builds (OPTIMIZED) called for the last {hours_ago} hours"
   )
 
+  # Check cache first
+  cache_key = f"jenkins:recent_failed_builds:{hours_ago}"
+  cached = cache.get(cache_key)
+  if cached:
+    logger.debug(f"Returning cached result for {cache_key}")
+    return cached
+
   # Need credentials even if not using the 'j' client object directly for API calls
   if not JENKINS_URL or not JENKINS_USER or not JENKINS_TOKEN:
     logger.error("Jenkins credentials (URL, USER, TOKEN) not configured.")
-    return {"error": "Jenkins client not initialized. Please set the JENKINS_URL, JENKINS_USER, and JENKINS_TOKEN environment variables."}
+    return {
+      "error": "Jenkins client not initialized. Please set the JENKINS_URL, JENKINS_USER, and JENKINS_TOKEN environment variables."
+    }
 
   recent_failed_builds = []
   try:
@@ -368,6 +453,7 @@ def jenkins_get_recent_failed_builds(
     logger.debug(
       f"Finished processing optimized response. Found {len(recent_failed_builds)} jobs whose last build failed in the last {hours_ago} hours."
     )
+    cache.set(cache_key, recent_failed_builds, ttl=300)  # Cache for 5 minutes
     return recent_failed_builds
 
   except requests.exceptions.Timeout as e:

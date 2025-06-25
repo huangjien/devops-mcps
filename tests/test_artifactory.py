@@ -78,9 +78,16 @@ class TestArtifactoryListItems(unittest.TestCase):
   @patch("devops_mcps.artifactory._validate_artifactory_config")
   def test_list_items_invalid_config(self, mock_validate):
     """Test list_items with invalid config."""
-    mock_validate.return_value = {"error": "Artifactory authentication not configured. Please set either ARTIFACTORY_IDENTITY_TOKEN or both ARTIFACTORY_USERNAME and ARTIFACTORY_PASSWORD environment variables."}
+    mock_validate.return_value = {
+      "error": "Artifactory authentication not configured. Please set either ARTIFACTORY_IDENTITY_TOKEN or both ARTIFACTORY_USERNAME and ARTIFACTORY_PASSWORD environment variables."
+    }
     result = artifactory_list_items("repo", "/path")
-    self.assertEqual(result, {"error": "Artifactory authentication not configured. Please set either ARTIFACTORY_IDENTITY_TOKEN or both ARTIFACTORY_USERNAME and ARTIFACTORY_PASSWORD environment variables."})
+    self.assertEqual(
+      result,
+      {
+        "error": "Artifactory authentication not configured. Please set either ARTIFACTORY_IDENTITY_TOKEN or both ARTIFACTORY_USERNAME and ARTIFACTORY_PASSWORD environment variables."
+      },
+    )
 
   @patch("devops_mcps.artifactory._validate_artifactory_config")
   @patch("devops_mcps.artifactory._get_auth")
@@ -199,9 +206,16 @@ class TestArtifactorySearchItems(unittest.TestCase):
   @patch("devops_mcps.artifactory._validate_artifactory_config")
   def test_search_items_invalid_config(self, mock_validate):
     """Test search_items with invalid config."""
-    mock_validate.return_value = {"error": "Artifactory authentication not configured. Please set either ARTIFACTORY_IDENTITY_TOKEN or both ARTIFACTORY_USERNAME and ARTIFACTORY_PASSWORD environment variables."}
+    mock_validate.return_value = {
+      "error": "Artifactory authentication not configured. Please set either ARTIFACTORY_IDENTITY_TOKEN or both ARTIFACTORY_USERNAME and ARTIFACTORY_PASSWORD environment variables."
+    }
     result = artifactory_search_items("query")
-    self.assertEqual(result, {"error": "Artifactory authentication not configured. Please set either ARTIFACTORY_IDENTITY_TOKEN or both ARTIFACTORY_USERNAME and ARTIFACTORY_PASSWORD environment variables."})
+    self.assertEqual(
+      result,
+      {
+        "error": "Artifactory authentication not configured. Please set either ARTIFACTORY_IDENTITY_TOKEN or both ARTIFACTORY_USERNAME and ARTIFACTORY_PASSWORD environment variables."
+      },
+    )
 
   @patch("devops_mcps.artifactory._validate_artifactory_config")
   @patch("devops_mcps.artifactory._get_auth")
@@ -295,9 +309,16 @@ class TestArtifactoryGetItemInfo(unittest.TestCase):
   @patch("devops_mcps.artifactory._validate_artifactory_config")
   def test_get_item_info_invalid_config(self, mock_validate):
     """Test get_item_info with invalid config."""
-    mock_validate.return_value = {"error": "Artifactory authentication not configured. Please set either ARTIFACTORY_IDENTITY_TOKEN or both ARTIFACTORY_USERNAME and ARTIFACTORY_PASSWORD environment variables."}
+    mock_validate.return_value = {
+      "error": "Artifactory authentication not configured. Please set either ARTIFACTORY_IDENTITY_TOKEN or both ARTIFACTORY_USERNAME and ARTIFACTORY_PASSWORD environment variables."
+    }
     result = artifactory_get_item_info("repo", "/path")
-    self.assertEqual(result, {"error": "Artifactory authentication not configured. Please set either ARTIFACTORY_IDENTITY_TOKEN or both ARTIFACTORY_USERNAME and ARTIFACTORY_PASSWORD environment variables."})
+    self.assertEqual(
+      result,
+      {
+        "error": "Artifactory authentication not configured. Please set either ARTIFACTORY_IDENTITY_TOKEN or both ARTIFACTORY_USERNAME and ARTIFACTORY_PASSWORD environment variables."
+      },
+    )
 
   @patch("devops_mcps.artifactory._validate_artifactory_config")
   @patch("devops_mcps.artifactory._get_auth")

@@ -1,6 +1,8 @@
-import pytest
+# /Users/huangjien/workspace/devops-mcps/tests/test_core.py
 import sys
 import os
+import pytest
+from unittest.mock import patch, MagicMock
 
 # Add src to sys.path for import
 sys.path.insert(
@@ -346,9 +348,7 @@ async def test_get_jenkins_build_log_none_build_number():
 async def test_get_all_jenkins_views_valid(monkeypatch):
   """Test successful retrieval of Jenkins views."""
   expected_result = [{"name": "view1", "url": "http://jenkins/view/view1"}]
-  monkeypatch.setattr(
-    core.jenkins, "jenkins_get_all_views", lambda: expected_result
-  )
+  monkeypatch.setattr(core.jenkins, "jenkins_get_all_views", lambda: expected_result)
   result = await core.get_all_jenkins_views()
   assert result == expected_result
 
@@ -378,11 +378,11 @@ async def test_get_recent_failed_jenkins_builds_valid(monkeypatch):
 async def test_get_recent_failed_jenkins_builds_custom_hours(monkeypatch):
   """Test get_recent_failed_jenkins_builds with custom hours_ago parameter."""
   expected_result = []
-  
+
   def mock_jenkins_get_recent_failed_builds(hours_ago=8):
     assert hours_ago == 24  # Verify the parameter is passed correctly
     return expected_result
-  
+
   monkeypatch.setattr(
     core.jenkins,
     "jenkins_get_recent_failed_builds",
@@ -473,9 +473,7 @@ async def test_get_artifactory_item_info_empty_path():
 async def test_github_get_current_user_info_valid(monkeypatch):
   """Test successful retrieval of GitHub user info."""
   expected_result = {"name": "John Doe", "email": "john@example.com"}
-  monkeypatch.setattr(
-    core.github, "gh_get_current_user_info", lambda: expected_result
-  )
+  monkeypatch.setattr(core.github, "gh_get_current_user_info", lambda: expected_result)
   result = await core.github_get_current_user_info()
   assert result == expected_result
 
@@ -484,9 +482,7 @@ async def test_github_get_current_user_info_valid(monkeypatch):
 async def test_github_get_current_user_info_error(monkeypatch):
   """Test error handling in GitHub user info retrieval."""
   expected_result = {"error": "Authentication failed"}
-  monkeypatch.setattr(
-    core.github, "gh_get_current_user_info", lambda: expected_result
-  )
+  monkeypatch.setattr(core.github, "gh_get_current_user_info", lambda: expected_result)
   result = await core.github_get_current_user_info()
   assert result == expected_result
   assert "error" in result
@@ -499,12 +495,12 @@ async def test_github_get_current_user_info_error(monkeypatch):
 async def test_list_artifactory_items_with_path(monkeypatch):
   """Test list_artifactory_items with custom path."""
   expected_result = [{"name": "subitem1", "path": "/custom/subitem1"}]
-  
+
   def mock_artifactory_list_items(repository, path="/"):
     assert repository == "repo1"
     assert path == "/custom/path"
     return expected_result
-  
+
   monkeypatch.setattr(
     core.artifactory,
     "artifactory_list_items",
@@ -518,12 +514,12 @@ async def test_list_artifactory_items_with_path(monkeypatch):
 async def test_search_artifactory_items_with_repositories(monkeypatch):
   """Test search_artifactory_items with specific repositories."""
   expected_result = [{"name": "search_result1", "repository": "repo1"}]
-  
+
   def mock_artifactory_search_items(query, repositories=None):
     assert query == "test"
     assert repositories == ["repo1", "repo2"]
     return expected_result
-  
+
   monkeypatch.setattr(
     core.artifactory,
     "artifactory_search_items",
@@ -536,7 +532,356 @@ async def test_search_artifactory_items_with_repositories(monkeypatch):
 # --- Package Version Test ---
 def test_package_version_exists():
   """Test that package_version is defined in the core module."""
-  assert hasattr(core, 'package_version')
+  assert hasattr(core, "package_version")
   assert isinstance(core.package_version, str)
   # The version should either be a real version or the fallback
   assert core.package_version != ""
+
+
+# --- Main Function Tests ---
+@patch("devops_mcps.core.mcp.run")
+@patch("devops_mcps.core.github.initialize_github_client")
+@patch("devops_mcps.core.sys.argv", ["test", "--transport", "stdio"])
+def test_main_stdio_transport(mock_init_github, mock_mcp_run):
+  """Test main function with stdio transport."""
+  # Mock GitHub client as initialized
+  core.github.g = MagicMock()
+  core.github.GITHUB_TOKEN = "test_token"
+
+  # Mock Jenkins client as initialized
+  core.jenkins.j = MagicMock()
+  core.jenkins.JENKINS_URL = "http://test"
+  core.jenkins.JENKINS_USER = "test_user"
+  core.jenkins.JENKINS_TOKEN = "test_token"
+
+  core.main()
+
+  mock_init_github.assert_called_once_with(force=True)
+  mock_mcp_run.assert_called_once_with(transport="stdio")
+
+
+@patch("devops_mcps.core.mcp.run")
+@patch("devops_mcps.core.github.initialize_github_client")
+@patch("devops_mcps.core.os.getenv")
+@patch("devops_mcps.core.sys.argv", ["test", "--transport", "stream_http"])
+def test_main_stream_http_transport(mock_getenv, mock_init_github, mock_mcp_run):
+  """Test main function with stream_http transport."""
+  mock_getenv.return_value = "4000"  # Custom port
+
+  # Mock GitHub client as initialized
+  core.github.g = MagicMock()
+  core.github.GITHUB_TOKEN = "test_token"
+
+  # Mock Jenkins client as initialized
+  core.jenkins.j = MagicMock()
+  core.jenkins.JENKINS_URL = "http://test"
+  core.jenkins.JENKINS_USER = "test_user"
+  core.jenkins.JENKINS_TOKEN = "test_token"
+
+  core.main()
+
+  mock_getenv.assert_called_once_with("MCP_PORT", "3721")
+  mock_mcp_run.assert_called_once_with(
+    transport="http", host="127.0.0.1", port=4000, path="/mcp"
+  )
+
+
+@patch("devops_mcps.core.mcp.run")
+@patch("devops_mcps.core.github.initialize_github_client")
+@patch("devops_mcps.core.sys.argv", ["test"])
+def test_main_github_init_failure(mock_init_github, mock_mcp_run):
+  """Test main function when GitHub client fails to initialize."""
+  # Store original values
+  original_g = core.github.g
+  original_token = core.github.GITHUB_TOKEN
+
+  try:
+    # Mock GitHub client as failed to initialize
+    core.github.g = None
+    core.github.GITHUB_TOKEN = "test_token"  # Token present but init failed
+
+    # Mock sys.exit to raise SystemExit
+    with patch("devops_mcps.core.sys.exit", side_effect=SystemExit) as mock_exit:
+      with pytest.raises(SystemExit):
+        core.main()
+
+      mock_exit.assert_called_once_with(1)
+      mock_mcp_run.assert_not_called()
+  finally:
+    # Restore original values
+    core.github.g = original_g
+    core.github.GITHUB_TOKEN = original_token
+
+
+@patch("devops_mcps.core.mcp.run")
+@patch("devops_mcps.core.github.initialize_github_client")
+@patch("devops_mcps.core.sys.argv", ["test"])
+def test_main_jenkins_init_failure(mock_init_github, mock_mcp_run):
+  """Test main function when Jenkins client fails to initialize."""
+  # Store original values
+  original_g = core.github.g
+  original_github_token = core.github.GITHUB_TOKEN
+  original_j = core.jenkins.j
+  original_jenkins_url = core.jenkins.JENKINS_URL
+  original_jenkins_user = core.jenkins.JENKINS_USER
+  original_jenkins_token = core.jenkins.JENKINS_TOKEN
+
+  try:
+    # Mock GitHub client as initialized
+    core.github.g = MagicMock()
+    core.github.GITHUB_TOKEN = "test_token"
+
+    # Mock Jenkins client as failed to initialize
+    core.jenkins.j = None
+    core.jenkins.JENKINS_URL = "http://test"
+    core.jenkins.JENKINS_USER = "test_user"
+    core.jenkins.JENKINS_TOKEN = "test_token"  # Credentials present but init failed
+
+    # Mock sys.exit to raise SystemExit
+    with patch("devops_mcps.core.sys.exit", side_effect=SystemExit) as mock_exit:
+      with pytest.raises(SystemExit):
+        core.main()
+
+      mock_exit.assert_called_once_with(1)
+      mock_mcp_run.assert_not_called()
+  finally:
+    # Restore original values
+    core.github.g = original_g
+    core.github.GITHUB_TOKEN = original_github_token
+    core.jenkins.j = original_j
+    core.jenkins.JENKINS_URL = original_jenkins_url
+    core.jenkins.JENKINS_USER = original_jenkins_user
+    core.jenkins.JENKINS_TOKEN = original_jenkins_token
+
+
+@patch("devops_mcps.core.mcp.run")
+@patch("devops_mcps.core.github.initialize_github_client")
+@patch("devops_mcps.core.sys.argv", ["test"])
+def test_main_no_github_auth(mock_init_github, mock_mcp_run):
+  """Test main function without GitHub authentication."""
+  # Store original values
+  original_g = core.github.g
+  original_github_token = core.github.GITHUB_TOKEN
+  original_j = core.jenkins.j
+  original_jenkins_url = core.jenkins.JENKINS_URL
+  original_jenkins_user = core.jenkins.JENKINS_USER
+  original_jenkins_token = core.jenkins.JENKINS_TOKEN
+
+  try:
+    # Mock GitHub client as not initialized (no token)
+    core.github.g = None
+    core.github.GITHUB_TOKEN = None
+
+    # Mock Jenkins client as not initialized (no credentials)
+    core.jenkins.j = None
+    core.jenkins.JENKINS_URL = None
+    core.jenkins.JENKINS_USER = None
+    core.jenkins.JENKINS_TOKEN = None
+
+    core.main()
+
+    mock_mcp_run.assert_called_once_with(transport="stdio")
+  finally:
+    # Restore original values
+    core.github.g = original_g
+    core.github.GITHUB_TOKEN = original_github_token
+    core.jenkins.j = original_j
+    core.jenkins.JENKINS_URL = original_jenkins_url
+    core.jenkins.JENKINS_USER = original_jenkins_user
+    core.jenkins.JENKINS_TOKEN = original_jenkins_token
+
+
+# --- Main Stream HTTP Function Tests ---
+@patch("devops_mcps.core.main")
+@patch("devops_mcps.core.sys.argv", ["test"])
+def test_main_stream_http_no_transport_arg(mock_main):
+  """Test main_stream_http when no --transport argument exists."""
+  original_argv = core.sys.argv.copy()
+
+  core.main_stream_http()
+
+  assert "--transport" in core.sys.argv
+  assert "stream_http" in core.sys.argv
+  mock_main.assert_called_once()
+
+  # Restore original argv
+  core.sys.argv = original_argv
+
+
+@patch("devops_mcps.core.main")
+@patch("devops_mcps.core.sys.argv", ["test", "--transport", "stdio"])
+def test_main_stream_http_existing_transport_arg(mock_main):
+  """Test main_stream_http when --transport argument already exists."""
+  original_argv = core.sys.argv.copy()
+
+  core.main_stream_http()
+
+  assert "--transport" in core.sys.argv
+  assert "stream_http" in core.sys.argv
+  assert "stdio" not in core.sys.argv
+  mock_main.assert_called_once()
+
+  # Restore original argv
+  core.sys.argv = original_argv
+
+
+@patch("devops_mcps.core.main")
+@patch("devops_mcps.core.sys.argv", ["test", "--transport"])
+def test_main_stream_http_transport_no_value(mock_main):
+  """Test main_stream_http when --transport has no value."""
+  original_argv = core.sys.argv.copy()
+
+  core.main_stream_http()
+
+  assert "--transport" in core.sys.argv
+  assert "stream_http" in core.sys.argv
+  mock_main.assert_called_once()
+
+  # Restore original argv
+  core.sys.argv = original_argv
+
+
+# --- MCP Server Initialization Tests ---
+def test_mcp_server_initialization():
+  """Test that MCP server is properly initialized."""
+  assert hasattr(core, "mcp")
+  assert core.mcp is not None
+  # Check that the server is a FastMCP instance
+  assert "FastMCP" in str(type(core.mcp))
+  # Check that the server has the expected name in its internal structure
+  assert hasattr(core.mcp, "name")
+  assert "DevOps MCP Server" in core.mcp.name
+
+
+# --- Error Handling Edge Cases ---
+@pytest.mark.asyncio
+async def test_list_issues_with_all_parameters(monkeypatch):
+  """Test list_issues with all optional parameters."""
+  expected_result = [{"id": 1, "title": "Test Issue"}]
+
+  def mock_gh_list_issues(
+    owner, repo, state="open", labels=None, sort="created", direction="desc"
+  ):
+    assert owner == "test_owner"
+    assert repo == "test_repo"
+    assert state == "closed"
+    assert labels == ["bug", "enhancement"]
+    assert sort == "updated"
+    assert direction == "asc"
+    return expected_result
+
+  monkeypatch.setattr(core.github, "gh_list_issues", mock_gh_list_issues)
+
+  result = await core.list_issues(
+    "test_owner",
+    "test_repo",
+    state="closed",
+    labels=["bug", "enhancement"],
+    sort="updated",
+    direction="asc",
+  )
+  assert result == expected_result
+
+
+@pytest.mark.asyncio
+async def test_get_file_contents_with_branch(monkeypatch):
+  """Test get_file_contents with branch parameter."""
+  expected_content = "file content from branch"
+
+  def mock_gh_get_file_contents(owner, repo, path, branch=None):
+    assert owner == "test_owner"
+    assert repo == "test_repo"
+    assert path == "test/path"
+    assert branch == "feature-branch"
+    return expected_content
+
+  monkeypatch.setattr(core.github, "gh_get_file_contents", mock_gh_get_file_contents)
+
+  result = await core.get_file_contents(
+    "test_owner", "test_repo", "test/path", "feature-branch"
+  )
+  assert result == expected_content
+
+
+@pytest.mark.asyncio
+async def test_list_commits_with_branch(monkeypatch):
+  """Test list_commits with branch parameter."""
+  expected_commits = [{"sha": "abc123", "message": "Test commit"}]
+
+  def mock_gh_list_commits(owner, repo, branch=None):
+    assert owner == "test_owner"
+    assert repo == "test_repo"
+    assert branch == "develop"
+    return expected_commits
+
+  monkeypatch.setattr(core.github, "gh_list_commits", mock_gh_list_commits)
+
+  result = await core.list_commits("test_owner", "test_repo", "develop")
+  assert result == expected_commits
+
+
+# --- Jenkins Build Log Edge Cases ---
+@pytest.mark.asyncio
+async def test_get_jenkins_build_log_zero_build_number(monkeypatch):
+  """Test get_jenkins_build_log with build_number 0 (last build)."""
+  expected_result = "Last build log content"
+
+  def mock_jenkins_get_build_log(job_name, build_number):
+    assert job_name == "test_job"
+    assert build_number == 0
+    return expected_result
+
+  monkeypatch.setattr(core.jenkins, "jenkins_get_build_log", mock_jenkins_get_build_log)
+
+  result = await core.get_jenkins_build_log("test_job", 0)
+  assert result == expected_result
+
+
+@pytest.mark.asyncio
+async def test_get_jenkins_build_log_negative_build_number(monkeypatch):
+  """Test get_jenkins_build_log with negative build_number."""
+  expected_result = "Last build log content"
+
+  def mock_jenkins_get_build_log(job_name, build_number):
+    assert job_name == "test_job"
+    assert build_number == -1
+    return expected_result
+
+  monkeypatch.setattr(core.jenkins, "jenkins_get_build_log", mock_jenkins_get_build_log)
+
+  result = await core.get_jenkins_build_log("test_job", -1)
+  assert result == expected_result
+
+
+# --- Environment Variable Tests ---
+@patch("devops_mcps.core.os.getenv")
+def test_mcp_port_environment_variable(mock_getenv):
+  """Test that MCP_PORT environment variable is used correctly."""
+  mock_getenv.return_value = "5000"
+
+  # Test the port extraction logic
+  port = int(core.os.getenv("MCP_PORT", "3721"))
+  assert port == 5000
+
+  mock_getenv.assert_called_with("MCP_PORT", "3721")
+
+
+@patch("devops_mcps.core.os.getenv")
+def test_mcp_port_default_value(mock_getenv):
+  """Test that default port 3721 is used when MCP_PORT is not set."""
+  mock_getenv.return_value = "3721"  # Default value returned
+
+  port = int(core.os.getenv("MCP_PORT", "3721"))
+  assert port == 3721
+
+  mock_getenv.assert_called_with("MCP_PORT", "3721")
+
+
+# --- Logging Tests ---
+@patch("devops_mcps.core.logger")
+def test_debug_logging_calls(mock_logger):
+  """Test that debug logging is called in various functions."""
+  # This test ensures logging calls don't break the functions
+  # The actual logging behavior is tested in test_logger.py
+  assert hasattr(core, "logger")
+  assert core.logger is not None

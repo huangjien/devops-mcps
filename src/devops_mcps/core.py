@@ -1,5 +1,6 @@
 # /Users/huangjien/workspace/devops-mcps/src/devops_mcps/core.py
 import logging
+import os
 import sys
 import argparse
 from typing import List, Optional, Dict, Any, Union
@@ -345,7 +346,7 @@ async def get_recent_failed_jenkins_builds(
 # --- End new MCP tool ---
 
 # --- Main Execution Logic ---
-# (No changes needed in main() or main_sse())
+# (No changes needed in main() or main_stream_http())
 
 
 def main():
@@ -357,9 +358,9 @@ def main():
   )
   parser.add_argument(
     "--transport",
-    choices=["stdio", "sse"],
+    choices=["stdio", "stream_http"],
     default="stdio",
-    help="Transport type (stdio or sse)",
+    help="Transport type (stdio or stream_http)",
   )
 
   args = parser.parse_args()
@@ -391,22 +392,27 @@ def main():
   logger.info(
     f"Starting MCP server with {args.transport} transport..."
   )  # This will now go to file & console
-  mcp.run(transport=args.transport)
+
+  if args.transport == "stream_http":
+    port = int(os.getenv("MCP_PORT", "3721"))
+    mcp.run(transport="http", host="127.0.0.1", port=port, path="/mcp")
+  else:
+    mcp.run(transport=args.transport)
 
 
-def main_sse():
-  """Run the MCP server with SSE transport."""
+def main_stream_http():
+  """Run the MCP server with stream_http transport."""
   if "--transport" not in sys.argv:
-    sys.argv.extend(["--transport", "sse"])
-  elif "sse" not in sys.argv:
+    sys.argv.extend(["--transport", "stream_http"])
+  elif "stream_http" not in sys.argv:
     try:
       idx = sys.argv.index("--transport")
       if idx + 1 < len(sys.argv):
-        sys.argv[idx + 1] = "sse"
+        sys.argv[idx + 1] = "stream_http"
       else:
-        sys.argv.append("sse")
+        sys.argv.append("stream_http")
     except ValueError:
-      sys.argv.extend(["--transport", "sse"])
+      sys.argv.extend(["--transport", "stream_http"])
 
   main()
 
