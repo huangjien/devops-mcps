@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 JENKINS_URL = os.environ.get("JENKINS_URL")
 JENKINS_USER = os.environ.get("JENKINS_USER")
 JENKINS_TOKEN = os.environ.get("JENKINS_TOKEN")
-LOG_LENGTH = os.environ.get("LOG_LENGTH", 10240)  # Default to 10KB if not set
+LOG_LENGTH = int(os.environ.get("LOG_LENGTH", 10240))  # Default to 10KB if not set
 j: Optional[Jenkins] = None
 
 
@@ -32,9 +32,12 @@ def initialize_jenkins_client():
   if j:  # Already initialized
     return j
 
-  if JENKINS_URL and JENKINS_USER and JENKINS_TOKEN:
+  jenkins_url = os.environ.get("JENKINS_URL")
+  jenkins_user = os.environ.get("JENKINS_USER")
+  jenkins_token = os.environ.get("JENKINS_TOKEN")
+  if jenkins_url and jenkins_user and jenkins_token:
     try:
-      j = Jenkins(JENKINS_URL, username=JENKINS_USER, password=JENKINS_TOKEN)
+      j = Jenkins(jenkins_url, username=jenkins_user, password=jenkins_token)
       # Basic connection test
       _ = j.get_master_data()
       logger.info(
@@ -86,14 +89,21 @@ def _to_dict(obj: Any) -> Any:
       "last_build_url": obj.get_last_buildurl(),
     }
   if isinstance(obj, View):
-    return {"name": obj.name, "url": obj.baseurl, "description": obj.get_description()}
+    return {"name": obj.name, "url": obj.baseurl}
 
-  # Fallback
+  # Fallback for generic objects - convert attributes to dict
   try:
-    logger.warning(
-      f"No specific _to_dict handler for type {type(obj).__name__}, returning string representation."
-    )
-    return str(obj)
+    if hasattr(obj, '__dict__'):
+      result = {}
+      for key, value in obj.__dict__.items():
+        if not key.startswith('_'):  # Skip private attributes
+          result[key] = _to_dict(value)
+      return result
+    else:
+      logger.warning(
+        f"No specific _to_dict handler for type {type(obj).__name__}, returning string representation."
+      )
+      return str(obj)
   except Exception as fallback_err:  # Catch potential errors during fallback
     logger.error(
       f"Error during fallback _to_dict for {type(obj).__name__}: {fallback_err}"
@@ -127,9 +137,16 @@ def jenkins_get_jobs() -> Union[List[Dict[str, Any]], Dict[str, str]]:
       "error": "Jenkins client not initialized. Please set the JENKINS_URL, JENKINS_USER, and JENKINS_TOKEN environment variables."
     }
   try:
-    jobs = j.keys()
+    # Jenkins client behaves like a dictionary
+    # Try to get jobs using .values() method if available, otherwise iterate directly
+    if hasattr(j, 'values') and callable(getattr(j, 'values')):
+      jobs = j.values()
+    else:
+      # Fallback: Jenkins client should be iterable like a dictionary
+      jobs = [j[job_name] for job_name in j.keys()]
+    
     logger.debug(f"Found {len(jobs)} jobs.")
-    result = [_to_dict(job) for job in jobs]  # modified to use .values()
+    result = [_to_dict(job) for job in jobs]
     cache.set(cache_key, result, ttl=300)  # Cache for 5 minutes
     return result
   except JenkinsAPIException as e:
@@ -185,9 +202,20 @@ def jenkins_get_build_log(
       )
       # Ensure proper UTF-8 encoding
       log = log.encode("utf-8", errors="replace").decode("utf-8")
-    result = log[-LOG_LENGTH:]  # Return only the last portion
+    else:
+      # Convert non-string content to string
+      log = str(log)
+    # Read LOG_LENGTH dynamically to allow runtime changes
+    log_length = int(os.environ.get("LOG_LENGTH", 10240))
+    result = log[-log_length:]  # Return only the last portion
     cache.set(cache_key, result, ttl=1800)  # Cache for 30 minutes
     return result
+  except KeyError as e:
+    logger.error(f"jenkins_get_build_log KeyError: {e}", exc_info=True)
+    if "Job not found" in str(e):
+      return {"error": f"Job not found: {job_name}"}
+    else:
+      return {"error": f"Build #{build_number} not found for job {job_name}"}
   except JenkinsAPIException as e:
     logger.error(f"jenkins_get_build_log Jenkins Error: {e}", exc_info=True)
     return {"error": f"Jenkins API Error: {e}"}
@@ -219,7 +247,7 @@ def jenkins_get_all_views() -> Union[List[Dict[str, Any]], Dict[str, str]]:
       "error": "Jenkins client not initialized. Please set the JENKINS_URL, JENKINS_USER, and JENKINS_TOKEN environment variables."
     }
   try:
-    views = j.views.keys()
+    views = j.views.values()
     logger.debug(f"Found {len(views)} views.")
     result = [_to_dict(view) for view in views]  # modified to use .values()
     cache.set(cache_key, result, ttl=600)  # Cache for 10 minutes
@@ -354,7 +382,10 @@ def jenkins_get_recent_failed_builds(
     return cached
 
   # Need credentials even if not using the 'j' client object directly for API calls
-  if not JENKINS_URL or not JENKINS_USER or not JENKINS_TOKEN:
+  jenkins_url = os.environ.get("JENKINS_URL")
+  jenkins_user = os.environ.get("JENKINS_USER")
+  jenkins_token = os.environ.get("JENKINS_TOKEN")
+  if not jenkins_url or not jenkins_user or not jenkins_token:
     logger.error("Jenkins credentials (URL, USER, TOKEN) not configured.")
     return {
       "error": "Jenkins client not initialized. Please set the JENKINS_URL, JENKINS_USER, and JENKINS_TOKEN environment variables."
@@ -370,13 +401,13 @@ def jenkins_get_recent_failed_builds(
     # --- Optimized API Call ---
     # Construct the API URL with the tree parameter
     # Request job name, url, and details of the lastBuild
-    api_url = f"{JENKINS_URL.rstrip('/')}/api/json?tree=jobs[name,url,lastBuild[number,timestamp,result,url]]"
+    api_url = f"{jenkins_url.rstrip('/')}/api/json?tree=jobs[name,url,lastBuild[number,timestamp,result,url]]"
     logger.debug(f"Making optimized API call to: {api_url}")
 
     # Make the authenticated request (adjust timeout as needed)
     response = requests.get(
       api_url,
-      auth=(JENKINS_USER, JENKINS_TOKEN),
+      auth=(jenkins_user, jenkins_token),
       timeout=60,  # Set a reasonable timeout for this single large request (e.g., 60 seconds)
     )
     response.raise_for_status()  # Raise HTTPError for bad responses (4xx or 5xx)
@@ -432,9 +463,9 @@ def jenkins_get_recent_failed_builds(
         if status == "FAILURE":
           recent_failed_builds.append(
             {
-              "job_name": job_name,
+              "name": job_name,
               "build_number": build_number,
-              "status": status,
+              "result": status,
               "timestamp_utc": build_timestamp_utc.isoformat(),
               "url": build_url
               or job_data.get("url", "") + str(build_number),  # Construct URL if needed
@@ -465,13 +496,17 @@ def jenkins_get_recent_failed_builds(
     )
     return {"error": f"Could not connect to Jenkins API: {e}"}
   except requests.exceptions.HTTPError as e:
-    logger.error(
-      f"HTTP error during optimized Jenkins API call: {e.response.status_code} - {e.response.text}",
-      exc_info=True,
-    )
-    return {
-      "error": f"Jenkins API HTTP Error: {e.response.status_code} - {e.response.reason}"
-    }
+    if e.response is not None:
+      logger.error(
+        f"HTTP error during optimized Jenkins API call: {e.response.status_code} - {e.response.text}",
+        exc_info=True,
+      )
+      return {
+        "error": f"Jenkins API HTTP Error: {e.response.status_code} - {e.response.reason}"
+      }
+    else:
+      logger.error(f"HTTP error during optimized Jenkins API call: {e}", exc_info=True)
+      return {"error": f"Jenkins API HTTP Error: {e}"}
   except requests.exceptions.RequestException as e:
     logger.error(f"Error during optimized Jenkins API call: {e}", exc_info=True)
     return {"error": f"Jenkins API Request Error: {e}"}
