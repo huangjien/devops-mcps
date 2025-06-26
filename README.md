@@ -111,14 +111,16 @@ export ARTIFACTORY_IDENTITY_TOKEN="your_artifactory_identity_token"
 # OR
 export ARTIFACTORY_USERNAME="your_artifactory_username"
 export ARTIFACTORY_PASSWORD="your_artifactory_password"
-```
-
 **Optional:**
 
 ```bash
 # Jenkins Log Length (default: 5120 bytes)
 export LOG_LENGTH=10240
 
+# Jenkins Timeout Configurations
+export JENKINS_TIMEOUT=120                    # Timeout for Jenkins API requests (default: 60 seconds)
+export JENKINS_CLIENT_TIMEOUT=60              # Timeout for Jenkins client initialization (default: 30 seconds)
+```
 # MCP Server Port for stream_http transport (default: 3721)
 export MCP_PORT=3721
 ```

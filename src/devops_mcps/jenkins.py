@@ -23,6 +23,8 @@ JENKINS_URL = os.environ.get("JENKINS_URL")
 JENKINS_USER = os.environ.get("JENKINS_USER")
 JENKINS_TOKEN = os.environ.get("JENKINS_TOKEN")
 LOG_LENGTH = int(os.environ.get("LOG_LENGTH", 10240))  # Default to 10KB if not set
+JENKINS_TIMEOUT = int(os.environ.get("JENKINS_TIMEOUT", 60))  # Default to 60 seconds if not set
+JENKINS_CLIENT_TIMEOUT = int(os.environ.get("JENKINS_CLIENT_TIMEOUT", 30))  # Environment variable for Jenkins client timeout (default: 30 seconds)
 j: Optional[Jenkins] = None
 
 
@@ -37,7 +39,7 @@ def initialize_jenkins_client():
   jenkins_token = os.environ.get("JENKINS_TOKEN")
   if jenkins_url and jenkins_user and jenkins_token:
     try:
-      j = Jenkins(jenkins_url, username=jenkins_user, password=jenkins_token)
+      j = Jenkins(jenkins_url, username=jenkins_user, password=jenkins_token, timeout=JENKINS_CLIENT_TIMEOUT)
       # Basic connection test
       _ = j.get_master_data()
       logger.info(
@@ -408,7 +410,7 @@ def jenkins_get_recent_failed_builds(
     response = requests.get(
       api_url,
       auth=(jenkins_user, jenkins_token),
-      timeout=60,  # Set a reasonable timeout for this single large request (e.g., 60 seconds)
+      timeout=JENKINS_TIMEOUT,  # Use configurable timeout from environment variable
     )
     response.raise_for_status()  # Raise HTTPError for bad responses (4xx or 5xx)
 
