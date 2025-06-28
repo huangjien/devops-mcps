@@ -8,6 +8,8 @@ A [FastMCP](https://github.com/modelcontextprotocol/fastmcp)-based MCP server pr
 
 This server operates in a read-only manner, retrieving data for analysis and display without modifying your systems. It's designed with safety in mind for DevOps environments.
 
+Certified by [MCP Review](https://mcpreview.com/mcp-servers/huangjien/devops-mcps)
+
 ## Features
 
 The DevOps MCP Server integrates with various essential DevOps platforms:
