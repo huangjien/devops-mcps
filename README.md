@@ -123,9 +123,59 @@ export LOG_LENGTH=10240
 
 # MCP Server Port for stream_http transport (default: 3721)
 export MCP_PORT=3721
+
+# Dynamic Prompts (optional)
+export PROMPTS_FILE="/path/to/prompts.json"
 ```
 
 **Note**: `LOG_LENGTH` controls the amount of Jenkins log data retrieved. Adjust as needed.
+
+### Dynamic Prompts
+
+The server supports loading custom prompts from a JSON file. Set the `PROMPTS_FILE` environment variable to the path of your prompts configuration file.
+
+**Prompts File Format:**
+
+```json
+{
+  "prompts": [
+    {
+      "name": "github_repo_analysis",
+      "description": "Analyze a GitHub repository for DevOps insights",
+      "content": "Please analyze the GitHub repository {{owner}}/{{repo}} and provide insights on:\n\n1. Repository structure and organization\n2. CI/CD pipeline configuration\n3. Code quality indicators\n4. Security considerations\n5. Documentation quality\n\n{{#include_issues}}Also include analysis of recent issues and their resolution patterns.{{/include_issues}}",
+      "arguments": [
+        {
+          "name": "owner",
+          "description": "GitHub repository owner",
+          "required": true
+        },
+        {
+          "name": "repo",
+          "description": "GitHub repository name",
+          "required": true
+        },
+        {
+          "name": "include_issues",
+          "description": "Include analysis of repository issues",
+          "required": false
+        }
+      ]
+    }
+  ]
+}
+```
+
+**Template Variables:**
+- Use `{{variable_name}}` for simple variable substitution
+- Use `{{#variable_name}}...{{/variable_name}}` for conditional blocks (shown if variable has a value)
+- Use `{{^variable_name}}...{{/variable_name}}` for negative conditional blocks (shown if variable is empty/null)
+
+**Available Tools for Prompts:**
+Your prompts can reference any of the available MCP tools:
+- GitHub tools: `search_repositories`, `get_file_contents`, `list_commits`, `list_issues`, etc.
+- Jenkins tools: `get_jenkins_jobs`, `get_jenkins_build_log`, `get_recent_failed_jenkins_builds`, etc.
+- Azure tools: `get_azure_subscriptions`, `list_azure_vms`, `list_aks_clusters`, etc.
+- Artifactory tools: `list_artifactory_items`, `search_artifactory_items`, `get_artifactory_item_info`, etc.
 
 ## Docker
 

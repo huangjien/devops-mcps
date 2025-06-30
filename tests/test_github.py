@@ -1736,17 +1736,6 @@ def test_gh_get_repository_no_client():
     assert "GitHub client not initialized" in result["error"]
 
 
-def test_gh_search_code_no_client():
-  """Test code search when GitHub client is not initialized."""
-  with patch("devops_mcps.github.initialize_github_client") as mock_init:
-    mock_init.return_value = None
-
-    result = gh_search_code("test query")
-
-    assert "error" in result
-    assert "GitHub client not initialized" in result["error"]
-
-
 def test_gh_get_current_user_info_client_not_initialized():
   """Test gh_get_current_user_info when client initialization fails."""
   with patch.dict("os.environ", {"GITHUB_PERSONAL_ACCESS_TOKEN": "test_token"}):

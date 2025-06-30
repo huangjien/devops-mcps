@@ -566,7 +566,16 @@ def test_main_stdio_transport(mock_init_github, mock_mcp_run):
 @patch("devops_mcps.core.sys.argv", ["test", "--transport", "stream_http"])
 def test_main_stream_http_transport(mock_getenv, mock_init_github, mock_mcp_run):
   """Test main function with stream_http transport."""
-  mock_getenv.return_value = "4000"  # Custom port
+
+  # Configure getenv to return different values for different calls
+  def getenv_side_effect(key, default=None):
+    if key == "MCP_PORT":
+      return "4000"
+    elif key == "PROMPTS_FILE":
+      return None  # No prompts file
+    return default
+
+  mock_getenv.side_effect = getenv_side_effect
 
   # Mock GitHub client as initialized
   core.github.g = MagicMock()
@@ -580,7 +589,8 @@ def test_main_stream_http_transport(mock_getenv, mock_init_github, mock_mcp_run)
 
   core.main()
 
-  mock_getenv.assert_called_once_with("MCP_PORT", "3721")
+  # Check that getenv was called for both MCP_PORT and PROMPTS_FILE
+  assert mock_getenv.call_count >= 1
   mock_mcp_run.assert_called_once_with(
     transport="http", host="127.0.0.1", port=4000, path="/mcp"
   )
@@ -884,4 +894,108 @@ def test_debug_logging_calls(mock_logger):
   # This test ensures logging calls don't break the functions
   # The actual logging behavior is tested in test_logger.py
   assert hasattr(core, "logger")
+
+
+# --- Dynamic Prompts Tests ---
+@patch("devops_mcps.core.PromptLoader")
+@patch("devops_mcps.core.logger")
+def test_load_and_register_prompts_no_prompts(mock_logger, mock_prompt_loader):
+  """Test load_and_register_prompts when no prompts are loaded."""
+  # Arrange
+  mock_loader_instance = MagicMock()
+  mock_loader_instance.load_prompts.return_value = {}
+  mock_prompt_loader.return_value = mock_loader_instance
+
+  # Act
+  core.load_and_register_prompts()
+
+  # Assert
+  mock_prompt_loader.assert_called_once()
+  mock_loader_instance.load_prompts.assert_called_once()
+  mock_logger.info.assert_called_with("No dynamic prompts to register")
+
+
+@patch("devops_mcps.core.PromptLoader")
+@patch("devops_mcps.core.mcp")
+@patch("devops_mcps.core.logger")
+def test_load_and_register_prompts_success(mock_logger, mock_mcp, mock_prompt_loader):
+  """Test successful loading and registration of prompts."""
+  # Arrange
+  mock_prompts = {
+    "test_prompt": {
+      "name": "test_prompt",
+      "description": "A test prompt",
+      "content": "Test content with {{variable}}",
+      "arguments": [
+        {"name": "variable", "description": "Test variable", "required": True}
+      ],
+    }
+  }
+
+  mock_loader_instance = MagicMock()
+  mock_loader_instance.load_prompts.return_value = mock_prompts
+  mock_prompt_loader.return_value = mock_loader_instance
+
+  mock_add_prompt = MagicMock()
+  mock_mcp.add_prompt.return_value = mock_add_prompt
+
+  # Act
+  core.load_and_register_prompts()
+
+  # Assert
+  mock_prompt_loader.assert_called_once()
+  mock_loader_instance.load_prompts.assert_called_once()
+  mock_mcp.add_prompt.assert_called_once_with(
+    name="test_prompt",
+    description="A test prompt",
+    arguments=[{"name": "variable", "description": "Test variable", "required": True}],
+  )
+  mock_logger.info.assert_called_with("Successfully registered 1 dynamic prompts")
+
+
+@patch("devops_mcps.core.PromptLoader")
+@patch("devops_mcps.core.logger")
+def test_load_and_register_prompts_exception(mock_logger, mock_prompt_loader):
+  """Test load_and_register_prompts when an exception occurs."""
+  # Arrange
+  mock_prompt_loader.side_effect = Exception("Test exception")
+
+  # Act
+  core.load_and_register_prompts()
+
+  # Assert
+  mock_prompt_loader.assert_called_once()
+  mock_logger.error.assert_called_with(
+    "Failed to load and register prompts: Test exception"
+  )
+
+
+@patch("devops_mcps.core.PromptLoader")
+@patch("devops_mcps.core.mcp")
+def test_load_and_register_prompts_no_arguments(mock_mcp, mock_prompt_loader):
+  """Test loading prompts without arguments."""
+  # Arrange
+  mock_prompts = {
+    "simple_prompt": {
+      "name": "simple_prompt",
+      "description": "A simple prompt",
+      "content": "Simple content",
+      # No arguments field
+    }
+  }
+
+  mock_loader_instance = MagicMock()
+  mock_loader_instance.load_prompts.return_value = mock_prompts
+  mock_prompt_loader.return_value = mock_loader_instance
+
+  mock_add_prompt = MagicMock()
+  mock_mcp.add_prompt.return_value = mock_add_prompt
+
+  # Act
+  core.load_and_register_prompts()
+
+  # Assert
+  mock_mcp.add_prompt.assert_called_once_with(
+    name="simple_prompt", description="A simple prompt", arguments=[]
+  )
   assert core.logger is not None

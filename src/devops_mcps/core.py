@@ -18,6 +18,7 @@ from mcp.server.fastmcp import FastMCP
 
 # Local imports
 from .logger import setup_logging
+from .prompts import PromptLoader
 
 # Setup logging before importing github/jenkins
 setup_logging()
@@ -48,6 +49,91 @@ mcp = FastMCP(
   port=8000,
   settings={"initialization_timeout": 10, "request_timeout": 300},
 )
+
+
+# --- Dynamic Prompts Loading ---
+def load_and_register_prompts():
+  """Load and register dynamic prompts from JSON file."""
+  try:
+    loader = PromptLoader()
+    prompts = loader.load_prompts()
+
+    if not prompts:
+      logger.info("No dynamic prompts to register")
+      return
+
+    def create_prompt_handler(prompt_data):
+      """Create a prompt handler function with proper closure."""
+
+      async def prompt_handler(**kwargs):
+        # Process template variables in the content
+        content = prompt_data["content"]
+
+        # Simple template variable replacement (Mustache-style)
+        import re
+
+        for key, value in kwargs.items():
+          if value is not None:
+            # Handle conditional blocks {{#key}}...{{/key}}
+            conditional_pattern = r"{{{{#{key}}}}}(.*?){{{{/{key}}}}}".format(key=key)
+            content = re.sub(conditional_pattern, r"\1", content, flags=re.DOTALL)
+
+            # Handle negative conditional blocks {{^key}}...{{/key}}
+            neg_conditional_pattern = r"{{{{\^{key}}}}}(.*?){{{{/{key}}}}}".format(
+              key=key
+            )
+            content = re.sub(neg_conditional_pattern, "", content, flags=re.DOTALL)
+
+            # Replace variable {{key}}
+            content = content.replace("{{" + key + "}}", str(value))
+          else:
+            # Remove positive conditionals for None values
+            conditional_pattern = r"{{{{#{key}}}}}(.*?){{{{/{key}}}}}".format(key=key)
+            content = re.sub(conditional_pattern, "", content, flags=re.DOTALL)
+
+            # Keep negative conditionals for None values
+            neg_conditional_pattern = r"{{{{\^{key}}}}}(.*?){{{{/{key}}}}}".format(
+              key=key
+            )
+            content = re.sub(neg_conditional_pattern, r"\1", content, flags=re.DOTALL)
+
+        # Clean up any remaining template syntax
+        import re
+
+        content = re.sub(r"{{[^}]*}}", "", content)
+
+        return {"content": content, "arguments": kwargs}
+
+      return prompt_handler
+
+    # Register each prompt with the MCP server
+    for prompt_name, prompt_data in prompts.items():
+      # Create argument schema for the prompt
+      arguments = []
+      if "arguments" in prompt_data:
+        for arg in prompt_data["arguments"]:
+          arg_def = {
+            "name": arg["name"],
+            "description": arg["description"],
+            "required": arg.get("required", False),
+          }
+          arguments.append(arg_def)
+
+      # Register the prompt with MCP
+      handler = create_prompt_handler(prompt_data)
+      mcp.add_prompt(
+        name=prompt_name, description=prompt_data["description"], arguments=arguments
+      )(handler)
+
+      logger.debug(f"Registered dynamic prompt: {prompt_name}")
+
+    logger.info(f"Successfully registered {len(prompts)} dynamic prompts")
+
+  except Exception as e:
+    logger.error(f"Failed to load and register prompts: {e}")
+    # Don't fail server startup if prompts fail to load
+    pass
+
 
 # --- MCP Tools (Wrappers around github.py functions) ---
 # (No changes needed in the tool definitions themselves)
@@ -353,6 +439,10 @@ def main():
   """Entry point for the CLI."""
   # Ensure environment variables are loaded before initializing the github client
   github.initialize_github_client(force=True)
+
+  # Load and register dynamic prompts
+  load_and_register_prompts()
+
   parser = argparse.ArgumentParser(
     description="DevOps MCP Server (PyGithub - Raw Output)"
   )

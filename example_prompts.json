@@ -1,0 +1,38 @@
+{
+  "prompts": [
+    {
+      "name": "quick_repo_check",
+      "description": "Quickly check a GitHub repository's basic information and recent activity",
+      "arguments": [
+        {
+          "name": "repo_name",
+          "description": "Repository name in format 'owner/repo'",
+          "required": true
+        }
+      ],
+      "template": "Please analyze the GitHub repository {{repo_name}}:\n\n1. Get basic repository information\n2. List recent commits (last 10)\n3. Check open issues count\n4. Review README content if available\n\nProvide a summary of the repository's current state and activity level."
+    },
+    {
+      "name": "build_troubleshoot",
+      "description": "Troubleshoot a failed Jenkins build with detailed analysis",
+      "arguments": [
+        {
+          "name": "job_name",
+          "description": "Jenkins job name",
+          "required": true
+        },
+        {
+          "name": "build_number",
+          "description": "Build number to analyze (use -1 for latest)",
+          "required": false
+        },
+        {
+          "name": "include_logs",
+          "description": "Whether to include build logs in analysis",
+          "required": false
+        }
+      ],
+      "template": "Analyze the Jenkins build failure for job '{{job_name}}'{{#build_number}} build #{{build_number}}{{/build_number}}:\n\n1. Get build status and basic information\n2. {{#include_logs}}Retrieve and analyze build logs\n3. {{/include_logs}}Identify potential failure causes\n4. {{^include_logs}}Get build summary without detailed logs\n5. {{/include_logs}}Suggest troubleshooting steps\n\nProvide actionable recommendations to resolve the build issues."
+    }
+  ]
+}
