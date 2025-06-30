@@ -125,10 +125,23 @@ export LOG_LENGTH=10240
 export MCP_PORT=3721
 
 # Dynamic Prompts (optional)
-export PROMPTS_FILE="/path/to/prompts.json"
+export PROMPTS_FILE="example_prompts.json"
 ```
 
 **Note**: `LOG_LENGTH` controls the amount of Jenkins log data retrieved. Adjust as needed.
+
+**Alternative: Using .env file**
+
+You can also create a `.env` file in the project root directory instead of setting environment variables manually:
+
+```bash
+# .env file
+GITHUB_PERSONAL_ACCESS_TOKEN=your_github_token_here
+PROMPTS_FILE=example_prompts.json
+# Add other optional environment variables as needed
+```
+
+The server will automatically load environment variables from the `.env` file when it starts.
 
 ### Dynamic Prompts
 
@@ -142,7 +155,7 @@ The server supports loading custom prompts from a JSON file. Set the `PROMPTS_FI
     {
       "name": "github_repo_analysis",
       "description": "Analyze a GitHub repository for DevOps insights",
-      "content": "Please analyze the GitHub repository {{owner}}/{{repo}} and provide insights on:\n\n1. Repository structure and organization\n2. CI/CD pipeline configuration\n3. Code quality indicators\n4. Security considerations\n5. Documentation quality\n\n{{#include_issues}}Also include analysis of recent issues and their resolution patterns.{{/include_issues}}",
+      "template": "Please analyze the GitHub repository {{owner}}/{{repo}} and provide insights on:\n\n1. Repository structure and organization\n2. CI/CD pipeline configuration\n3. Code quality indicators\n4. Security considerations\n5. Documentation quality\n\n{{#include_issues}}Also include analysis of recent issues and their resolution patterns.{{/include_issues}}",
       "arguments": [
         {
           "name": "owner",
@@ -163,6 +176,98 @@ The server supports loading custom prompts from a JSON file. Set the `PROMPTS_FI
     }
   ]
 }
+```
+
+### Using Prompts
+
+The DevOps MCP Server provides dynamic prompts that help you perform common DevOps tasks. Here's how to use the available prompts:
+
+#### Available Prompts
+
+1. **`quick_repo_check`** - Quickly check a GitHub repository's basic information and recent activity
+2. **`build_troubleshoot`** - Troubleshoot Jenkins build failures with detailed analysis
+
+#### Using the `build_troubleshoot` Prompt
+
+**Purpose:** Analyze Jenkins build failures with detailed analysis and actionable recommendations.
+
+**Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `job_name` | string | ✅ Yes | Jenkins job name |
+| `build_number` | string | ❌ No | Build number to analyze (use -1 for latest) |
+| `include_logs` | boolean | ❌ No | Whether to include build logs in analysis |
+
+**Usage Examples:**
+
+```
+# Basic usage (latest build)
+Prompt: build_troubleshoot
+Parameters:
+- job_name: "my-application-build"
+
+# Specific build number
+Prompt: build_troubleshoot
+Parameters:
+- job_name: "my-application-build"
+- build_number: "42"
+
+# With build logs
+Prompt: build_troubleshoot
+Parameters:
+- job_name: "my-application-build"
+- build_number: "42"
+- include_logs: true
+```
+
+**What it does:**
+1. Gets build status and basic information for the specified job
+2. Retrieves and analyzes build logs (if `include_logs` is true)
+3. Identifies potential failure causes based on the build data
+4. Suggests troubleshooting steps with actionable recommendations
+
+#### Using the `quick_repo_check` Prompt
+
+**Purpose:** Quickly analyze a GitHub repository's basic information and recent activity.
+
+**Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `repo_name` | string | ✅ Yes | Repository name in format 'owner/repo' |
+
+**Usage Example:**
+
+```
+Prompt: quick_repo_check
+Parameters:
+- repo_name: "facebook/react"
+```
+
+**What it does:**
+1. Gets basic repository information
+2. Lists recent commits (last 10)
+3. Checks open issues count
+4. Reviews README content if available
+5. Provides a summary of the repository's current state and activity level
+
+#### Prerequisites
+
+To use Jenkins-related prompts like `build_troubleshoot`, ensure you have:
+
+```bash
+# Required Jenkins environment variables
+export JENKINS_URL="https://your-jenkins-server.com"
+export JENKINS_USER="your-username"
+export JENKINS_TOKEN="your-api-token"
+```
+
+To use GitHub-related prompts like `quick_repo_check`, ensure you have:
+
+```bash
+# Required GitHub environment variable
+export GITHUB_PERSONAL_ACCESS_TOKEN="your_github_token"
 ```
 
 **Template Variables:**

@@ -34,6 +34,7 @@ try:
   # This name usually comes from your pyproject.toml `[project] name`
   # or setup.py `name=` argument.
   package_version = version("devops-mcps")
+  logger.info(f"Loaded package version: {package_version}")
 except PackageNotFoundError:
   logger.warning(
     "Could not determine package version using importlib.metadata. "
@@ -67,7 +68,7 @@ def load_and_register_prompts():
 
       async def prompt_handler(**kwargs):
         # Process template variables in the content
-        content = prompt_data["content"]
+        content = prompt_data["template"]
 
         # Simple template variable replacement (Mustache-style)
         import re
@@ -119,11 +120,11 @@ def load_and_register_prompts():
           }
           arguments.append(arg_def)
 
-      # Register the prompt with MCP
+      # Register the prompt with MCP using decorator approach
       handler = create_prompt_handler(prompt_data)
-      mcp.add_prompt(
-        name=prompt_name, description=prompt_data["description"], arguments=arguments
-      )(handler)
+
+      # Use the @mcp.prompt decorator to register the prompt
+      mcp.prompt(name=prompt_name, description=prompt_data["description"])(handler)
 
       logger.debug(f"Registered dynamic prompt: {prompt_name}")
 

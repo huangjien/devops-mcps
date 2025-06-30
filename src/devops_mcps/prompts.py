@@ -75,7 +75,7 @@ class PromptLoader:
     Returns:
         True if valid, False otherwise.
     """
-    required_fields = ["name", "description", "content"]
+    required_fields = ["name", "description", "template"]
     for field in required_fields:
       if field not in prompt:
         logger.error(f"Prompt missing required field: {field}")

@@ -29,9 +29,10 @@ class TestPromptLoader:
 
   def test_load_prompts_no_file_specified(self):
     """Test loading prompts when no file is specified."""
-    loader = PromptLoader()
-    result = loader.load_prompts()
-    assert result == {}
+    with patch.dict(os.environ, {}, clear=True):
+      loader = PromptLoader()
+      result = loader.load_prompts()
+      assert result == {}
 
   def test_load_prompts_file_not_found(self):
     """Test loading prompts when file doesn't exist."""
@@ -89,7 +90,7 @@ class TestPromptLoader:
         {
           "name": "test_prompt",
           "description": "A test prompt",
-          "content": "This is a test prompt with {{variable}}",
+          "template": "This is a test prompt with {{variable}}",
           "arguments": [
             {"name": "variable", "description": "A test variable", "required": True}
           ],
@@ -109,7 +110,7 @@ class TestPromptLoader:
         assert "test_prompt" in result
         assert result["test_prompt"]["name"] == "test_prompt"
         assert result["test_prompt"]["description"] == "A test prompt"
-        assert "{{variable}}" in result["test_prompt"]["content"]
+        assert "{{variable}}" in result["test_prompt"]["template"]
         assert len(result["test_prompt"]["arguments"]) == 1
       finally:
         os.unlink(f.name)
@@ -119,11 +120,11 @@ class TestPromptLoader:
     loader = PromptLoader()
 
     # Missing name
-    prompt = {"description": "test", "content": "test"}
+    prompt = {"description": "test", "template": "test"}
     assert not loader._validate_prompt(prompt)
 
     # Missing description
-    prompt = {"name": "test", "content": "test"}
+    prompt = {"name": "test", "template": "test"}
     assert not loader._validate_prompt(prompt)
 
     # Missing content
@@ -138,7 +139,7 @@ class TestPromptLoader:
     prompt = {
       "name": "test",
       "description": "test",
-      "content": "test",
+      "template": "test",
       "arguments": "not a list",
     }
     assert not loader._validate_prompt(prompt)
@@ -147,7 +148,7 @@ class TestPromptLoader:
     prompt = {
       "name": "test",
       "description": "test",
-      "content": "test",
+      "template": "test",
       "arguments": [{"description": "missing name"}],
     }
     assert not loader._validate_prompt(prompt)
@@ -159,7 +160,7 @@ class TestPromptLoader:
     prompt = {
       "name": "test",
       "description": "test",
-      "content": "test",
+      "template": "test",
       "arguments": [{"name": "arg1", "description": "test arg"}],
     }
     assert loader._validate_prompt(prompt)
@@ -193,7 +194,7 @@ class TestPromptLoader:
         {
           "name": "valid_prompt",
           "description": "A valid prompt",
-          "content": "Valid content",
+          "template": "Valid content",
         },
         {
           "name": "invalid_prompt",

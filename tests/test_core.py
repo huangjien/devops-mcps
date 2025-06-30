@@ -925,7 +925,7 @@ def test_load_and_register_prompts_success(mock_logger, mock_mcp, mock_prompt_lo
     "test_prompt": {
       "name": "test_prompt",
       "description": "A test prompt",
-      "content": "Test content with {{variable}}",
+      "template": "Test content with {{variable}}",
       "arguments": [
         {"name": "variable", "description": "Test variable", "required": True}
       ],
@@ -936,8 +936,8 @@ def test_load_and_register_prompts_success(mock_logger, mock_mcp, mock_prompt_lo
   mock_loader_instance.load_prompts.return_value = mock_prompts
   mock_prompt_loader.return_value = mock_loader_instance
 
-  mock_add_prompt = MagicMock()
-  mock_mcp.add_prompt.return_value = mock_add_prompt
+  mock_prompt_decorator = MagicMock()
+  mock_mcp.prompt.return_value = mock_prompt_decorator
 
   # Act
   core.load_and_register_prompts()
@@ -945,10 +945,8 @@ def test_load_and_register_prompts_success(mock_logger, mock_mcp, mock_prompt_lo
   # Assert
   mock_prompt_loader.assert_called_once()
   mock_loader_instance.load_prompts.assert_called_once()
-  mock_mcp.add_prompt.assert_called_once_with(
-    name="test_prompt",
-    description="A test prompt",
-    arguments=[{"name": "variable", "description": "Test variable", "required": True}],
+  mock_mcp.prompt.assert_called_once_with(
+    name="test_prompt", description="A test prompt"
   )
   mock_logger.info.assert_called_with("Successfully registered 1 dynamic prompts")
 
@@ -979,7 +977,7 @@ def test_load_and_register_prompts_no_arguments(mock_mcp, mock_prompt_loader):
     "simple_prompt": {
       "name": "simple_prompt",
       "description": "A simple prompt",
-      "content": "Simple content",
+      "template": "Simple content",
       # No arguments field
     }
   }
@@ -988,14 +986,14 @@ def test_load_and_register_prompts_no_arguments(mock_mcp, mock_prompt_loader):
   mock_loader_instance.load_prompts.return_value = mock_prompts
   mock_prompt_loader.return_value = mock_loader_instance
 
-  mock_add_prompt = MagicMock()
-  mock_mcp.add_prompt.return_value = mock_add_prompt
+  mock_prompt_decorator = MagicMock()
+  mock_mcp.prompt.return_value = mock_prompt_decorator
 
   # Act
   core.load_and_register_prompts()
 
   # Assert
-  mock_mcp.add_prompt.assert_called_once_with(
-    name="simple_prompt", description="A simple prompt", arguments=[]
+  mock_mcp.prompt.assert_called_once_with(
+    name="simple_prompt", description="A simple prompt"
   )
   assert core.logger is not None
