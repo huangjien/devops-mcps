@@ -252,6 +252,51 @@ Parameters:
 4. Reviews README content if available
 5. Provides a summary of the repository's current state and activity level
 
+#### Natural Language Support
+
+The DevOps MCP Server supports both **structured** and **natural language** approaches for invoking prompts:
+
+**Structured Format (Explicit):**
+```
+Use prompt: build_troubleshoot
+Parameters:
+- job_name: "creole-Automerge-main"
+- build_number: 29
+- include_logs: true
+```
+
+**Natural Language Format (Recommended):**
+```
+"Troubleshoot the Jenkins build failure for job 'creole-Automerge-main' build #29 with detailed logs"
+
+"Check the GitHub repository facebook/react for recent activity"
+
+"Analyze the failed build for my-app-build job number 42 including logs"
+```
+
+**How Natural Language Processing Works:**
+
+1. **Intent Recognition**: The AI assistant identifies which prompt matches your request
+2. **Parameter Extraction**: Extracts specific values (job names, build numbers, repo names) from your message
+3. **Automatic Mapping**: Maps your natural language to the structured prompt format
+4. **Context Awareness**: Uses conversation history and workspace context for missing parameters
+
+**Tips for Better Natural Language Recognition:**
+
+- **Use Keywords**: Include terms like "troubleshoot", "analyze", "check repository", "build failure"
+- **Be Specific**: Mention exact job names, build numbers, repository names
+- **Use Quotes**: Put specific values in quotes for clarity (e.g., "my-job-name")
+- **Include Context**: Specify what type of analysis you want
+
+**Example Natural Language Patterns:**
+
+| Intent | Natural Language Examples |
+|--------|---------------------------|
+| Repository Analysis | "Check repo owner/name", "Analyze GitHub repository X" |
+| Build Troubleshooting | "Debug build failure", "Troubleshoot job X build Y" |
+| Include Logs | "with logs", "including detailed logs", "show build logs" |
+| Latest Build | "latest build", "most recent build", "current build" |
+
 #### Prerequisites
 
 To use Jenkins-related prompts like `build_troubleshoot`, ensure you have:
@@ -328,7 +373,7 @@ Configure the MCP server in VSCode's `settings.json`:
 "devops-mcps": {
   "type": "stdio",
   "command": "uvx",
-  "args": ["run", "devops-mcps"],
+  "args": ["devops-mcps"],
   "env": {
     "GITHUB_PERSONAL_ACCESS_TOKEN": "ghp_...",
     "GITHUB_API_URL": "https://github.mycompany.com", // Optional for GHE
