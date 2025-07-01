@@ -608,15 +608,16 @@ def test_main_github_init_failure(mock_init_github, mock_mcp_run):
   try:
     # Mock GitHub client as failed to initialize
     core.github.g = None
-    core.github.GITHUB_TOKEN = "test_token"  # Token present but init failed
+    
+    # Set environment variable to simulate token being present
+    with patch.dict(os.environ, {"GITHUB_PERSONAL_ACCESS_TOKEN": "test_token"}):
+      # Mock sys.exit to raise SystemExit
+      with patch("devops_mcps.core.sys.exit", side_effect=SystemExit) as mock_exit:
+        with pytest.raises(SystemExit):
+          core.main()
 
-    # Mock sys.exit to raise SystemExit
-    with patch("devops_mcps.core.sys.exit", side_effect=SystemExit) as mock_exit:
-      with pytest.raises(SystemExit):
-        core.main()
-
-      mock_exit.assert_called_once_with(1)
-      mock_mcp_run.assert_not_called()
+        mock_exit.assert_called_once_with(1)
+        mock_mcp_run.assert_not_called()
   finally:
     # Restore original values
     core.github.g = original_g

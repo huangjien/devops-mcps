@@ -459,7 +459,9 @@ def main():
   # Check if the GitHub client initialized successfully (accessing the global 'g' from the imported module)
   if github.g is None:
     # Initialization logs errors/warnings, but we might want to prevent startup
-    if github.GITHUB_TOKEN:
+    # Check the environment variable directly instead of the cached value
+    current_github_token = os.environ.get("GITHUB_PERSONAL_ACCESS_TOKEN")
+    if current_github_token:
       logger.error(  # This will now go to file & console
         "GitHub client failed to initialize despite token being present. Check logs. Exiting."
       )

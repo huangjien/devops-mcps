@@ -1,7 +1,7 @@
 [project]
 name = "devops-mcps"
-version = "0.7.1"
-description = "A FastMCP-based MCP server for DevOps"
+version = "0.7.2"
+description = "A FastMCP-based, Readonly MCP server for DevOps"
 authors = [{ name = "Jien Huang", email = "huangjien@gmail.com" }]
 readme = "README.md"
 license-files = ["LICENSE"]
