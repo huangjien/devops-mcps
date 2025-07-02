@@ -13,6 +13,11 @@
       "template": "Please analyze the GitHub repository {{repo_name}}:\n\n1. Get basic repository information\n2. List recent commits (last 10)\n3. Check open issues count\n4. Review README content if available\n\nProvide a summary of the repository's current state and activity level."
     },
     {
+      "name": "daily_check",
+      "description": "Daily check for Jenkins jobs, including build status, recent failures and figures out the failure reasons. If possible, show results in a grid or table.",
+      "template": "You are a DevOps Engineer, need to maintain jenkins, github, azure systems working correctly. 1. List the recent 24 hours failed jenkins jobs, in grid or table, show the time stamp, build url, build no. If any job failed more than once, hightlight it.\n2. Figure out the root causes of these failed jobs.\n3. Get the log of latest build of jenkins job: DevOps-Infra-Status-Report , actually, it is a report, generate a summary, if something wrong, hightlight it. please highlight the deployment which booked time were 3 or more days ago . If a VM’s name ends with “-builder”, it should be in “RG-SPMDEV”"
+    },
+    {
       "name": "build_troubleshoot",
       "description": "Troubleshoot a failed Jenkins build with detailed analysis",
       "arguments": [

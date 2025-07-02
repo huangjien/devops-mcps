@@ -608,7 +608,7 @@ def test_main_github_init_failure(mock_init_github, mock_mcp_run):
   try:
     # Mock GitHub client as failed to initialize
     core.github.g = None
-    
+
     # Set environment variable to simulate token being present
     with patch.dict(os.environ, {"GITHUB_PERSONAL_ACCESS_TOKEN": "test_token"}):
       # Mock sys.exit to raise SystemExit
