@@ -2,7 +2,7 @@
 
 [![PyPI version](https://badge.fury.io/py/devops-mcps.svg)](https://badge.fury.io/py/devops-mcps)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Coverage](https://img.shields.io/badge/coverage-90%25-brightgreen.svg)](https://github.com/huangjien/devops-mcps)
+[![Coverage](https://img.shields.io/badge/coverage-93.77%25-brightgreen.svg)](https://github.com/huangjien/devops-mcps)
 
 A [FastMCP](https://github.com/modelcontextprotocol/fastmcp)-based MCP server providing a suite of DevOps tools and integrations.
 
@@ -184,12 +184,51 @@ The DevOps MCP Server provides dynamic prompts that help you perform common DevO
 
 #### Available Prompts
 
-1. **`quick_repo_check`** - Quickly check a GitHub repository's basic information and recent activity
-2. **`build_troubleshoot`** - Troubleshoot Jenkins build failures with detailed analysis
+1. **`quick_repo_check`** - Comprehensive repository health assessment with security analysis
+2. **`daily_check`** - Complete DevOps monitoring with Jenkins job analysis and infrastructure status
+3. **`build_troubleshoot`** - Advanced build failure investigation with root cause analysis
+
+#### Using the `daily_check` Prompt
+
+**Purpose:** Comprehensive DevOps monitoring and infrastructure status reporting with Jenkins job analysis.
+
+**Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `time_range` | string | ❌ No | Time range for analysis (e.g., "24h", "7d", "1w") |
+| `include_infrastructure` | boolean | ❌ No | Include infrastructure status in the report |
+| `focus_area` | string | ❌ No | Specific area to focus on (e.g., "builds", "deployments", "security") |
+
+**Usage Examples:**
+
+```
+# Basic daily monitoring
+Prompt: daily_check
+
+# Weekly infrastructure review
+Prompt: daily_check
+Parameters:
+- time_range: "7d"
+- include_infrastructure: true
+
+# Focus on build failures
+Prompt: daily_check
+Parameters:
+- time_range: "24h"
+- focus_area: "builds"
+```
+
+**What it does:**
+1. 🔍 **Jenkins Job Analysis**: Comprehensive review of job statuses and recent failures
+2. 🔧 **Root Cause Investigation**: Deep dive into failure patterns and trends
+3. 🏗️ **Infrastructure Status**: Health check of critical infrastructure components
+4. 📋 **Actionable Recommendations**: Prioritized action items with implementation guidance
+5. 📊 **Executive Summary**: High-level overview with key metrics and trends
 
 #### Using the `build_troubleshoot` Prompt
 
-**Purpose:** Analyze Jenkins build failures with detailed analysis and actionable recommendations.
+**Purpose:** Advanced build failure investigation with comprehensive root cause analysis and actionable recommendations.
 
 **Parameters:**
 
@@ -229,28 +268,38 @@ Parameters:
 
 #### Using the `quick_repo_check` Prompt
 
-**Purpose:** Quickly analyze a GitHub repository's basic information and recent activity.
+**Purpose:** Comprehensive repository health assessment with security analysis and DevOps best practices evaluation.
 
 **Parameters:**
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `repo_name` | string | ✅ Yes | Repository name in format 'owner/repo' |
+| `include_security` | boolean | ❌ No | Include security analysis in the assessment |
+| `check_ci_cd` | boolean | ❌ No | Analyze CI/CD pipeline configuration |
 
-**Usage Example:**
+**Usage Examples:**
 
 ```
+# Basic repository check
 Prompt: quick_repo_check
 Parameters:
 - repo_name: "facebook/react"
+
+# Comprehensive security assessment
+Prompt: quick_repo_check
+Parameters:
+- repo_name: "myorg/myproject"
+- include_security: true
+- check_ci_cd: true
 ```
 
 **What it does:**
-1. Gets basic repository information
-2. Lists recent commits (last 10)
-3. Checks open issues count
-4. Reviews README content if available
-5. Provides a summary of the repository's current state and activity level
+1. 📊 **Repository Health Assessment**: Comprehensive evaluation of repository status and metrics
+2. 🔒 **Security Analysis**: Security configuration review and vulnerability assessment
+3. 🏗️ **CI/CD Pipeline Evaluation**: Analysis of build and deployment configurations
+4. 📋 **Actionable Recommendations**: Prioritized improvement suggestions with implementation guidance
+5. 📈 **Executive Summary**: High-level overview with key findings and strategic recommendations
 
 #### Natural Language Support
 
@@ -267,11 +316,17 @@ Parameters:
 
 **Natural Language Format (Recommended):**
 ```
+"Perform daily DevOps monitoring check for the last 24 hours"
+
 "Troubleshoot the Jenkins build failure for job 'creole-Automerge-main' build #29 with detailed logs"
 
-"Check the GitHub repository facebook/react for recent activity"
+"Check the GitHub repository facebook/react with security analysis"
 
 "Analyze the failed build for my-app-build job number 42 including logs"
+
+"Run weekly infrastructure review with comprehensive monitoring"
+
+"Assess repository health for myorg/myproject including CI/CD pipeline analysis"
 ```
 
 **How Natural Language Processing Works:**
@@ -292,10 +347,13 @@ Parameters:
 
 | Intent | Natural Language Examples |
 |--------|---------------------------|
-| Repository Analysis | "Check repo owner/name", "Analyze GitHub repository X" |
-| Build Troubleshooting | "Debug build failure", "Troubleshoot job X build Y" |
+| Daily Monitoring | "Daily DevOps check", "Run daily monitoring", "Infrastructure status report" |
+| Repository Analysis | "Check repo owner/name with security", "Analyze GitHub repository X with CI/CD" |
+| Build Troubleshooting | "Debug build failure", "Troubleshoot job X build Y", "Investigate build issues" |
 | Include Logs | "with logs", "including detailed logs", "show build logs" |
 | Latest Build | "latest build", "most recent build", "current build" |
+| Time Range | "last 24 hours", "past week", "7 days", "weekly review" |
+| Focus Areas | "focus on builds", "security analysis", "infrastructure review" |
 
 #### Prerequisites
 
@@ -428,8 +486,26 @@ uvx ruff format .
 **Testing (Pytest):**
 
 ```bash
-pytest --cov=src/devops_mcps --cov-report=html tests/
+# Run tests with coverage using the provided script
+./test.sh
+
+# Or run manually
+pytest --cov=src/devops_mcps --cov-report=html --cov-report=xml tests/
 ```
+
+**Test Script Features:**
+
+The project includes a comprehensive `test.sh` script that:
+- Automatically checks for `uv` installation
+- Syncs development dependencies
+- Runs all tests with pytest
+- Generates both HTML and XML coverage reports
+- Automatically opens the HTML coverage report in your browser
+- Requires minimum 80% test coverage (currently achieving 93.77%)
+
+**Coverage Reports:**
+- HTML report: `coverage/html/index.html` (opens automatically)
+- XML report: `coverage/coverage.xml` (for CI/CD integration)
 
 **Debugging with MCP Inspector:**
 
