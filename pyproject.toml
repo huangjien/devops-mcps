@@ -1,6 +1,6 @@
 [project]
 name = "devops-mcps"
-version = "0.8.0"
+version = "0.8.2"
 description = "A FastMCP-based, Readonly MCP server for DevOps"
 authors = [{ name = "Jien Huang", email = "huangjien@gmail.com" }]
 readme = "README.md"
@@ -17,6 +17,9 @@ keywords = [
     "mcp",
     "python",
     "cli",
+    "jenkins",
+    "azure",
+    "github",
 ]
 
 dependencies = [

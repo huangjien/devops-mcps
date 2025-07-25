@@ -6,7 +6,7 @@ import os  # Import the os module
 
 # --- Configuration ---
 LOG_FILENAME = "mcp_server.log"
-MAX_LOG_SIZE_MB = 4
+MAX_LOG_SIZE_MB = 5
 MAX_BYTES = MAX_LOG_SIZE_MB * 1024 * 1024
 BACKUP_COUNT = 0  # Set to 0 to overwrite (delete the old log on rotation)
 
@@ -29,7 +29,7 @@ LOG_LEVEL = log_level_map.get(LOG_LEVEL_STR, logging.INFO)
 # --- Create Formatter ---
 # Added %(lineno)d for line number
 log_formatter = logging.Formatter(
-  "%(asctime)s - %(name)s - %(levelname)s:%(lineno)d - %(message)s"
+  "%(levelname)s %(asctime)s - %(name)s:%(lineno)d - %(message)s"
 )
 
 # --- Logging Setup Function ---

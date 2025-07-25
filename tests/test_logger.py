@@ -218,7 +218,7 @@ def test_successful_file_logging_info_message(mock_logger_info, mock_rotating_ha
   assert "Logging configured" in info_call_args
   assert "Level: DEBUG" in info_call_args
   assert "File (mcp_server.log" in info_call_args
-  assert "MaxSize: 4MB" in info_call_args
+  assert "MaxSize: 5MB" in info_call_args
   assert "Backups: 0" in info_call_args
 
 
@@ -323,7 +323,7 @@ def test_log_formatter_configuration(mock_rotating_handler):
     logger.setup_logging()
 
   # Check formatter format string
-  expected_format = "%(asctime)s - %(name)s - %(levelname)s:%(lineno)d - %(message)s"
+  expected_format = "%(levelname)s %(asctime)s - %(name)s:%(lineno)d - %(message)s"
   assert logger.log_formatter._fmt == expected_format
 
   # Verify formatter was set on handler
@@ -344,7 +344,7 @@ def test_handler_configuration_parameters(mock_rotating_handler):
   # Verify handler was called with correct parameters
   mock_rotating_handler.assert_called_once_with(
     filename="mcp_server.log",
-    maxBytes=4 * 1024 * 1024,  # 4MB
+    maxBytes=5 * 1024 * 1024,  # 5MB
     backupCount=0,
     encoding="utf-8",
   )
@@ -389,8 +389,8 @@ def test_module_constants_values(mock_rotating_handler):
 
   # Test module constants
   assert logger.LOG_FILENAME == "mcp_server.log"
-  assert logger.MAX_LOG_SIZE_MB == 4
-  assert logger.MAX_BYTES == 4 * 1024 * 1024
+  assert logger.MAX_LOG_SIZE_MB == 5
+  assert logger.MAX_BYTES == 5 * 1024 * 1024
   assert logger.BACKUP_COUNT == 0
   assert logger.DEFAULT_LOG_LEVEL == "INFO"
 
