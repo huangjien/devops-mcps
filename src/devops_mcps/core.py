@@ -45,10 +45,7 @@ except PackageNotFoundError:
 # --- MCP Server Setup ---
 
 mcp = FastMCP(
-  f"DevOps MCP Server v{package_version} (Github & Jenkins)",
-  host="0.0.0.0",
-  port=8000,
-  settings={"initialization_timeout": 10, "request_timeout": 300},
+  f"DevOps MCP Server v{package_version} (Github & Jenkins)"
 )
 
 
