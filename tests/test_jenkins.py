@@ -845,6 +845,7 @@ class TestJenkinsGetBuildLogAdditional:
     mock_jenkins.get_job.return_value = mock_job
 
     import devops_mcps.jenkins
+
     devops_mcps.jenkins.j = mock_jenkins
 
     result = jenkins_get_build_log("test-job", 5)
@@ -872,6 +873,7 @@ class TestJenkinsGetBuildLogAdditional:
     mock_jenkins.get_job.return_value = mock_job
 
     import devops_mcps.jenkins
+
     devops_mcps.jenkins.j = mock_jenkins
 
     result = jenkins_get_build_log("test-job", 5)
@@ -892,6 +894,7 @@ class TestJenkinsGetBuildParametersAdditional:
     mock_jenkins.get_job.side_effect = JenkinsAPIException("No such job: test-job")
 
     import devops_mcps.jenkins
+
     devops_mcps.jenkins.j = mock_jenkins
 
     result = jenkins_get_build_parameters("test-job", 1)
@@ -919,7 +922,9 @@ class TestJenkinsGetRecentFailedBuildsAdditional:
   @patch("devops_mcps.jenkins.JENKINS_URL", "http://test-jenkins.com")
   @patch("devops_mcps.jenkins.JENKINS_USER", "testuser")
   @patch("devops_mcps.jenkins.JENKINS_TOKEN", "testtoken")
-  def test_jenkins_get_recent_failed_builds_no_jobs_key(self, mock_cache, mock_requests_get):
+  def test_jenkins_get_recent_failed_builds_no_jobs_key(
+    self, mock_cache, mock_requests_get
+  ):
     """Test jenkins_get_recent_failed_builds when API response has no 'jobs' key."""
     mock_cache.get.return_value = None
 
@@ -936,7 +941,9 @@ class TestJenkinsGetRecentFailedBuildsAdditional:
   @patch("devops_mcps.jenkins.JENKINS_URL", "http://test-jenkins.com")
   @patch("devops_mcps.jenkins.JENKINS_USER", "testuser")
   @patch("devops_mcps.jenkins.JENKINS_TOKEN", "testtoken")
-  def test_jenkins_get_recent_failed_builds_job_without_name(self, mock_cache, mock_requests_get):
+  def test_jenkins_get_recent_failed_builds_job_without_name(
+    self, mock_cache, mock_requests_get
+  ):
     """Test jenkins_get_recent_failed_builds with job data missing name."""
     mock_cache.get.return_value = None
 
@@ -944,7 +951,7 @@ class TestJenkinsGetRecentFailedBuildsAdditional:
     mock_response.json.return_value = {
       "jobs": [
         {"url": "http://jenkins.com/job/unnamed-job"},  # Missing name
-        {"name": "valid-job", "url": "http://jenkins.com/job/valid-job"}
+        {"name": "valid-job", "url": "http://jenkins.com/job/valid-job"},
       ]
     }
     mock_requests_get.return_value = mock_response
@@ -958,14 +965,19 @@ class TestJenkinsGetRecentFailedBuildsAdditional:
   @patch("devops_mcps.jenkins.JENKINS_URL", "http://test-jenkins.com")
   @patch("devops_mcps.jenkins.JENKINS_USER", "testuser")
   @patch("devops_mcps.jenkins.JENKINS_TOKEN", "testtoken")
-  def test_jenkins_get_recent_failed_builds_job_without_lastbuild(self, mock_cache, mock_requests_get):
+  def test_jenkins_get_recent_failed_builds_job_without_lastbuild(
+    self, mock_cache, mock_requests_get
+  ):
     """Test jenkins_get_recent_failed_builds with job missing lastBuild data."""
     mock_cache.get.return_value = None
 
     mock_response = Mock()
     mock_response.json.return_value = {
       "jobs": [
-        {"name": "job-without-builds", "url": "http://jenkins.com/job/job-without-builds"}
+        {
+          "name": "job-without-builds",
+          "url": "http://jenkins.com/job/job-without-builds",
+        }
         # Missing lastBuild
       ]
     }
@@ -980,7 +992,9 @@ class TestJenkinsGetRecentFailedBuildsAdditional:
   @patch("devops_mcps.jenkins.JENKINS_URL", "http://test-jenkins.com")
   @patch("devops_mcps.jenkins.JENKINS_USER", "testuser")
   @patch("devops_mcps.jenkins.JENKINS_TOKEN", "testtoken")
-  def test_jenkins_get_recent_failed_builds_missing_timestamp(self, mock_cache, mock_requests_get):
+  def test_jenkins_get_recent_failed_builds_missing_timestamp(
+    self, mock_cache, mock_requests_get
+  ):
     """Test jenkins_get_recent_failed_builds with build missing timestamp."""
     mock_cache.get.return_value = None
 
@@ -992,9 +1006,9 @@ class TestJenkinsGetRecentFailedBuildsAdditional:
           "url": "http://jenkins.com/job/job-missing-timestamp",
           "lastBuild": {
             "number": 42,
-            "result": "FAILURE"
+            "result": "FAILURE",
             # Missing timestamp
-          }
+          },
         }
       ]
     }
@@ -1009,7 +1023,9 @@ class TestJenkinsGetRecentFailedBuildsAdditional:
   @patch("devops_mcps.jenkins.JENKINS_URL", "http://test-jenkins.com")
   @patch("devops_mcps.jenkins.JENKINS_USER", "testuser")
   @patch("devops_mcps.jenkins.JENKINS_TOKEN", "testtoken")
-  def test_jenkins_get_recent_failed_builds_old_build(self, mock_cache, mock_requests_get):
+  def test_jenkins_get_recent_failed_builds_old_build(
+    self, mock_cache, mock_requests_get
+  ):
     """Test jenkins_get_recent_failed_builds with build older than cutoff."""
     mock_cache.get.return_value = None
 
@@ -1027,8 +1043,8 @@ class TestJenkinsGetRecentFailedBuildsAdditional:
             "number": 42,
             "timestamp": old_timestamp,
             "result": "FAILURE",
-            "url": "http://jenkins.com/job/old-failed-job/42"
-          }
+            "url": "http://jenkins.com/job/old-failed-job/42",
+          },
         }
       ]
     }
@@ -1043,7 +1059,9 @@ class TestJenkinsGetRecentFailedBuildsAdditional:
   @patch("devops_mcps.jenkins.JENKINS_URL", "http://test-jenkins.com")
   @patch("devops_mcps.jenkins.JENKINS_USER", "testuser")
   @patch("devops_mcps.jenkins.JENKINS_TOKEN", "testtoken")
-  def test_jenkins_get_recent_failed_builds_recent_success(self, mock_cache, mock_requests_get):
+  def test_jenkins_get_recent_failed_builds_recent_success(
+    self, mock_cache, mock_requests_get
+  ):
     """Test jenkins_get_recent_failed_builds with recent successful build."""
     mock_cache.get.return_value = None
 
@@ -1061,8 +1079,8 @@ class TestJenkinsGetRecentFailedBuildsAdditional:
             "number": 42,
             "timestamp": recent_timestamp,
             "result": "SUCCESS",
-            "url": "http://jenkins.com/job/recent-success-job/42"
-          }
+            "url": "http://jenkins.com/job/recent-success-job/42",
+          },
         }
       ]
     }
@@ -1077,7 +1095,9 @@ class TestJenkinsGetRecentFailedBuildsAdditional:
   @patch("devops_mcps.jenkins.JENKINS_URL", "http://test-jenkins.com")
   @patch("devops_mcps.jenkins.JENKINS_USER", "testuser")
   @patch("devops_mcps.jenkins.JENKINS_TOKEN", "testtoken")
-  def test_jenkins_get_recent_failed_builds_missing_build_url(self, mock_cache, mock_requests_get):
+  def test_jenkins_get_recent_failed_builds_missing_build_url(
+    self, mock_cache, mock_requests_get
+  ):
     """Test jenkins_get_recent_failed_builds with missing build URL (constructs URL)."""
     mock_cache.get.return_value = None
 
@@ -1094,9 +1114,9 @@ class TestJenkinsGetRecentFailedBuildsAdditional:
           "lastBuild": {
             "number": 42,
             "timestamp": recent_timestamp,
-            "result": "FAILURE"
+            "result": "FAILURE",
             # Missing url
-          }
+          },
         }
       ]
     }
@@ -1115,7 +1135,9 @@ class TestJenkinsGetRecentFailedBuildsAdditional:
   @patch("devops_mcps.jenkins.JENKINS_URL", "http://test-jenkins.com")
   @patch("devops_mcps.jenkins.JENKINS_USER", "testuser")
   @patch("devops_mcps.jenkins.JENKINS_TOKEN", "testtoken")
-  def test_jenkins_get_recent_failed_builds_json_parse_error(self, mock_cache, mock_requests_get):
+  def test_jenkins_get_recent_failed_builds_json_parse_error(
+    self, mock_cache, mock_requests_get
+  ):
     """Test jenkins_get_recent_failed_builds with JSON parsing error."""
     mock_cache.get.return_value = None
 
@@ -1150,7 +1172,9 @@ class TestJenkinsGetAllViewsAdditional:
   @patch("devops_mcps.jenkins.cache")
   def test_jenkins_get_all_views_cached_result(self, mock_cache):
     """Test jenkins_get_all_views returns cached result."""
-    cached_views = [{"name": "cached-view", "url": "http://jenkins.com/view/cached-view"}]
+    cached_views = [
+      {"name": "cached-view", "url": "http://jenkins.com/view/cached-view"}
+    ]
     mock_cache.get.return_value = cached_views
 
     result = jenkins_get_all_views()
@@ -1165,23 +1189,28 @@ class TestJenkinsModuleInitialization:
   def test_module_initialization_logic_coverage(self):
     """Test to cover the module initialization conditional logic."""
     # This test covers line 63 - the module initialization logic
-    import sys
-    
+
     # Test the condition that checks for pytest/unittest in sys.argv
     test_argv_with_pytest = ["pytest", "tests/"]
     test_argv_with_unittest = ["python", "-m", "unittest"]
     test_argv_normal = ["python", "script.py"]
-    
+
     # Test pytest condition
-    result_pytest = any("pytest" in arg or "unittest" in arg for arg in test_argv_with_pytest)
+    result_pytest = any(
+      "pytest" in arg or "unittest" in arg for arg in test_argv_with_pytest
+    )
     assert result_pytest is True
-    
+
     # Test unittest condition
-    result_unittest = any("pytest" in arg or "unittest" in arg for arg in test_argv_with_unittest)
+    result_unittest = any(
+      "pytest" in arg or "unittest" in arg for arg in test_argv_with_unittest
+    )
     assert result_unittest is True
-    
+
     # Test normal execution condition
-    result_normal = any("pytest" in arg or "unittest" in arg for arg in test_argv_normal)
+    result_normal = any(
+      "pytest" in arg or "unittest" in arg for arg in test_argv_normal
+    )
     assert result_normal is False
 
 
@@ -1195,12 +1224,13 @@ class TestJenkinsCredentialHandling:
   def test_jenkins_get_jobs_missing_url_only(self, mock_cache):
     """Test jenkins_get_jobs when only JENKINS_URL is missing."""
     mock_cache.get.return_value = None
-    
+
     import devops_mcps.jenkins
+
     devops_mcps.jenkins.j = None
-    
+
     result = jenkins_get_jobs()
-    
+
     assert "error" in result
     assert "Jenkins client not initialized" in result["error"]
 
@@ -1211,12 +1241,13 @@ class TestJenkinsCredentialHandling:
   def test_jenkins_get_build_log_missing_user_only(self, mock_cache):
     """Test jenkins_get_build_log when only JENKINS_USER is missing."""
     mock_cache.get.return_value = None
-    
+
     import devops_mcps.jenkins
+
     devops_mcps.jenkins.j = None
-    
+
     result = jenkins_get_build_log("test-job", 1)
-    
+
     assert "error" in result
     assert "Jenkins client not initialized" in result["error"]
 
@@ -1227,12 +1258,13 @@ class TestJenkinsCredentialHandling:
   def test_jenkins_get_all_views_missing_token_only(self, mock_cache):
     """Test jenkins_get_all_views when only JENKINS_TOKEN is missing."""
     mock_cache.get.return_value = None
-    
+
     import devops_mcps.jenkins
+
     devops_mcps.jenkins.j = None
-    
+
     result = jenkins_get_all_views()
-    
+
     assert "error" in result
     assert "Jenkins client not initialized" in result["error"]
 
@@ -1243,12 +1275,13 @@ class TestJenkinsCredentialHandling:
   def test_jenkins_get_build_parameters_missing_token_only(self, mock_cache):
     """Test jenkins_get_build_parameters when only JENKINS_TOKEN is missing."""
     mock_cache.get.return_value = None
-    
+
     import devops_mcps.jenkins
+
     devops_mcps.jenkins.j = None
-    
+
     result = jenkins_get_build_parameters("test-job", 1)
-    
+
     assert "error" in result
     assert "Jenkins client not initialized" in result["error"]
 
@@ -1259,12 +1292,13 @@ class TestJenkinsCredentialHandling:
   def test_jenkins_get_queue_missing_token_only(self, mock_cache):
     """Test jenkins_get_queue when only JENKINS_TOKEN is missing."""
     mock_cache.get.return_value = None
-    
+
     import devops_mcps.jenkins
+
     devops_mcps.jenkins.j = None
-    
+
     result = jenkins_get_queue()
-    
+
     assert "error" in result
     assert "Jenkins client not initialized" in result["error"]
 
@@ -1276,17 +1310,19 @@ class TestJenkinsSpecificErrorPaths:
   def test_jenkins_get_jobs_fallback_error_path(self, mock_cache):
     """Test jenkins_get_jobs fallback error path when j is None but credentials exist."""
     mock_cache.get.return_value = None
-    
+
     import devops_mcps.jenkins
+
     devops_mcps.jenkins.j = None
-    
+
     # Mock the credentials to exist but j is still None
-    with patch("devops_mcps.jenkins.JENKINS_URL", "http://test-jenkins.com"), \
-         patch("devops_mcps.jenkins.JENKINS_USER", "testuser"), \
-         patch("devops_mcps.jenkins.JENKINS_TOKEN", "testtoken"):
-      
+    with (
+      patch("devops_mcps.jenkins.JENKINS_URL", "http://test-jenkins.com"),
+      patch("devops_mcps.jenkins.JENKINS_USER", "testuser"),
+      patch("devops_mcps.jenkins.JENKINS_TOKEN", "testtoken"),
+    ):
       result = jenkins_get_jobs()
-      
+
       # Should hit the fallback error path (line 126)
       assert "error" in result
       assert "Jenkins client not initialized" in result["error"]
@@ -1295,17 +1331,19 @@ class TestJenkinsSpecificErrorPaths:
   def test_jenkins_get_build_log_fallback_error_path(self, mock_cache):
     """Test jenkins_get_build_log fallback error path when j is None but credentials exist."""
     mock_cache.get.return_value = None
-    
+
     import devops_mcps.jenkins
+
     devops_mcps.jenkins.j = None
-    
+
     # Mock the credentials to exist but j is still None
-    with patch("devops_mcps.jenkins.JENKINS_URL", "http://test-jenkins.com"), \
-         patch("devops_mcps.jenkins.JENKINS_USER", "testuser"), \
-         patch("devops_mcps.jenkins.JENKINS_TOKEN", "testtoken"):
-      
+    with (
+      patch("devops_mcps.jenkins.JENKINS_URL", "http://test-jenkins.com"),
+      patch("devops_mcps.jenkins.JENKINS_USER", "testuser"),
+      patch("devops_mcps.jenkins.JENKINS_TOKEN", "testtoken"),
+    ):
       result = jenkins_get_build_log("test-job", 1)
-      
+
       # Should hit the fallback error path (line 159)
       assert "error" in result
       assert "Jenkins client not initialized" in result["error"]
@@ -1314,17 +1352,19 @@ class TestJenkinsSpecificErrorPaths:
   def test_jenkins_get_all_views_fallback_error_path(self, mock_cache):
     """Test jenkins_get_all_views fallback error path when j is None but credentials exist."""
     mock_cache.get.return_value = None
-    
+
     import devops_mcps.jenkins
+
     devops_mcps.jenkins.j = None
-    
+
     # Mock the credentials to exist but j is still None
-    with patch("devops_mcps.jenkins.JENKINS_URL", "http://test-jenkins.com"), \
-         patch("devops_mcps.jenkins.JENKINS_USER", "testuser"), \
-         patch("devops_mcps.jenkins.JENKINS_TOKEN", "testtoken"):
-      
+    with (
+      patch("devops_mcps.jenkins.JENKINS_URL", "http://test-jenkins.com"),
+      patch("devops_mcps.jenkins.JENKINS_USER", "testuser"),
+      patch("devops_mcps.jenkins.JENKINS_TOKEN", "testtoken"),
+    ):
       result = jenkins_get_all_views()
-      
+
       # Should hit the fallback error path (line 218)
       assert "error" in result
       assert "Jenkins client not initialized" in result["error"]
@@ -1333,17 +1373,19 @@ class TestJenkinsSpecificErrorPaths:
   def test_jenkins_get_build_parameters_fallback_error_path(self, mock_cache):
     """Test jenkins_get_build_parameters fallback error path when j is None but credentials exist."""
     mock_cache.get.return_value = None
-    
+
     import devops_mcps.jenkins
+
     devops_mcps.jenkins.j = None
-    
+
     # Mock the credentials to exist but j is still None
-    with patch("devops_mcps.jenkins.JENKINS_URL", "http://test-jenkins.com"), \
-         patch("devops_mcps.jenkins.JENKINS_USER", "testuser"), \
-         patch("devops_mcps.jenkins.JENKINS_TOKEN", "testtoken"):
-      
+    with (
+      patch("devops_mcps.jenkins.JENKINS_URL", "http://test-jenkins.com"),
+      patch("devops_mcps.jenkins.JENKINS_USER", "testuser"),
+      patch("devops_mcps.jenkins.JENKINS_TOKEN", "testtoken"),
+    ):
       result = jenkins_get_build_parameters("test-job", 1)
-      
+
       # Should hit the fallback error path (line 258)
       assert "error" in result
       assert "Jenkins client not initialized" in result["error"]
@@ -1352,17 +1394,19 @@ class TestJenkinsSpecificErrorPaths:
   def test_jenkins_get_queue_fallback_error_path(self, mock_cache):
     """Test jenkins_get_queue fallback error path when j is None but credentials exist."""
     mock_cache.get.return_value = None
-    
+
     import devops_mcps.jenkins
+
     devops_mcps.jenkins.j = None
-    
+
     # Mock the credentials to exist but j is still None
-    with patch("devops_mcps.jenkins.JENKINS_URL", "http://test-jenkins.com"), \
-         patch("devops_mcps.jenkins.JENKINS_USER", "testuser"), \
-         patch("devops_mcps.jenkins.JENKINS_TOKEN", "testtoken"):
-      
+    with (
+      patch("devops_mcps.jenkins.JENKINS_URL", "http://test-jenkins.com"),
+      patch("devops_mcps.jenkins.JENKINS_USER", "testuser"),
+      patch("devops_mcps.jenkins.JENKINS_TOKEN", "testtoken"),
+    ):
       result = jenkins_get_queue()
-      
+
       # Should hit the fallback error path (line 309)
       assert "error" in result
       assert "Jenkins client not initialized" in result["error"]

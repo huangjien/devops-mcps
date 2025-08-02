@@ -432,6 +432,7 @@ async def get_recent_failed_jenkins_builds(
 
 # --- End new MCP tool ---
 
+
 @mcp.tool()
 async def clear_cache() -> Dict[str, str]:
   """Clear all cached data from the in-memory cache.
@@ -442,12 +443,14 @@ async def clear_cache() -> Dict[str, str]:
   logger.debug("Executing clear_cache")
   try:
     from .cache import cache
+
     cache.clear()
     logger.info("Cache cleared successfully")
     return {"status": "success", "message": "Cache cleared successfully"}
   except Exception as e:
     logger.error(f"Failed to clear cache: {e}")
     return {"status": "error", "message": f"Failed to clear cache: {e}"}
+
 
 # --- Main Execution Logic ---
 # (No changes needed in main() or main_stream_http())
