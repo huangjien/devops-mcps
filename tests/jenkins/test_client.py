@@ -6,7 +6,7 @@ import os
 import unittest
 from unittest.mock import patch, MagicMock
 
-from src.devops_mcps.jenkins.client import (
+from devops_mcps.jenkins.client import (
     initialize_jenkins_client,
     get_jenkins_client,
     set_jenkins_client_for_testing,

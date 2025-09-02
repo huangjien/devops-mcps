@@ -1,6 +1,6 @@
 [project]
 name = "devops-mcps"
-version = "0.8.5"
+version = "0.8.6"
 description = "A FastMCP-based, Readonly MCP server for DevOps"
 authors = [{ name = "Jien Huang", email = "huangjien@gmail.com" }]
 readme = "README.md"

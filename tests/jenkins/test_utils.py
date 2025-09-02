@@ -5,7 +5,7 @@ Unit tests for Jenkins utils module.
 import unittest
 from datetime import datetime
 
-from src.devops_mcps.jenkins.utils import (
+from devops_mcps.jenkins.utils import (
     _to_dict,
     format_timestamp,
     calculate_time_window,
