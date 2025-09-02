@@ -3,7 +3,7 @@ import os
 import tempfile
 from unittest.mock import patch
 
-from src.devops_mcps.prompts import PromptLoader
+from devops_mcps.prompts import PromptLoader
 
 
 class TestPromptLoader:

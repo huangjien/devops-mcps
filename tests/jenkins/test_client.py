@@ -38,7 +38,7 @@ class TestJenkinsClient(unittest.TestCase):
             if var in os.environ:
                 del os.environ[var]
 
-    @patch('src.devops_mcps.jenkins.client.Jenkins')
+    @patch('devops_mcps.jenkins.client.Jenkins')
     def test_initialize_jenkins_client_success(self, mock_jenkins):
         """Test successful Jenkins client initialization."""
         # Set environment variables
@@ -114,7 +114,7 @@ class TestJenkinsClient(unittest.TestCase):
         client = get_jenkins_client()
         self.assertIsNone(client)
 
-    @patch('src.devops_mcps.jenkins.client.Jenkins')
+    @patch('devops_mcps.jenkins.client.Jenkins')
     def test_initialize_jenkins_client_connection_error(self, mock_jenkins):
         """Test Jenkins client initialization with connection error."""
         # Set environment variables
