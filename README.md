@@ -97,7 +97,7 @@ Configure the server using environment variables:
 
 ```bash
 # GitHub
-export GITHUB_PERSONAL_ACCESS_TOKEN="your_github_token"
+export GITHUB_TOKEN="your_github_token"
 # Optional: For GitHub Enterprise, set your API endpoint
 # export GITHUB_API_URL="https://github.mycompany.com"
 
@@ -136,7 +136,7 @@ You can also create a `.env` file in the project root directory instead of setti
 
 ```bash
 # .env file
-GITHUB_PERSONAL_ACCESS_TOKEN=your_github_token_here
+GITHUB_TOKEN=your_github_token_here
 PROMPTS_FILE=example_prompts.json
 # Add other optional environment variables as needed
 ```
@@ -370,7 +370,7 @@ To use GitHub-related prompts like `quick_repo_check`, ensure you have:
 
 ```bash
 # Required GitHub environment variable
-export GITHUB_PERSONAL_ACCESS_TOKEN="your_github_token"
+export GITHUB_TOKEN="your_github_token"
 ```
 
 **Template Variables:**
@@ -398,7 +398,7 @@ Run the container:
 ```bash
 # Stdio transport (interactive)
 docker run -i --rm \
-  -e GITHUB_PERSONAL_ACCESS_TOKEN="..." \
+  -e GITHUB_TOKEN="..." \
   -e JENKINS_URL="..." \
   -e JENKINS_USER="..." \
   -e JENKINS_TOKEN="..." \
@@ -410,7 +410,7 @@ docker run -i --rm \
 docker run -d -p 3721:3721 --rm \
   -e TRANSPORT_TYPE=stream_http \
   -e MCP_PORT=3721 \
-  -e GITHUB_PERSONAL_ACCESS_TOKEN="..." \
+  -e GITHUB_TOKEN="..." \
   -e JENKINS_URL="..." \
   -e JENKINS_USER="..." \
   -e JENKINS_TOKEN="..." \
@@ -433,7 +433,7 @@ Configure the MCP server in VSCode's `settings.json`:
   "command": "uvx",
   "args": ["devops-mcps"],
   "env": {
-    "GITHUB_PERSONAL_ACCESS_TOKEN": "ghp_...",
+    "GITHUB_TOKEN": "ghp_...",
     "GITHUB_API_URL": "https://github.mycompany.com", // Optional for GHE
     "JENKINS_URL": "...",
     "JENKINS_USER": "...",
@@ -455,7 +455,7 @@ Ensure the Docker container is running with stream_http enabled (see Docker sect
   "env": {
     // Environment variables are set in the container,
     // but can be overridden here if needed.
-    "GITHUB_PERSONAL_ACCESS_TOKEN": "ghp_..."
+    "GITHUB_TOKEN": "ghp_..."
   }
 }
 ```
@@ -514,7 +514,7 @@ The project includes a comprehensive `test.sh` script that:
 npx @modelcontextprotocol/inspector uvx run devops-mcps
 
 # Run with specific environment variables
-npx @modelcontextprotocol/inspector uvx run devops-mcps -e GITHUB_PERSONAL_ACCESS_TOKEN=... -e JENKINS_URL=... # Add other vars
+npx @modelcontextprotocol/inspector uvx run devops-mcps -e GITHUB_TOKEN=... -e JENKINS_URL=... # Add other vars
 ```
 
 **Checking for package dependencies outdated**

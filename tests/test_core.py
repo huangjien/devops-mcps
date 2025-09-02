@@ -11,6 +11,20 @@ sys.path.insert(
 import devops_mcps.core as core
 
 
+@pytest.fixture(autouse=True)
+def reset_github_state(request):
+  """Reset GitHub client state before and after each test."""
+  from devops_mcps.github.github_client import reset_github_client
+  
+  # Reset before test
+  reset_github_client()
+  
+  yield
+  
+  # Reset after test
+  reset_github_client()
+
+
 @pytest.mark.asyncio
 async def test_search_repositories_valid(monkeypatch):
   # Arrange
@@ -610,7 +624,7 @@ def test_main_github_init_failure(mock_init_github, mock_mcp_run):
     core.github.g = None
 
     # Set environment variable to simulate token being present
-    with patch.dict(os.environ, {"GITHUB_PERSONAL_ACCESS_TOKEN": "test_token"}):
+    with patch.dict(os.environ, {"GITHUB_TOKEN": "test_token"}):
       # Mock sys.exit to raise SystemExit
       with patch("devops_mcps.core.sys.exit", side_effect=SystemExit) as mock_exit:
         with pytest.raises(SystemExit):
@@ -921,13 +935,13 @@ def test_package_version_success(mock_version):
 @patch("devops_mcps.core.logger")
 async def test_clear_cache_success(mock_logger):
   """Test successful cache clearing."""
-  mock_cache = MagicMock()
+  mock_cache_manager = MagicMock()
 
-  # Patch the cache import directly
-  with patch("devops_mcps.cache.cache", mock_cache):
+  # Patch the cache_manager import directly
+  with patch("devops_mcps.cache.cache_manager", mock_cache_manager):
     result = await core.clear_cache()
 
-  mock_cache.clear.assert_called_once()
+  mock_cache_manager.clear.assert_called_once()
   assert result["status"] == "success"
   assert "Cache cleared successfully" in result["message"]
   mock_logger.info.assert_called_with("Cache cleared successfully")
@@ -937,16 +951,8 @@ async def test_clear_cache_success(mock_logger):
 @patch("devops_mcps.core.logger")
 async def test_clear_cache_import_error(mock_logger):
   """Test cache clearing when cache module import fails."""
-  # Simulate an import error by making the import statement fail
-  # We'll patch the module's __import__ to fail for the cache import
-  original_import = __builtins__["__import__"]
-
-  def failing_import(name, globals=None, locals=None, fromlist=(), level=0):
-    if level == 1 and fromlist and "cache" in fromlist:
-      raise ImportError("Cache module not found")
-    return original_import(name, globals, locals, fromlist, level)
-
-  with patch("builtins.__import__", side_effect=failing_import):
+  # Simulate an import error by making the cache module import fail
+  with patch.dict('sys.modules', {'devops_mcps.cache': None}):
     result = await core.clear_cache()
 
   assert result["status"] == "error"
@@ -958,13 +964,13 @@ async def test_clear_cache_import_error(mock_logger):
 @patch("devops_mcps.core.logger")
 async def test_clear_cache_attribute_error(mock_logger):
   """Test cache clearing when cache object has no clear method."""
-  mock_cache = MagicMock()
-  mock_cache.clear.side_effect = AttributeError(
+  mock_cache_manager = MagicMock()
+  mock_cache_manager.clear.side_effect = AttributeError(
     "'MockCache' object has no attribute 'clear'"
   )
 
-  # Patch the cache import directly
-  with patch("devops_mcps.cache.cache", mock_cache):
+  # Patch the cache_manager import directly
+  with patch("devops_mcps.cache.cache_manager", mock_cache_manager):
     result = await core.clear_cache()
 
   assert result["status"] == "error"

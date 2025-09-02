@@ -3,60 +3,29 @@ import logging
 import os
 import sys
 from datetime import datetime, timedelta, timezone
-from typing import List, Optional, Dict, Any, Union
+from typing import List, Dict, Any, Union
 import requests
 
 # Third-party imports
-from jenkinsapi.jenkins import Jenkins, JenkinsAPIException
+from jenkinsapi.jenkins import JenkinsAPIException
 from jenkinsapi.job import Job
 from jenkinsapi.view import View
-from jenkinsapi.build import Build
-from requests.exceptions import ConnectionError
 
 # Internal imports
-from .cache import cache
+from .cache import cache_manager as cache
+from .jenkins.client import (
+    initialize_jenkins_client,
+    j
+)
 
 logger = logging.getLogger(__name__)
 
-# --- Jenkins Client Initialization ---
+# Jenkins environment variables
 JENKINS_URL = os.environ.get("JENKINS_URL")
 JENKINS_USER = os.environ.get("JENKINS_USER")
 JENKINS_TOKEN = os.environ.get("JENKINS_TOKEN")
+
 LOG_LENGTH = os.environ.get("LOG_LENGTH", 10240)  # Default to 10KB if not set
-j: Optional[Jenkins] = None
-
-
-def initialize_jenkins_client():
-  """Initializes the global Jenkins client 'j'."""
-  global j
-  if j:  # Already initialized
-    return j
-
-  if JENKINS_URL and JENKINS_USER and JENKINS_TOKEN:
-    try:
-      j = Jenkins(JENKINS_URL, username=JENKINS_USER, password=JENKINS_TOKEN)
-      # Basic connection test
-      _ = j.get_master_data()
-      logger.info(
-        "Successfully authenticated with Jenkins using JENKINS_URL, JENKINS_USER and JENKINS_TOKEN."
-      )
-    except JenkinsAPIException as e:
-      logger.error(f"Failed to initialize authenticated Jenkins client: {e}")
-      j = None
-    except ConnectionError as e:
-      logger.error(f"Failed to connect to Jenkins server: {e}")
-      j = None
-    except Exception as e:
-      logger.error(f"Unexpected error initializing authenticated Jenkins client: {e}")
-      j = None
-  else:
-    logger.warning(
-      "JENKINS_URL, JENKINS_USER, or JENKINS_TOKEN environment variable not set."
-    )
-    logger.warning("Jenkins related tools will have limited functionality.")
-    j = None
-  return j
-
 
 # Call initialization when the module is loaded
 if not any("pytest" in arg or "unittest" in arg for arg in sys.argv):
@@ -232,101 +201,7 @@ def jenkins_get_all_views() -> Union[List[Dict[str, Any]], Dict[str, str]]:
     return {"error": f"An unexpected error occurred: {e}"}
 
 
-# --- Add new function to get build parameters ---
-def jenkins_get_build_parameters(
-  job_name: str, build_number: int
-) -> Union[Dict[str, Any], Dict[str, str]]:
-  """Internal logic for getting build parameters."""
-  logger.debug(
-    f"jenkins_get_build_parameters called for job: {job_name}, build: {build_number}"
-  )
 
-  # Check cache first
-  cache_key = f"jenkins:build_parameters:{job_name}:{build_number}"
-  cached = cache.get(cache_key)
-  if cached:
-    logger.debug(f"Returning cached result for {cache_key}")
-    return cached
-
-  if not j:
-    logger.error("jenkins_get_build_parameters: Jenkins client not initialized.")
-    if not JENKINS_URL or not JENKINS_USER or not JENKINS_TOKEN:
-      logger.error("Jenkins credentials not configured.")
-      return {
-        "error": "Jenkins client not initialized. Please set the JENKINS_URL, JENKINS_USER, and JENKINS_TOKEN environment variables."
-      }
-    return {
-      "error": "Jenkins client not initialized. Please set the JENKINS_URL, JENKINS_USER, and JENKINS_TOKEN environment variables."
-    }
-  try:
-    job: Job = j.get_job(job_name)
-    build: Optional[Build] = job.get_build(build_number)
-
-    if not build:
-      logger.warning(f"Build #{build_number} not found for job {job_name}")
-      return {"error": f"Build #{build_number} not found for job {job_name}"}
-
-    params: Dict[str, Any] = build.get_params()  # Get the parameters
-    logger.debug(f"Retrieved parameters for build {job_name}#{build_number}: {params}")
-    cache.set(cache_key, params, ttl=3600)  # Cache for 1 hour
-    return params  # Return the dictionary directly
-
-  except JenkinsAPIException as e:
-    # Check for specific errors like job not found
-    if "No such job" in str(e):  # Example check
-      logger.warning(f"Job '{job_name}' not found.")
-      return {"error": f"Job '{job_name}' not found."}
-    logger.error(f"jenkins_get_build_parameters Jenkins Error: {e}", exc_info=True)
-    return {
-      "error": f"Jenkins API Error: {str(e)}"
-    }  # Return string representation of error
-  except Exception as e:
-    logger.error(
-      f"Unexpected error in jenkins_get_build_parameters: {e}", exc_info=True
-    )
-    return {"error": f"An unexpected error occurred: {e}"}
-
-
-# --- Add the previously uncalled function (optional, but good practice if needed) ---
-def jenkins_get_queue() -> Union[Dict[str, Any], Dict[str, str]]:
-  """Get the current Jenkins queue information."""
-  logger.debug("jenkins_get_queue called")
-
-  # Check cache first
-  cache_key = "jenkins:queue:current"
-  cached = cache.get(cache_key)
-  if cached:
-    logger.debug(f"Returning cached result for {cache_key}")
-    return cached
-
-  if not j:
-    logger.error("jenkins_get_queue: Jenkins client not initialized.")
-    if not JENKINS_URL or not JENKINS_USER or not JENKINS_TOKEN:
-      logger.error("Jenkins credentials not configured.")
-      return {
-        "error": "Jenkins client not initialized. Please set the JENKINS_URL, JENKINS_USER, and JENKINS_TOKEN environment variables."
-      }
-    return {
-      "error": "Jenkins client not initialized. Please set the JENKINS_URL, JENKINS_USER, and JENKINS_TOKEN environment variables."
-    }
-  try:
-    queue_info = j.get_queue().get_queue_items()  # Example: get items
-    logger.debug(f"Retrieved queue info: {queue_info}")
-    # Note: jenkinsapi might return specific objects here, adjust _to_dict or processing as needed
-    result = {"queue_items": _to_dict(queue_info)}  # Wrap in a dict for clarity
-    cache.set(
-      cache_key, result, ttl=60
-    )  # Cache for 1 minute (queue changes frequently)
-    return result
-  except JenkinsAPIException as e:
-    logger.error(f"jenkins_get_queue Jenkins Error: {e}", exc_info=True)
-    return {"error": f"Jenkins API Error: {str(e)}"}
-  except Exception as e:
-    logger.error(f"Unexpected error in jenkins_get_queue: {e}", exc_info=True)
-    return {"error": f"An unexpected error occurred: {e}"}
-
-
-# --- End jenkins_get_queue ---
 
 
 def jenkins_get_recent_failed_builds(
@@ -481,8 +356,3 @@ def jenkins_get_recent_failed_builds(
       exc_info=True,
     )
     return {"error": f"An unexpected error occurred: {e}"}
-
-
-def set_jenkins_client_for_testing(client):
-  global j
-  j = client

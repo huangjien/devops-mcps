@@ -3,7 +3,7 @@
 import pytest
 import time
 import threading
-from devops_mcps.cache import CacheManager
+from devops_mcps.github.cache import CacheManager
 
 
 @pytest.fixture

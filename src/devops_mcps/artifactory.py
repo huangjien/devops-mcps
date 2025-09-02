@@ -9,11 +9,10 @@ from .inputs import (
   SearchArtifactoryItemsInput,
   GetArtifactoryItemInfoInput,
 )
-from .cache import cache
+from .cache import cache_manager
 
 # Initialize logger
 logger = logging.getLogger(__name__)
-cache = cache
 
 # Get Artifactory credentials from environment variables
 ARTIFACTORY_URL = os.environ.get("ARTIFACTORY_URL", "")
@@ -75,7 +74,7 @@ def artifactory_list_items(
 
   # Check cache first
   cache_key = f"artifactory:list_items:{repository}:{path}"
-  cached = cache.get(cache_key)
+  cached = cache_manager.get(cache_key)
   if cached:
     logger.debug(f"Returning cached result for {cache_key}")
     return cached
@@ -112,7 +111,7 @@ def artifactory_list_items(
       # Extract the children items if present
       if "children" in data:
         result = data["children"]
-        cache.set(cache_key, result, ttl=300)  # Cache for 5 minutes
+        cache_manager.set(cache_key, result, ttl=300)  # Cache for 5 minutes
         return result
       else:
         # If no children, return the item info
@@ -121,7 +120,7 @@ def artifactory_list_items(
           "created": data.get("created", ""),
           "size": data.get("size", 0),
         }
-        cache.set(cache_key, result, ttl=300)
+        cache_manager.set(cache_key, result, ttl=300)
         return result
     else:
       error_msg = f"Artifactory API Error: {response.status_code} - {response.text}"
@@ -152,7 +151,7 @@ def artifactory_search_items(
   # Check cache first
   repos_str = ",".join(sorted(repositories)) if repositories else "all"
   cache_key = f"artifactory:search_items:{query}:{repos_str}"
-  cached = cache.get(cache_key)
+  cached = cache_manager.get(cache_key)
   if cached:
     logger.debug(f"Returning cached result for {cache_key}")
     return cached
@@ -189,7 +188,7 @@ def artifactory_search_items(
     if response.status_code == 200:
       data = response.json()
       result = data.get("results", [])
-      cache.set(cache_key, result, ttl=300)  # Cache for 5 minutes
+      cache_manager.set(cache_key, result, ttl=300)  # Cache for 5 minutes
       return result
     else:
       error_msg = f"Artifactory API Error: {response.status_code} - {response.text}"
@@ -217,7 +216,7 @@ def artifactory_get_item_info(
 
   # Check cache first
   cache_key = f"artifactory:get_item_info:{repository}:{path}"
-  cached = cache.get(cache_key)
+  cached = cache_manager.get(cache_key)
   if cached:
     logger.debug(f"Returning cached result for {cache_key}")
     return cached
@@ -262,7 +261,7 @@ def artifactory_get_item_info(
           props_data = props_response.json()
           result["properties"] = props_data.get("properties", {})
 
-      cache.set(cache_key, result, ttl=300)  # Cache for 5 minutes
+      cache_manager.set(cache_key, result, ttl=300)  # Cache for 5 minutes
       return result
     else:
       error_msg = f"Artifactory API Error: {response.status_code} - {response.text}"

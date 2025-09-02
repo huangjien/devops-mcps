@@ -92,8 +92,8 @@ class TestArtifactoryListItems(unittest.TestCase):
   @patch("devops_mcps.artifactory._validate_artifactory_config")
   @patch("devops_mcps.artifactory._get_auth")
   @patch("requests.get")
-  @patch("devops_mcps.artifactory.cache.get")
-  @patch("devops_mcps.artifactory.cache.set")
+  @patch("devops_mcps.artifactory.cache_manager.get")
+  @patch("devops_mcps.artifactory.cache_manager.set")
   def test_list_items_directory(
     self, mock_cache_set, mock_cache_get, mock_get, mock_auth, mock_validate
   ):
@@ -128,8 +128,8 @@ class TestArtifactoryListItems(unittest.TestCase):
   @patch("devops_mcps.artifactory._validate_artifactory_config")
   @patch("devops_mcps.artifactory._get_auth")
   @patch("requests.get")
-  @patch("devops_mcps.artifactory.cache.get")
-  @patch("devops_mcps.artifactory.cache.set")
+  @patch("devops_mcps.artifactory.cache_manager.get")
+  @patch("devops_mcps.artifactory.cache_manager.set")
   def test_list_items_file(
     self, mock_cache_set, mock_cache_get, mock_get, mock_auth, mock_validate
   ):
@@ -162,7 +162,7 @@ class TestArtifactoryListItems(unittest.TestCase):
   @patch("devops_mcps.artifactory._validate_artifactory_config")
   @patch("devops_mcps.artifactory._get_auth")
   @patch("requests.get")
-  @patch("devops_mcps.artifactory.cache.get")
+  @patch("devops_mcps.artifactory.cache_manager.get")
   def test_list_items_error(self, mock_cache_get, mock_get, mock_auth, mock_validate):
     """Test list_items with API error."""
     # Setup mocks
@@ -185,7 +185,7 @@ class TestArtifactoryListItems(unittest.TestCase):
     mock_get.assert_called_once()
 
   @patch("devops_mcps.artifactory._validate_artifactory_config")
-  @patch("devops_mcps.artifactory.cache.get")
+  @patch("devops_mcps.artifactory.cache_manager.get")
   def test_list_items_from_cache(self, mock_cache_get, mock_validate):
     """Test list_items retrieving from cache."""
     # Setup mocks
@@ -220,8 +220,8 @@ class TestArtifactorySearchItems(unittest.TestCase):
   @patch("devops_mcps.artifactory._validate_artifactory_config")
   @patch("devops_mcps.artifactory._get_auth")
   @patch("requests.post")
-  @patch("devops_mcps.artifactory.cache.get")
-  @patch("devops_mcps.artifactory.cache.set")
+  @patch("devops_mcps.artifactory.cache_manager.get")
+  @patch("devops_mcps.artifactory.cache_manager.set")
   def test_search_items_success(
     self, mock_cache_set, mock_cache_get, mock_post, mock_auth, mock_validate
   ):
@@ -263,7 +263,7 @@ class TestArtifactorySearchItems(unittest.TestCase):
   @patch("devops_mcps.artifactory._validate_artifactory_config")
   @patch("devops_mcps.artifactory._get_auth")
   @patch("requests.post")
-  @patch("devops_mcps.artifactory.cache.get")
+  @patch("devops_mcps.artifactory.cache_manager.get")
   def test_search_items_error(
     self, mock_cache_get, mock_post, mock_auth, mock_validate
   ):
@@ -288,7 +288,7 @@ class TestArtifactorySearchItems(unittest.TestCase):
     mock_post.assert_called_once()
 
   @patch("devops_mcps.artifactory._validate_artifactory_config")
-  @patch("devops_mcps.artifactory.cache.get")
+  @patch("devops_mcps.artifactory.cache_manager.get")
   def test_search_items_from_cache(self, mock_cache_get, mock_validate):
     """Test search_items retrieving from cache."""
     # Setup mocks
@@ -323,8 +323,8 @@ class TestArtifactoryGetItemInfo(unittest.TestCase):
   @patch("devops_mcps.artifactory._validate_artifactory_config")
   @patch("devops_mcps.artifactory._get_auth")
   @patch("requests.get")
-  @patch("devops_mcps.artifactory.cache.get")
-  @patch("devops_mcps.artifactory.cache.set")
+  @patch("devops_mcps.artifactory.cache_manager.get")
+  @patch("devops_mcps.artifactory.cache_manager.set")
   def test_get_item_info_directory(
     self, mock_cache_set, mock_cache_get, mock_get, mock_auth, mock_validate
   ):
@@ -369,8 +369,8 @@ class TestArtifactoryGetItemInfo(unittest.TestCase):
   @patch("devops_mcps.artifactory._validate_artifactory_config")
   @patch("devops_mcps.artifactory._get_auth")
   @patch("requests.get")
-  @patch("devops_mcps.artifactory.cache.get")
-  @patch("devops_mcps.artifactory.cache.set")
+  @patch("devops_mcps.artifactory.cache_manager.get")
+  @patch("devops_mcps.artifactory.cache_manager.set")
   def test_get_item_info_file_with_properties(
     self, mock_cache_set, mock_cache_get, mock_get, mock_auth, mock_validate
   ):
@@ -418,7 +418,7 @@ class TestArtifactoryGetItemInfo(unittest.TestCase):
   @patch("devops_mcps.artifactory._validate_artifactory_config")
   @patch("devops_mcps.artifactory._get_auth")
   @patch("requests.get")
-  @patch("devops_mcps.artifactory.cache.get")
+  @patch("devops_mcps.artifactory.cache_manager.get")
   def test_get_item_info_error(
     self, mock_cache_get, mock_get, mock_auth, mock_validate
   ):
@@ -443,7 +443,7 @@ class TestArtifactoryGetItemInfo(unittest.TestCase):
     mock_get.assert_called_once()
 
   @patch("devops_mcps.artifactory._validate_artifactory_config")
-  @patch("devops_mcps.artifactory.cache.get")
+  @patch("devops_mcps.artifactory.cache_manager.get")
   def test_get_item_info_from_cache(self, mock_cache_get, mock_validate):
     """Test get_item_info retrieving from cache."""
     # Setup mocks
