@@ -1,6 +1,6 @@
 [project]
 name = "devops-mcps"
-version = "0.8.5"
+version = "0.8.8"
 description = "A FastMCP-based, Readonly MCP server for DevOps"
 authors = [{ name = "Jien Huang", email = "huangjien@gmail.com" }]
 readme = "README.md"
@@ -151,3 +151,8 @@ dev = [
     "pytest-cov>=6.2.1",
     "pytest-mock>=3.14.1",
 ]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-v"

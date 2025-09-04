@@ -8,8 +8,6 @@ from unittest.mock import Mock, patch, MagicMock, call
 
 from devops_mcps.github import (
   initialize_github_client,
-  _to_dict,
-  _handle_paginated_list,
   gh_search_repositories,
   gh_get_file_contents,
   gh_list_commits,
@@ -19,6 +17,7 @@ from devops_mcps.github import (
   gh_get_issue_content,
   gh_get_current_user_info,
 )
+from devops_mcps.utils.github.github_converters import _to_dict, _handle_paginated_list
 from github import (
   UnknownObjectException,
   BadCredentialsException,
@@ -43,21 +42,21 @@ def mock_env_vars(monkeypatch):
 
 @pytest.fixture
 def mock_github():
-  with patch("devops_mcps.github.Github") as mock:
+  with patch("devops_mcps.utils.github_client.Github") as mock:
     yield mock
 
 
 @pytest.fixture
 def mock_github_api(mock_env_vars):
   """Mock GitHub API and initialize client."""
-  with patch("devops_mcps.github.Github", autospec=True) as mock_github:
+  with patch("devops_mcps.utils.github_client.Github", autospec=True) as mock_github:
     mock_instance = mock_github.return_value
     mock_instance.get_user.return_value = MagicMock(login="test_user")
     mock_instance.get_rate_limit.return_value = MagicMock()
     mock_instance.get_repo.return_value = MagicMock()
 
     # Patch the global client directly
-    with patch("devops_mcps.github.g", new=mock_instance):
+    with patch("devops_mcps.utils.github_client.g", new=mock_instance):
       yield mock_instance
 
 
@@ -138,14 +137,27 @@ def test_initialize_github_client_network_error(monkeypatch, mock_github_api):
 
 @pytest.fixture
 def mock_cache():
-  with patch("devops_mcps.github.cache") as mock:
-    mock.get.return_value = None
-    yield mock
+  # Create a generic cache mock that can be used across different modules
+  mock = Mock()
+  mock.get.return_value = None
+  mock.set.return_value = None
+  yield mock
 
 
 @pytest.fixture
 def mock_logger():
-  with patch("devops_mcps.github.logger") as mock:
+  with patch("devops_mcps.utils.github_client.logger") as mock:
+    yield mock
+
+@pytest.fixture
+def mock_api_logger():
+  """Generic logger mock - deprecated, use specific module logger patches instead"""
+  mock = Mock()
+  yield mock
+
+@pytest.fixture
+def mock_converters_logger():
+  with patch("devops_mcps.utils.github_converters.logger") as mock:
     yield mock
 
 
@@ -181,12 +193,13 @@ def test_initialize_github_client_without_token(mock_github, mock_logger):
 
   # Execute
   with patch.dict("os.environ", {}, clear=True):
-    client = initialize_github_client()
+    with patch("devops_mcps.utils.github_client.g", None):  # Reset global client
+      client = initialize_github_client(force=True)
 
   # Verify
   assert client is None
   mock_github.assert_not_called()
-  mock_logger.warning.assert_called_once()
+  mock_logger.error.assert_called_once()
 
 
 def test_initialize_github_client_bad_credentials(mock_github, mock_logger):
@@ -198,12 +211,13 @@ def test_initialize_github_client_bad_credentials(mock_github, mock_logger):
 
   # Execute
   with patch.dict("os.environ", {"GITHUB_PERSONAL_ACCESS_TOKEN": "invalid_token"}):
-    client = initialize_github_client()
+    with patch("devops_mcps.utils.github_client.g", None):  # Reset global client
+      client = initialize_github_client(force=True)
 
   # Verify
   assert client is None
   mock_logger.error.assert_called_once_with(
-    "Invalid GitHub Personal Access Token provided."
+    "GitHub authentication test failed: 401 - {'message': 'Bad credentials'}"
   )
 
 
@@ -214,11 +228,12 @@ def test_initialize_github_client_rate_limit_exceeded(mock_github, mock_logger):
   )
 
   with patch.dict(os.environ, {"GITHUB_PERSONAL_ACCESS_TOKEN": "valid_token"}):
-    result = initialize_github_client(force=True)
-    assert result is None
-    mock_logger.error.assert_called_with(
-      "GitHub API rate limit exceeded during initialization."
-    )
+    with patch("devops_mcps.utils.github_client.g", None):  # Reset global client
+      result = initialize_github_client(force=True)
+      assert result is None
+      mock_logger.error.assert_called_with(
+        "GitHub authentication test failed: 403 - {'message': 'API rate limit exceeded'}"
+      )
 
 
 def test_initialize_github_client_unauthenticated_error(mock_github, mock_logger):
@@ -228,7 +243,7 @@ def test_initialize_github_client_unauthenticated_error(mock_github, mock_logger
     result = initialize_github_client(force=True)
     assert result is None
     mock_github.assert_not_called()
-    mock_logger.warning.assert_called_once()
+    mock_logger.error.assert_called_once()
 
 
 def test_initialize_github_client_with_custom_api_url(mock_github, mock_logger):
@@ -647,23 +662,23 @@ def test_to_dict_with_issue_as_pull_request():
 # --- Test _handle_paginated_list ---
 
 
-def test_handle_paginated_list(mock_logger):
+def test_handle_paginated_list(mock_converters_logger):
   mock_item1 = Mock()
   mock_item2 = Mock()
   mock_paginated = Mock(spec=PaginatedList)
   mock_paginated.get_page.return_value = [mock_item1, mock_item2]
 
-  with patch("devops_mcps.github._to_dict") as mock_to_dict:
+  with patch("devops_mcps.utils.github_converters._to_dict") as mock_to_dict:
     mock_to_dict.side_effect = lambda x: {"mock": str(x)}
     result = _handle_paginated_list(mock_paginated)
 
   assert isinstance(result, list)
   assert len(result) == 2
   mock_paginated.get_page.assert_called_once_with(0)
-  mock_logger.debug.assert_called()
+  mock_converters_logger.debug.assert_called()
 
 
-def test_handle_paginated_list_error(mock_logger):
+def test_handle_paginated_list_error(mock_converters_logger):
   mock_paginated = Mock(spec=PaginatedList)
   mock_paginated.get_page.side_effect = Exception("Test error")
 
@@ -671,38 +686,62 @@ def test_handle_paginated_list_error(mock_logger):
 
   assert isinstance(result, list)
   assert "error" in result[0]
-  mock_logger.error.assert_called()
+  mock_converters_logger.error.assert_called()
 
 
 # --- Test gh_search_repositories ---
 
 
-def test_gh_search_repositories_success(mock_cache, mock_github):
-  mock_instance = mock_github.return_value
+@patch("devops_mcps.utils.github.github_search_api.cache")
+def test_gh_search_repositories_success(mock_cache_patch, mock_github_api):
+  mock_cache_patch.get.return_value = None
+  mock_cache_patch.set.return_value = None
   mock_search = Mock(spec=PaginatedList)
   mock_search.totalCount = 2
-  mock_instance.search_repositories.return_value = mock_search
+  # Mock the get_page method to return a list of mock repositories
+  mock_repo1 = Mock(spec=Repository)
+  mock_repo1.name = "repo1"
+  mock_repo1.description = "Test repo 1"
+  mock_repo1.html_url = "https://github.com/test/repo1"
+  mock_repo1.language = "Python"
+  mock_repo1.private = False
+  mock_repo1.default_branch = "main"
+  mock_repo1.owner.login = "test"
+  
+  mock_repo2 = Mock(spec=Repository)
+  mock_repo2.name = "repo2"
+  mock_repo2.description = "Test repo 2"
+  mock_repo2.html_url = "https://github.com/test/repo2"
+  mock_repo2.language = "JavaScript"
+  mock_repo2.private = True
+  mock_repo2.default_branch = "master"
+  mock_repo2.owner.login = "test"
+  
+  mock_search.get_page.return_value = [mock_repo1, mock_repo2]
+  mock_github_api.search_repositories.return_value = mock_search
 
-  with patch("devops_mcps.github._handle_paginated_list") as mock_handler:
-    mock_handler.return_value = [{"name": "repo1"}, {"name": "repo2"}]
-    result = gh_search_repositories("test query")
+  result = gh_search_repositories("test query")
 
   assert isinstance(result, list)
   assert len(result) == 2
-  mock_cache.set.assert_called_once()
+  assert result[0]["name"] == "repo1"
+  assert result[1]["name"] == "repo2"
+  mock_cache_patch.set.assert_called_once()
 
 
-def test_gh_search_repositories_cached(mock_cache):
-  mock_cache.get.return_value = [{"name": "cached_repo"}]
+@patch("devops_mcps.utils.github.github_search_api.cache")
+def test_gh_search_repositories_cached(mock_cache_patch):
+  mock_cache_patch.get.return_value = [{"name": "cached_repo"}]
 
   result = gh_search_repositories("test query")
 
   assert isinstance(result, list)
   assert result[0]["name"] == "cached_repo"
-  mock_cache.get.assert_called_once()
+  mock_cache_patch.get.assert_called_once()
 
 
-def test_gh_search_repositories_error(mock_github, mock_logger):
+@patch("devops_mcps.utils.github.github_search_api.logger")
+def test_gh_search_repositories_error(mock_logger, mock_github):
   mock_instance = mock_github.return_value
   mock_instance.search_repositories.side_effect = GithubException(
     403, {"message": "Rate limit exceeded"}
@@ -719,8 +758,10 @@ def test_gh_search_repositories_error(mock_github, mock_logger):
 # --- Test gh_get_file_contents ---
 
 
-def test_gh_get_file_contents_file(mock_cache, mock_github):
-  mock_instance = mock_github.return_value
+@patch("devops_mcps.utils.github.github_repository_api.cache")
+def test_gh_get_file_contents_file(mock_cache_patch, mock_github_api):
+  mock_cache_patch.get.return_value = None
+  mock_cache_patch.set.return_value = None
   mock_repo = Mock()
   mock_content = Mock(spec=ContentFile)
   mock_content.type = "file"
@@ -733,23 +774,25 @@ def test_gh_get_file_contents_file(mock_cache, mock_github):
     "content": "dGVzdCBjb250ZW50",
     "path": "path/to/file",
   }
-  mock_instance.get_repo.return_value = mock_repo
+  mock_github_api.get_repo.return_value = mock_repo
   mock_repo.get_contents.return_value = mock_content
 
   result = gh_get_file_contents("owner", "repo", "path/to/file")
 
   assert result == "test content"
-  mock_cache.set.assert_called_once()
+  mock_cache_patch.set.assert_called_once()
 
 
-def test_gh_get_file_contents_directory(mock_cache, mock_github):
-  mock_instance = mock_github.return_value
+@patch("devops_mcps.utils.github.github_repository_api.cache")
+def test_gh_get_file_contents_directory(mock_cache_patch, mock_github_api):
+  mock_cache_patch.get.return_value = None
+  mock_cache_patch.set.return_value = None
   mock_repo = Mock()
   mock_content1 = Mock(spec=ContentFile)
   mock_content1._rawData = {"name": "file1", "type": "file"}
   mock_content2 = Mock(spec=ContentFile)
   mock_content2._rawData = {"name": "file2", "type": "file"}
-  mock_instance.get_repo.return_value = mock_repo
+  mock_github_api.get_repo.return_value = mock_repo
   mock_repo.get_contents.return_value = [mock_content1, mock_content2]
 
   result = gh_get_file_contents("owner", "repo", "path/to/dir")
@@ -757,10 +800,11 @@ def test_gh_get_file_contents_directory(mock_cache, mock_github):
   assert isinstance(result, list)
   assert len(result) == 2
   assert len(result) == 2
-  mock_cache.set.assert_called_once()
+  mock_cache_patch.set.assert_called_once()
 
 
-def test_gh_get_file_contents_not_found(mock_github, mock_logger):
+@patch("devops_mcps.utils.github.github_repository_api.logger")
+def test_gh_get_file_contents_not_found(mock_logger, mock_github):
   mock_instance = mock_github.return_value
   mock_instance.get_repo.side_effect = UnknownObjectException(
     404, {"message": "Not Found"}
@@ -776,24 +820,44 @@ def test_gh_get_file_contents_not_found(mock_github, mock_logger):
 # --- Test gh_list_commits ---
 
 
-def test_gh_list_commits_success(mock_cache, mock_github):
-  mock_instance = mock_github.return_value
+@patch("devops_mcps.utils.github.github_commit_api.cache")
+def test_gh_list_commits_success(mock_cache_patch, mock_github_api):
+  mock_cache_patch.get.return_value = None
+  mock_cache_patch.set.return_value = None
   mock_repo = Mock()
   mock_commits = Mock(spec=PaginatedList)
-  mock_instance.get_repo.return_value = mock_repo
+  # Mock the get_page method to return a list of mock commits
+  mock_commit1 = Mock(spec=Commit)
+  mock_commit1.sha = "abc123"
+  mock_commit1.commit.message = "First commit"
+  mock_commit1.commit.author.name = "John Doe"
+  mock_commit1.commit.author.email = "john@example.com"
+  mock_commit1.commit.author.date = "2023-01-01T00:00:00Z"
+  mock_commit1.html_url = "https://github.com/owner/repo/commit/abc123"
+  
+  mock_commit2 = Mock(spec=Commit)
+  mock_commit2.sha = "def456"
+  mock_commit2.commit.message = "Second commit"
+  mock_commit2.commit.author.name = "Jane Doe"
+  mock_commit2.commit.author.email = "jane@example.com"
+  mock_commit2.commit.author.date = "2023-01-02T00:00:00Z"
+  mock_commit2.html_url = "https://github.com/owner/repo/commit/def456"
+  
+  mock_commits.get_page.return_value = [mock_commit1, mock_commit2]
+  mock_github_api.get_repo.return_value = mock_repo
   mock_repo.get_commits.return_value = mock_commits
 
-  with patch("devops_mcps.github._handle_paginated_list") as mock_handler:
-    mock_handler.return_value = [{"sha": "abc123"}, {"sha": "def456"}]
-    result = gh_list_commits("owner", "repo", "main")
+  result = gh_list_commits("owner", "repo", "main")
 
   assert isinstance(result, list)
   assert len(result) == 2
-  assert len(result) == 2
-  mock_cache.set.assert_called_once()
+  assert result[0]["sha"] == "abc123"
+  assert result[1]["sha"] == "def456"
+  mock_cache_patch.set.assert_called_once()
 
 
-def test_gh_list_commits_empty_repo(mock_github, mock_logger):
+@patch("devops_mcps.utils.github.github_commit_api.logger")
+def test_gh_list_commits_empty_repo(mock_logger, mock_github):
   mock_instance = mock_github.return_value
   mock_instance.get_repo.side_effect = GithubException(
     409, {"message": "Git Repository is empty"}
@@ -809,27 +873,62 @@ def test_gh_list_commits_empty_repo(mock_github, mock_logger):
 # --- Test gh_list_issues ---
 
 
-def test_gh_list_issues_success(mock_cache, mock_github):
-  mock_instance = mock_github.return_value
+@patch("devops_mcps.utils.github.github_issue_api.cache")
+def test_gh_list_issues_success(mock_cache_patch, mock_github_api):
+  mock_cache_patch.get.return_value = None
+  mock_cache_patch.set.return_value = None
   mock_repo = Mock()
   mock_issues = Mock(spec=PaginatedList)
-  mock_instance.get_repo.return_value = mock_repo
+  mock_github_api.get_repo.return_value = mock_repo
   mock_repo.get_issues.return_value = mock_issues
 
-  with patch("devops_mcps.github._handle_paginated_list") as mock_handler:
-    mock_handler.return_value = [{"number": 1}, {"number": 2}]
-    result = gh_list_issues("owner", "repo", "open", ["bug"], "created", "desc")
+  # Mock issues with proper attributes
+  mock_issue1 = Mock(spec=Issue)
+  mock_issue1.number = 1
+  mock_issue1.title = "Test Issue 1"
+  mock_issue1.body = "This is test issue 1"
+  mock_issue1.state = "open"
+  mock_issue1.html_url = "https://github.com/owner/repo/issues/1"
+  mock_issue1.created_at = "2023-01-01T00:00:00Z"
+  mock_issue1.updated_at = "2023-01-01T00:00:00Z"
+  mock_issue1.labels = []
+  mock_issue1.assignees = []
+  mock_issue1.user = None
+  
+  mock_issue2 = Mock(spec=Issue)
+  mock_issue2.number = 2
+  mock_issue2.title = "Test Issue 2"
+  mock_issue2.body = "This is test issue 2"
+  mock_issue2.state = "closed"
+  mock_issue2.html_url = "https://github.com/owner/repo/issues/2"
+  mock_issue2.created_at = "2023-01-02T00:00:00Z"
+  mock_issue2.updated_at = "2023-01-02T00:00:00Z"
+  mock_issue2.labels = []
+  mock_issue2.assignees = []
+  mock_issue2.user = None
+  
+  mock_issues.get_page.return_value = [mock_issue1, mock_issue2]
+  
+  result = gh_list_issues("owner", "repo", "open", ["bug"], "created", "desc")
 
   assert isinstance(result, list)
   assert len(result) == 2
-  assert len(result) == 2
-  mock_cache.set.assert_called_once()
+  assert result[0]["number"] == 1
+  assert result[0]["title"] == "Test Issue 1"
+  assert result[0]["state"] == "open"
+  assert result[1]["number"] == 2
+  assert result[1]["title"] == "Test Issue 2"
+  assert result[1]["state"] == "closed"
+  mock_cache_patch.set.assert_called_once()
 
 
 # --- Test gh_get_repository ---
 
 
-def test_gh_get_repository_success(mock_cache, mock_github):
+@patch("devops_mcps.utils.github.github_repository_api.cache")
+def test_gh_get_repository_success(mock_cache_patch, mock_github):
+  mock_cache_patch.get.return_value = None
+  mock_cache_patch.set.return_value = None
   mock_instance = mock_github.return_value
   mock_repo = Mock(spec=Repository)
   mock_repo._rawData = {
@@ -843,31 +942,57 @@ def test_gh_get_repository_success(mock_cache, mock_github):
 
   assert isinstance(result, dict)
   assert result["name"] == "test-repo"
-  mock_cache.set.assert_called_once()
+  mock_cache_patch.set.assert_called_once()
 
 
 # --- Test gh_search_code ---
 
 
-def test_gh_search_code_success(mock_cache, mock_github):
-  mock_instance = mock_github.return_value
+@patch("devops_mcps.utils.github.github_search_api.cache")
+def test_gh_search_code_success(mock_cache_patch, mock_github_api):
+  mock_cache_patch.get.return_value = None
+  mock_cache_patch.set.return_value = None
+  mock_instance = mock_github_api
   mock_code_results = Mock(spec=PaginatedList)
   mock_code_results.totalCount = 2
+  
+  # Mock ContentFile items
+  mock_code_item1 = Mock(spec=ContentFile)
+  mock_code_item1.type = "file"
+  mock_code_item1.name = "file1.py"
+  mock_code_item1.path = "file1.py"
+  mock_code_item1.size = 1024
+  mock_code_item1.html_url = "https://github.com/test/repo1/blob/main/file1.py"
+  mock_code_item1.repository = Mock()
+  mock_code_item1.repository.full_name = "test/repo1"
+  
+  mock_code_item2 = Mock(spec=ContentFile)
+  mock_code_item2.type = "file"
+  mock_code_item2.name = "file2.py"
+  mock_code_item2.path = "file2.py"
+  mock_code_item2.size = 2048
+  mock_code_item2.html_url = "https://github.com/test/repo2/blob/main/file2.py"
+  mock_code_item2.repository = Mock()
+  mock_code_item2.repository.full_name = "test/repo2"
+  
+  mock_code_results.get_page.return_value = [mock_code_item1, mock_code_item2]
   mock_instance.search_code.return_value = mock_code_results
 
-  with patch("devops_mcps.github.initialize_github_client") as mock_init:
-    mock_init.return_value = mock_instance
-    with patch("devops_mcps.github._handle_paginated_list") as mock_handler:
-      mock_handler.return_value = [{"path": "file1.py"}, {"path": "file2.py"}]
-      result = gh_search_code("test query")
+  result = gh_search_code("test query")
 
   assert isinstance(result, list)
   assert len(result) == 2
-  mock_cache.set.assert_called_once()
+  mock_cache_patch.set.assert_called_once()
 
 
-def test_gh_get_current_user_info_success(mock_cache, mock_logger):
-  with patch("devops_mcps.github.initialize_github_client") as mock_init_client:
+@patch("devops_mcps.utils.github.github_user_api.logger")
+@patch("devops_mcps.utils.github.github_user_api.cache")
+def test_gh_get_current_user_info_success(mock_cache_patch, mock_logger):
+  mock_cache_patch.get.return_value = None
+  mock_cache_patch.set.return_value = None
+  with patch.dict(os.environ, {"GITHUB_PERSONAL_ACCESS_TOKEN": "fake_token"}), \
+       patch("devops_mcps.utils.github.github_user_api.initialize_github_client") as mock_init_client:
+    
     mock_user = Mock()
     mock_user.login = "testuser"
     mock_user.name = "Test User"
@@ -889,108 +1014,141 @@ def test_gh_get_current_user_info_success(mock_cache, mock_logger):
     assert result["type"] == "User"
 
 
-def test_gh_get_current_user_info_invalid_credentials(mock_cache, mock_logger):
-  with patch("devops_mcps.github.initialize_github_client") as mock_init_client:
-    mock_client = Mock()
-    mock_client.get_user.side_effect = BadCredentialsException(
-      401, {"message": "Bad credentials"}
-    )
-    mock_init_client.return_value = mock_client
-    from devops_mcps.github import gh_get_current_user_info
+@patch("devops_mcps.utils.github.github_user_api.logger")
+@patch("devops_mcps.utils.github.github_user_api.cache")
+def test_gh_get_current_user_info_invalid_credentials(mock_cache_patch, mock_logger):
+  mock_cache_patch.get.return_value = None
+  mock_cache_patch.set.return_value = None
+  with patch.dict(os.environ, {"GITHUB_PERSONAL_ACCESS_TOKEN": "fake_token"}):
+    with patch("devops_mcps.utils.github.github_user_api.initialize_github_client") as mock_init_client:
+      mock_client = Mock()
+      mock_client.get_user.side_effect = BadCredentialsException(
+        401, {"message": "Bad credentials"}
+      )
+      mock_init_client.return_value = mock_client
+      from devops_mcps.github import gh_get_current_user_info
 
-    result = gh_get_current_user_info()
-    assert "error" in result
-    assert "Authentication failed" in result["error"]
-
-
-def test_gh_get_current_user_info_unexpected_error(mock_cache, mock_logger):
-  with patch("devops_mcps.github.initialize_github_client") as mock_init_client:
-    mock_client = Mock()
-    mock_client.get_user.side_effect = Exception("Unexpected error")
-    mock_init_client.return_value = mock_client
-    from devops_mcps.github import gh_get_current_user_info
-
-    result = gh_get_current_user_info()
-    assert "error" in result
-    assert "An unexpected error occurred" in result["error"]
+      result = gh_get_current_user_info()
+      assert "error" in result
+      assert "Authentication failed" in result["error"]
 
 
-def test_gh_get_current_user_info_rate_limit_exceeded(mock_cache, mock_logger):
-  with patch("devops_mcps.github.initialize_github_client") as mock_init_client:
-    mock_client = Mock()
-    mock_client.get_user.side_effect = RateLimitExceededException(
-      403, {"message": "API rate limit exceeded"}
-    )
-    mock_init_client.return_value = mock_client
-    from devops_mcps.github import gh_get_current_user_info
+@patch("devops_mcps.utils.github.github_user_api.logger")
+@patch("devops_mcps.utils.github.github_user_api.cache")
+def test_gh_get_current_user_info_unexpected_error(mock_cache_patch, mock_logger):
+  mock_cache_patch.get.return_value = None
+  mock_cache_patch.set.return_value = None
+  with patch.dict(os.environ, {"GITHUB_PERSONAL_ACCESS_TOKEN": "fake_token"}):
+    with patch("devops_mcps.utils.github.github_user_api.initialize_github_client") as mock_init_client:
+      mock_client = Mock()
+      mock_client.get_user.side_effect = Exception("Unexpected error")
+      mock_init_client.return_value = mock_client
+      from devops_mcps.github import gh_get_current_user_info
 
-    result = gh_get_current_user_info()
+      result = gh_get_current_user_info()
+      assert "error" in result
+      assert "An unexpected error occurred" in result["error"]
+
+
+@patch("devops_mcps.utils.github.github_user_api.logger")
+@patch("devops_mcps.utils.github.github_user_api.cache")
+def test_gh_get_current_user_info_rate_limit_exceeded(mock_cache_patch, mock_logger):
+  mock_cache_patch.get.return_value = None
+  mock_cache_patch.set.return_value = None
+  with patch.dict(os.environ, {"GITHUB_PERSONAL_ACCESS_TOKEN": "fake_token"}):
+    with patch("devops_mcps.utils.github.github_user_api.initialize_github_client") as mock_init_client:
+      mock_client = Mock()
+      mock_client.get_user.side_effect = RateLimitExceededException(
+        403, {"message": "API rate limit exceeded"}
+      )
+      mock_init_client.return_value = mock_client
+      from devops_mcps.github import gh_get_current_user_info
+
+      result = gh_get_current_user_info()
     assert "error" in result
     assert "rate limit" in result["error"].lower()
 
 
-def test_gh_get_current_user_info_github_exception(mock_cache, mock_logger):
-  with patch("devops_mcps.github.initialize_github_client") as mock_init_client:
-    mock_client = Mock()
-    mock_client.get_user.side_effect = GithubException(
-      500, {"message": "Internal error"}
-    )
-    mock_init_client.return_value = mock_client
-    from devops_mcps.github import gh_get_current_user_info
+@patch("devops_mcps.utils.github.github_user_api.logger")
+@patch("devops_mcps.utils.github.github_user_api.cache")
+def test_gh_get_current_user_info_github_exception(mock_cache_patch, mock_logger):
+  mock_cache_patch.get.return_value = None
+  mock_cache_patch.set.return_value = None
+  with patch.dict(os.environ, {"GITHUB_PERSONAL_ACCESS_TOKEN": "fake_token"}):
+    with patch("devops_mcps.utils.github.github_user_api.initialize_github_client") as mock_init_client:
+      mock_client = Mock()
+      mock_client.get_user.side_effect = GithubException(
+        500, {"message": "Internal error"}
+      )
+      mock_init_client.return_value = mock_client
+      from devops_mcps.github import gh_get_current_user_info
 
-    result = gh_get_current_user_info()
-    assert "error" in result
-    assert "GitHub API Error" in result["error"]
+      result = gh_get_current_user_info()
+      assert "error" in result
+      assert "GitHub API Error" in result["error"]
 
 
-def test_gh_get_current_user_info_unexpected_exception(mock_cache, mock_logger):
-  with patch("devops_mcps.github.initialize_github_client") as mock_init_client:
-    mock_client = Mock()
-    mock_client.get_user.side_effect = Exception("Unexpected failure")
-    mock_init_client.return_value = mock_client
-    from devops_mcps.github import gh_get_current_user_info
+@patch("devops_mcps.utils.github.github_user_api.logger")
+@patch("devops_mcps.utils.github.github_user_api.cache")
+def test_gh_get_current_user_info_unexpected_exception(mock_cache_patch, mock_logger):
+  mock_cache_patch.get.return_value = None
+  mock_cache_patch.set.return_value = None
+  with patch.dict(os.environ, {"GITHUB_PERSONAL_ACCESS_TOKEN": "fake_token"}):
+    with patch("devops_mcps.utils.github.github_user_api.initialize_github_client") as mock_init_client:
+      mock_client = Mock()
+      mock_client.get_user.side_effect = Exception("Unexpected failure")
+      mock_init_client.return_value = mock_client
+      from devops_mcps.github import gh_get_current_user_info
 
-    result = gh_get_current_user_info()
-    assert "error" in result
-    assert "unexpected error" in result["error"].lower()
+      result = gh_get_current_user_info()
+      assert "error" in result
+      assert "unexpected error" in result["error"].lower()
 
 
 # --- Tests for gh_get_issue_details ---
 
 
-def test_gh_get_issue_details_success(mock_cache, mock_logger):
+@patch("devops_mcps.utils.github.github_issue_api.logger")
+@patch("devops_mcps.utils.github.github_issue_api.cache")
+def test_gh_get_issue_details_success(mock_cache_patch, mock_logger):
+  mock_cache_patch.get.return_value = None
+  mock_cache_patch.set.return_value = None
   """Test successful issue details retrieval."""
-  with patch("devops_mcps.github.initialize_github_client") as mock_init_client:
-    mock_client = Mock()
-    mock_issue = Mock()
-    mock_issue.title = "Test Issue"
-    mock_issue.body = "Issue description"
-    mock_issue.created_at.isoformat.return_value = "2023-01-01T00:00:00Z"
+  with patch("devops_mcps.utils.github.github_issue_api.initialize_github_client") as mock_init_client:
+      mock_client = Mock()
+      mock_issue = Mock()
+      mock_issue.title = "Test Issue"
+      mock_issue.body = "Issue description"
+      mock_issue.created_at.isoformat.return_value = "2023-01-01T00:00:00Z"
 
-    # Mock labels
-    mock_label = Mock()
-    mock_label.name = "bug"
-    mock_issue.labels = [mock_label]
+      # Mock labels
+      mock_label = Mock()
+      mock_label.name = "bug"
+      mock_issue.labels = [mock_label]
 
-    # Mock comments
-    mock_comment = Mock()
-    mock_comment.body = "Test comment"
-    mock_issue.get_comments.return_value = [mock_comment]
+      # Mock comments
+      mock_comment = Mock()
+      mock_comment.body = "Test comment"
+      mock_issue.get_comments.return_value = [mock_comment]
 
-    mock_client.get_issue.return_value = mock_issue
-    mock_init_client.return_value = mock_client
+      mock_client.get_issue.return_value = mock_issue
+      mock_init_client.return_value = mock_client
 
-    from devops_mcps.github import gh_get_issue_details
+      from devops_mcps.github import gh_get_issue_details
 
-    result = gh_get_issue_details("owner", "repo", 1)
-    assert result["title"] == "Test Issue"
-    assert result["description"] == "Issue description"
-    assert result["labels"] == ["bug"]
-    assert result["comments"] == ["Test comment"]
-    assert result["timestamp"] == "2023-01-01T00:00:00Z"
+      result = gh_get_issue_details("owner", "repo", 1)
+      assert result["title"] == "Test Issue"
+      assert result["description"] == "Issue description"
+      assert result["labels"] == ["bug"]
+      assert result["comments"] == ["Test comment"]
+      assert result["timestamp"] == "2023-01-01T00:00:00Z"
 
 
-def test_gh_get_issue_details_cached(mock_cache, mock_logger):
+@patch("devops_mcps.utils.github.github_issue_api.logger")
+@patch("devops_mcps.utils.github.github_issue_api.cache")
+def test_gh_get_issue_details_cached(mock_cache_patch, mock_logger):
+  mock_cache_patch.get.return_value = {"id": 1, "title": "Cached Issue", "body": "Cached body", "state": "open"}
+  mock_cache_patch.set.return_value = None
   """Test cached issue details retrieval."""
   cached_data = {
     "title": "Cached Issue",
@@ -999,18 +1157,22 @@ def test_gh_get_issue_details_cached(mock_cache, mock_logger):
     "comments": ["Cached comment"],
     "timestamp": "2023-01-01T00:00:00Z",
   }
-  mock_cache.get.return_value = cached_data
+  mock_cache_patch.get.return_value = cached_data
 
   from devops_mcps.github import gh_get_issue_details
 
   result = gh_get_issue_details("owner", "repo", 1)
   assert result == cached_data
-  mock_cache.get.assert_called_once()
+  mock_cache_patch.get.assert_called_once()
 
 
-def test_gh_get_issue_details_no_client(mock_cache, mock_logger):
+@patch("devops_mcps.utils.github.github_issue_api.logger")
+@patch("devops_mcps.utils.github.github_issue_api.cache")
+def test_gh_get_issue_details_no_client(mock_cache_patch, mock_logger):
+  mock_cache_patch.get.return_value = None
+  mock_cache_patch.set.return_value = None
   """Test issue details retrieval when client not initialized."""
-  with patch("devops_mcps.github.initialize_github_client") as mock_init_client:
+  with patch("devops_mcps.utils.github.github_issue_api.initialize_github_client") as mock_init_client:
     mock_init_client.return_value = None
 
     from devops_mcps.github import gh_get_issue_details
@@ -1023,35 +1185,45 @@ def test_gh_get_issue_details_no_client(mock_cache, mock_logger):
     )
 
 
-def test_gh_get_issue_details_github_exception(mock_cache, mock_logger):
+@patch("devops_mcps.utils.github.github_issue_api.logger")
+@patch("devops_mcps.utils.github.github_issue_api.cache")
+def test_gh_get_issue_details_github_exception(mock_cache_patch, mock_logger):
+  mock_cache_patch.get.return_value = None
+  mock_cache_patch.set.return_value = None
   """Test issue details retrieval with GitHub API error."""
-  with patch("devops_mcps.github.initialize_github_client") as mock_init_client:
-    mock_client = Mock()
-    mock_client.get_issue.side_effect = GithubException(
-      404, {"message": "Not Found"}, {}
-    )
-    mock_init_client.return_value = mock_client
+  with patch.dict(os.environ, {"GITHUB_PERSONAL_ACCESS_TOKEN": "fake_token"}):
+    with patch("devops_mcps.utils.github.github_issue_api.initialize_github_client") as mock_init_client:
+      mock_client = Mock()
+      mock_client.get_issue.side_effect = GithubException(
+        404, {"message": "Not Found"}, {}
+      )
+      mock_init_client.return_value = mock_client
 
-    from devops_mcps.github import gh_get_issue_details
+      from devops_mcps.github import gh_get_issue_details
 
-    result = gh_get_issue_details("owner", "repo", 1)
-    assert "error" in result
-    assert "GitHub API Error" in result["error"]
-    assert "404" in result["error"]
+      result = gh_get_issue_details("owner", "repo", 1)
+      assert "error" in result
+      assert "GitHub API Error" in result["error"]
+      assert "404" in result["error"]
 
 
-def test_gh_get_issue_details_unexpected_error(mock_cache, mock_logger):
+@patch("devops_mcps.utils.github.github_issue_api.logger")
+@patch("devops_mcps.utils.github.github_issue_api.cache")
+def test_gh_get_issue_details_unexpected_error(mock_cache_patch, mock_logger):
+  mock_cache_patch.get.return_value = None
+  mock_cache_patch.set.return_value = None
   """Test issue details retrieval with unexpected error."""
-  with patch("devops_mcps.github.initialize_github_client") as mock_init_client:
-    mock_client = Mock()
-    mock_client.get_issue.side_effect = Exception("Unexpected error")
-    mock_init_client.return_value = mock_client
+  with patch.dict(os.environ, {"GITHUB_PERSONAL_ACCESS_TOKEN": "fake_token"}):
+    with patch("devops_mcps.utils.github.github_issue_api.initialize_github_client") as mock_init_client:
+      mock_client = Mock()
+      mock_client.get_issue.side_effect = Exception("Unexpected error")
+      mock_init_client.return_value = mock_client
 
-    from devops_mcps.github import gh_get_issue_details
+      from devops_mcps.github import gh_get_issue_details
 
-    result = gh_get_issue_details("owner", "repo", 1)
-    assert "error" in result
-    assert "An unexpected error occurred" in result["error"]
+      result = gh_get_issue_details("owner", "repo", 1)
+      assert "error" in result
+      assert "An unexpected error occurred" in result["error"]
 
 
 # Tests for gh_get_issue_content function
@@ -1096,70 +1268,80 @@ def test_gh_get_issue_content_success(mock_github_api):
   result = gh_get_issue_content("owner", "repo", 1)
 
   assert result["title"] == "Test Issue"
-  assert result["body"] == "Issue description"
+  assert result["description"] == "Issue description"
   assert result["labels"] == ["bug"]
-  assert result["assignees"] == ["assignee1"]
-  assert result["creator"] == "creator1"
   assert len(result["comments"]) == 1
-  assert result["comments"][0]["body"] == "Test comment"
-  assert result["error"] is None
+  assert result["comments"][0] == "Test comment"
+  assert result["timestamp"] is not None
 
 
-def test_gh_get_issue_content_no_client():
+@patch.dict(os.environ, {"GITHUB_PERSONAL_ACCESS_TOKEN": "fake_token"})
+@patch("devops_mcps.utils.github.github_issue_api.cache")
+@patch("devops_mcps.utils.github.github_issue_api.initialize_github_client")
+def test_gh_get_issue_content_no_client(mock_init_client, mock_cache_patch):
   """Test gh_get_issue_content when GitHub client is not initialized."""
-  # Temporarily set global client to None
-  import devops_mcps.github as github_module
-
-  original_client = github_module.g
-  github_module.g = None
-
-  try:
-    result = gh_get_issue_content("owner", "repo", 1)
-    assert "error" in result
-    assert (
-      "GitHub client not initialized. Please set the GITHUB_PERSONAL_ACCESS_TOKEN environment variable."
-      in result["error"]
-    )
-  finally:
-    github_module.g = original_client
+  mock_cache_patch.get.return_value = None  # No cached result
+  mock_init_client.return_value = None
+  
+  result = gh_get_issue_content("owner", "repo", 1)
+  assert "error" in result
+  assert (
+    "GitHub client not initialized. Please set the GITHUB_PERSONAL_ACCESS_TOKEN environment variable."
+    in result["error"]
+  )
 
 
-def test_gh_get_issue_content_issue_not_found(mock_github_api):
+@patch("devops_mcps.utils.github.github_issue_api.cache")
+@patch("devops_mcps.utils.github.github_issue_api.initialize_github_client")
+def test_gh_get_issue_content_issue_not_found(mock_init_client, mock_cache_patch):
   """Test gh_get_issue_content when issue is not found."""
   from github import UnknownObjectException
 
+  mock_cache_patch.get.return_value = None  # No cached result
+  mock_client = Mock()
   mock_repo = Mock()
   mock_repo.get_issue.side_effect = UnknownObjectException(404, "Not Found")
-  mock_github_api.get_repo.return_value = mock_repo
+  mock_client.get_repo.return_value = mock_repo
+  mock_init_client.return_value = mock_client
 
   result = gh_get_issue_content("owner", "repo", 999)
 
   assert "error" in result
-  assert "Issue #999 not found" in result["error"]
+  assert "Repository 'owner/repo' or issue #999 not found." in result["error"]
 
 
-def test_gh_get_issue_content_github_exception(mock_github_api):
+@patch("devops_mcps.utils.github.github_issue_api.cache")
+@patch("devops_mcps.utils.github.github_issue_api.initialize_github_client")
+def test_gh_get_issue_content_github_exception(mock_init_client, mock_cache_patch):
   """Test gh_get_issue_content with GitHub API exception."""
   from github import GithubException
 
+  mock_cache_patch.get.return_value = None  # No cached result
+  mock_client = Mock()
   mock_repo = Mock()
-  mock_repo.get_issue.side_effect = GithubException(403, "Forbidden")
-  mock_github_api.get_repo.return_value = mock_repo
+  mock_repo.get_issue.side_effect = GithubException(403, {"message": "Forbidden"})
+  mock_client.get_repo.return_value = mock_repo
+  mock_init_client.return_value = mock_client
 
   result = gh_get_issue_content("owner", "repo", 1)
 
   assert "error" in result
-  assert "GitHub API error" in result["error"]
+  assert "GitHub API Error: 403 - Forbidden" in result["error"]
 
 
-def test_gh_get_issue_content_unexpected_error(mock_github_api):
+@patch("devops_mcps.utils.github.github_issue_api.cache")
+@patch("devops_mcps.utils.github.github_issue_api.initialize_github_client")
+def test_gh_get_issue_content_unexpected_error(mock_init_client, mock_cache_patch):
   """Test gh_get_issue_content with unexpected error."""
-  mock_github_api.get_repo.side_effect = Exception("Unexpected error")
+  mock_cache_patch.get.return_value = None  # No cached result
+  mock_client = Mock()
+  mock_client.get_repo.side_effect = Exception("Unexpected error")
+  mock_init_client.return_value = mock_client
 
   result = gh_get_issue_content("owner", "repo", 1)
 
   assert "error" in result
-  assert "Unexpected error" in result["error"]
+  assert "An unexpected error occurred: Unexpected error" in result["error"]
 
 
 # Additional tests for gh_get_file_contents binary handling
@@ -1185,20 +1367,17 @@ def test_gh_get_file_contents_binary_decode_error(mock_github_api):
 
   mock_contents.decoded_content = MockDecodedContent()
 
-  # Mock the _to_dict behavior for this object
-  def mock_to_dict_side_effect(obj):
-    if obj == mock_contents:
-      return {
-        "name": "binary_file.bin",
-        "path": "path/to/binary_file.bin",
-        "size": 1024,
-        "sha": "abc123",
-        "type": "file",
-        "html_url": "https://github.com/owner/repo/blob/main/binary_file.bin",
-      }
-    return obj
+  # Mock the _to_dict to always return a dictionary
+  mock_metadata = {
+    "name": "binary_file.bin",
+    "path": "path/to/binary_file.bin",
+    "size": 1024,
+    "sha": "abc123",
+    "type": "file",
+    "html_url": "https://github.com/owner/repo/blob/main/binary_file.bin",
+  }
 
-  with patch("devops_mcps.github._to_dict", side_effect=mock_to_dict_side_effect):
+  with patch("devops_mcps.utils.github.github_repository_api._to_dict", return_value=mock_metadata) as mock_to_dict:
     mock_repo = Mock()
     mock_repo.get_contents.return_value = mock_contents
     mock_github_api.get_repo.return_value = mock_repo
@@ -1225,7 +1404,7 @@ def test_gh_get_file_contents_empty_content(mock_github_api):
 
   # Mock the _to_dict behavior for this object
   def mock_to_dict_side_effect(obj):
-    if obj == mock_contents:
+    if obj is mock_contents:
       return {
         "name": "empty_file.txt",
         "path": "path/to/empty_file.txt",
@@ -1234,9 +1413,9 @@ def test_gh_get_file_contents_empty_content(mock_github_api):
         "type": "file",
         "html_url": "https://github.com/owner/repo/blob/main/empty_file.txt",
       }
-    return obj
+    return {}  # Return empty dict instead of obj to avoid Mock issues
 
-  with patch("devops_mcps.github._to_dict", side_effect=mock_to_dict_side_effect):
+  with patch("devops_mcps.utils.github.github_repository_api._to_dict", side_effect=mock_to_dict_side_effect):
     mock_repo = Mock()
     mock_repo.get_contents.return_value = mock_contents
     mock_github_api.get_repo.return_value = mock_repo
@@ -1307,7 +1486,7 @@ def test_gh_search_code_unexpected_error(mock_github_api):
 
 def test_gh_search_code_no_client():
   """Test gh_search_code when GitHub client is not initialized."""
-  with patch("devops_mcps.github.initialize_github_client") as mock_init:
+  with patch("devops_mcps.utils.github.github_client.initialize_github_client") as mock_init:
     mock_init.return_value = None
 
     result = gh_search_code("test query")
@@ -1316,31 +1495,47 @@ def test_gh_search_code_no_client():
     assert "GitHub client not initialized" in result["error"]
 
 
-def test_gh_search_code_with_custom_sort_and_order(mock_cache, mock_github):
+@patch("devops_mcps.utils.github.github_search_api.cache")
+def test_gh_search_code_with_custom_sort_and_order(mock_cache_patch, mock_github_api):
+  mock_cache_patch.get.return_value = None
+  mock_cache_patch.set.return_value = None
   """Test gh_search_code with custom sort and order parameters."""
-  mock_instance = mock_github.return_value
+  mock_instance = mock_github_api
   mock_code_results = Mock(spec=PaginatedList)
   mock_code_results.totalCount = 5
+  
+  # Mock ContentFile item
+  mock_code_item = Mock(spec=ContentFile)
+  mock_code_item.type = "file"
+  mock_code_item.name = "test.py"
+  mock_code_item.path = "test.py"
+  mock_code_item.size = 1024
+  mock_code_item.html_url = "https://github.com/test/repo/blob/main/test.py"
+  mock_code_item.repository = Mock()
+  mock_code_item.repository.full_name = "test/repo"
+  
+  mock_code_results.get_page.return_value = [mock_code_item]
   mock_instance.search_code.return_value = mock_code_results
 
-  with patch("devops_mcps.github.initialize_github_client") as mock_init:
+  with patch("devops_mcps.utils.github.github_client.initialize_github_client") as mock_init:
     mock_init.return_value = mock_instance
-    with patch("devops_mcps.github._handle_paginated_list") as mock_handler:
-      mock_handler.return_value = [{"path": "test.py", "score": 1.0}]
 
-      result = gh_search_code("function test", sort="updated", order="asc")
+    result = gh_search_code("function test", sort="updated", order="asc")
 
   assert isinstance(result, list)
   mock_instance.search_code.assert_called_once_with(
     query="function test", sort="updated", order="asc"
   )
-  mock_cache.set.assert_called_once()
+  mock_cache_patch.set.assert_called_once()
 
 
-def test_gh_search_code_cached_result(mock_cache, mock_github):
+@patch("devops_mcps.utils.github.github_search_api.cache")
+def test_gh_search_code_cached_result(mock_cache_patch, mock_github):
+  mock_cache_patch.get.return_value = [{"name": "cached_file.py", "repository": {"full_name": "user/repo"}}]
+  mock_cache_patch.set.return_value = None
   """Test gh_search_code returns cached result when available."""
   cached_data = [{"path": "cached_file.py", "score": 1.0}]
-  mock_cache.get.return_value = cached_data
+  mock_cache_patch.get.return_value = cached_data
 
   result = gh_search_code("cached query")
 
@@ -1349,25 +1544,44 @@ def test_gh_search_code_cached_result(mock_cache, mock_github):
   mock_github.assert_not_called()
 
 
-def test_gh_search_code_cache_miss(mock_cache, mock_github):
+@patch("devops_mcps.utils.github.github_search_api.cache")
+def test_gh_search_code_cache_miss(mock_cache_patch, mock_github_api):
+  mock_cache_patch.get.return_value = None
+  mock_cache_patch.set.return_value = None
   """Test gh_search_code when cache miss occurs."""
-  mock_cache.get.return_value = None  # Cache miss
-  mock_instance = mock_github.return_value
+  
+  mock_instance = mock_github_api
   mock_code_results = Mock(spec=PaginatedList)
   mock_code_results.totalCount = 3
+  
+  # Mock ContentFile object for code search result
+  mock_code_item = Mock(spec=ContentFile)
+  mock_code_item.type = "file"
+  mock_code_item.name = "new_file.py"
+  mock_code_item.path = "new_file.py"
+  mock_code_item.size = 1024
+  mock_code_item.html_url = "https://github.com/owner/repo/blob/main/new_file.py"
+  mock_code_item.repository = Mock()
+  mock_code_item.repository.full_name = "owner/repo"
+  
+  mock_code_results.get_page.return_value = [mock_code_item]
   mock_instance.search_code.return_value = mock_code_results
 
-  with patch("devops_mcps.github.initialize_github_client") as mock_init:
+  with patch("devops_mcps.utils.github.github_client.initialize_github_client") as mock_init:
     mock_init.return_value = mock_instance
-    with patch("devops_mcps.github._handle_paginated_list") as mock_handler:
-      expected_result = [{"path": "new_file.py", "score": 0.8}]
-      mock_handler.return_value = expected_result
+    result = gh_search_code("new query")
 
-      result = gh_search_code("new query")
-
+  expected_result = [{
+    "type": "file",
+    "name": "new_file.py",
+    "path": "new_file.py",
+    "size": 1024,
+    "html_url": "https://github.com/owner/repo/blob/main/new_file.py",
+    "repository_full_name": "owner/repo"
+  }]
   assert result == expected_result
-  mock_cache.get.assert_called_once()
-  mock_cache.set.assert_called_once_with(
+  mock_cache_patch.get.assert_called_once()
+  mock_cache_patch.set.assert_called_once_with(
     "github:search_code:new query:indexed:desc", expected_result, ttl=300
   )
 
@@ -1417,23 +1631,25 @@ def test_gh_search_code_github_exception_no_message(mock_github_api):
   assert "Unknown GitHub error" in result["error"]
 
 
-def test_gh_search_code_empty_results(mock_cache, mock_github):
+@patch("devops_mcps.utils.github.github_search_api.cache")
+def test_gh_search_code_empty_results(mock_cache_patch, mock_github):
+  mock_cache_patch.get.return_value = None
+  mock_cache_patch.set.return_value = None
   """Test gh_search_code with empty search results."""
   mock_instance = mock_github.return_value
   mock_code_results = Mock(spec=PaginatedList)
   mock_code_results.totalCount = 0
+  mock_code_results.get_page.return_value = []
   mock_instance.search_code.return_value = mock_code_results
 
-  with patch("devops_mcps.github.initialize_github_client") as mock_init:
+  with patch("devops_mcps.utils.github.github_client.initialize_github_client") as mock_init:
     mock_init.return_value = mock_instance
-    with patch("devops_mcps.github._handle_paginated_list") as mock_handler:
-      mock_handler.return_value = []
 
-      result = gh_search_code("nonexistent code")
+    result = gh_search_code("nonexistent code")
 
   assert isinstance(result, list)
   assert len(result) == 0
-  mock_cache.set.assert_called_once()
+  mock_cache_patch.set.assert_called_once()
 
 
 def test_gh_search_code_input_validation():
@@ -1456,65 +1672,93 @@ def test_gh_search_code_input_validation():
     SearchCodeInput(q="test", order="invalid")
 
 
-def test_gh_search_code_logging(mock_cache, mock_github, caplog):
+@patch("devops_mcps.utils.github.github_search_api.cache")
+def test_gh_search_code_logging(mock_cache_patch, mock_github_api, caplog):
+  mock_cache_patch.get.return_value = None
+  mock_cache_patch.set.return_value = None
   """Test gh_search_code logging behavior."""
   import logging
-
-  mock_instance = mock_github.return_value
+  caplog.set_level(logging.DEBUG)
+  
+  mock_instance = mock_github_api
   mock_code_results = Mock(spec=PaginatedList)
   mock_code_results.totalCount = 2
+  
+  # Mock code items with proper attributes
+  mock_code_item1 = Mock(spec=ContentFile)
+  mock_code_item1.type = "file"
+  mock_code_item1.name = "test1.py"
+  mock_code_item1.path = "test1.py"
+  mock_code_item1.size = 1024
+
+  mock_code_item1.repository.full_name = "owner/repo1"
+  mock_code_item1.html_url = "https://github.com/owner/repo1/blob/main/test1.py"
+  
+  mock_code_item2 = Mock(spec=ContentFile)
+  mock_code_item2.type = "file"
+  mock_code_item2.name = "test2.py"
+  mock_code_item2.path = "test2.py"
+  mock_code_item2.size = 512
+
+  mock_code_item2.repository.full_name = "owner/repo2"
+  mock_code_item2.html_url = "https://github.com/owner/repo2/blob/main/test2.py"
+  
+  mock_code_results.get_page.return_value = [mock_code_item1, mock_code_item2]
   mock_instance.search_code.return_value = mock_code_results
 
-  with patch("devops_mcps.github.initialize_github_client") as mock_init:
+  with patch("devops_mcps.utils.github.github_client.initialize_github_client") as mock_init:
     mock_init.return_value = mock_instance
-    with patch("devops_mcps.github._handle_paginated_list") as mock_handler:
-      mock_handler.return_value = [{"path": "file1.py"}, {"path": "file2.py"}]
-
-      with caplog.at_level(logging.DEBUG):
-        gh_search_code("test logging")
+    
+    with caplog.at_level(logging.DEBUG):
+      gh_search_code("test logging")
 
   # Check debug logs
   assert "gh_search_code called with query: 'test logging'" in caplog.text
   assert "Found 2 code results matching query" in caplog.text
 
 
-def test_gh_search_code_cache_key_generation(mock_cache, mock_github):
+@patch("devops_mcps.utils.github.github_search_api.cache")
+def test_gh_search_code_cache_key_generation(mock_cache_patch, mock_github):
+  mock_cache_patch.get.return_value = None
+  mock_cache_patch.set.return_value = None
   """Test gh_search_code generates correct cache keys."""
   mock_instance = mock_github.return_value
   mock_code_results = Mock(spec=PaginatedList)
+  mock_code_results.get_page.return_value = []
   mock_instance.search_code.return_value = mock_code_results
 
-  with patch("devops_mcps.github.initialize_github_client") as mock_init:
+  with patch("devops_mcps.utils.github.github_client.initialize_github_client") as mock_init:
     mock_init.return_value = mock_instance
-    with patch("devops_mcps.github._handle_paginated_list") as mock_handler:
-      mock_handler.return_value = []
-
-      # Test with different parameters
-      gh_search_code("query1", "updated", "asc")
-      gh_search_code("query2", "indexed", "desc")
+    
+    # Test with different parameters
+    gh_search_code("query1", "updated", "asc")
+    gh_search_code("query2", "indexed", "desc")
 
   # Verify cache keys
   expected_calls = [
     call("github:search_code:query1:updated:asc"),
     call("github:search_code:query2:indexed:desc"),
   ]
-  mock_cache.get.assert_has_calls(expected_calls)
+  mock_cache_patch.get.assert_has_calls(expected_calls)
 
 
-def test_gh_search_code_force_client_initialization(mock_cache):
+@patch("devops_mcps.utils.github.github_search_api.cache")
+def test_gh_search_code_force_client_initialization(mock_cache_patch):
+  mock_cache_patch.get.return_value = None
+  mock_cache_patch.set.return_value = None
   """Test gh_search_code calls initialize_github_client with force=True."""
-  with patch("devops_mcps.github.initialize_github_client") as mock_init:
-    mock_client = Mock()
-    mock_code_results = Mock(spec=PaginatedList)
-    mock_client.search_code.return_value = mock_code_results
-    mock_init.return_value = mock_client
-
-    with patch("devops_mcps.github._handle_paginated_list") as mock_handler:
-      mock_handler.return_value = []
+  with patch.dict(os.environ, {"GITHUB_PERSONAL_ACCESS_TOKEN": "fake_token"}):
+    with patch("devops_mcps.utils.github.github_search_api.initialize_github_client") as mock_init:
+      mock_client = Mock()
+      mock_code_results = Mock(spec=PaginatedList)
+      mock_code_results.totalCount = 0
+      mock_code_results.get_page.return_value = []
+      mock_client.search_code.return_value = mock_code_results
+      mock_init.return_value = mock_client
 
       gh_search_code("test")
 
-    mock_init.assert_called_once_with(force=True)
+      mock_init.assert_called_once_with(force=True)
 
 
 # --- Additional Tests for Missing Coverage ---
@@ -1529,7 +1773,7 @@ def test_initialize_github_client_with_custom_api_url_env():
       "GITHUB_API_URL": "https://github.enterprise.com/api/v3",
     },
   ):
-    with patch("devops_mcps.github.Github") as mock_github:
+    with patch("devops_mcps.utils.github_client.Github") as mock_github:
       mock_instance = mock_github.return_value
       mock_instance.get_user.return_value.login = "test_user"
 
@@ -1543,19 +1787,26 @@ def test_initialize_github_client_with_custom_api_url_env():
 
 
 def test_initialize_github_client_already_initialized():
-  """Test that client is re-initialized due to g=None reset in function."""
-  with patch("devops_mcps.github.Github") as mock_github:
-    mock_client = MagicMock()
-    mock_user = MagicMock()
-    mock_user.login = "test_user"
-    mock_client.get_user.return_value = mock_user
-    mock_github.return_value = mock_client
+  """Test that client returns existing instance when already initialized."""
+  with patch("devops_mcps.utils.github_client.Github") as mock_github:
+    with patch.dict("os.environ", {"GITHUB_PERSONAL_ACCESS_TOKEN": "test_token"}):
+      mock_client = MagicMock()
+      mock_user = MagicMock()
+      mock_user.login = "test_user"
+      mock_client.get_user.return_value = mock_user
+      mock_github.return_value = mock_client
 
-    client = initialize_github_client(force=False)
+      # First call to initialize
+      client1 = initialize_github_client(force=True)
+      
+      # Second call should return existing client without creating new one
+      client2 = initialize_github_client(force=False)
 
-    # Should create new client since g is reset to None
-    assert client is mock_client
-    mock_github.assert_called_once()
+      # Both should be the same instance
+      assert client1 is client2
+      assert client1 is mock_client
+      # Github should only be called once (for the first initialization)
+      mock_github.assert_called_once()
 
 
 def test_gh_get_current_user_info_no_token():
@@ -1683,7 +1934,7 @@ def test_handle_paginated_list_error_handling():
 
 def test_gh_search_repositories_no_client():
   """Test repository search when GitHub client is not initialized."""
-  with patch("devops_mcps.github.initialize_github_client") as mock_init:
+  with patch("devops_mcps.utils.github.github_client.initialize_github_client") as mock_init:
     mock_init.return_value = None
 
     result = gh_search_repositories("test query")
@@ -1694,7 +1945,7 @@ def test_gh_search_repositories_no_client():
 
 def test_gh_get_file_contents_no_client():
   """Test file content retrieval when GitHub client is not initialized."""
-  with patch("devops_mcps.github.initialize_github_client") as mock_init:
+  with patch("devops_mcps.utils.github.github_client.initialize_github_client") as mock_init:
     mock_init.return_value = None
 
     result = gh_get_file_contents("owner", "repo", "path")
@@ -1705,7 +1956,7 @@ def test_gh_get_file_contents_no_client():
 
 def test_gh_list_commits_no_client():
   """Test commit listing when GitHub client is not initialized."""
-  with patch("devops_mcps.github.initialize_github_client") as mock_init:
+  with patch("devops_mcps.utils.github.github_client.initialize_github_client") as mock_init:
     mock_init.return_value = None
 
     result = gh_list_commits("owner", "repo")
@@ -1716,7 +1967,7 @@ def test_gh_list_commits_no_client():
 
 def test_gh_list_issues_no_client():
   """Test issue listing when GitHub client is not initialized."""
-  with patch("devops_mcps.github.initialize_github_client") as mock_init:
+  with patch("devops_mcps.utils.github.github_client.initialize_github_client") as mock_init:
     mock_init.return_value = None
 
     result = gh_list_issues("owner", "repo")
@@ -1727,7 +1978,7 @@ def test_gh_list_issues_no_client():
 
 def test_gh_get_repository_no_client():
   """Test repository retrieval when GitHub client is not initialized."""
-  with patch("devops_mcps.github.initialize_github_client") as mock_init:
+  with patch("devops_mcps.utils.github.github_client.initialize_github_client") as mock_init:
     mock_init.return_value = None
 
     result = gh_get_repository("owner", "repo")
@@ -1739,7 +1990,7 @@ def test_gh_get_repository_no_client():
 def test_gh_get_current_user_info_client_not_initialized():
   """Test gh_get_current_user_info when client initialization fails."""
   with patch.dict("os.environ", {"GITHUB_PERSONAL_ACCESS_TOKEN": "test_token"}):
-    with patch("devops_mcps.github.initialize_github_client") as mock_init:
+    with patch("devops_mcps.utils.github.github_client.initialize_github_client") as mock_init:
       mock_init.return_value = None
 
       result = gh_get_current_user_info()

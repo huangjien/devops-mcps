@@ -18,7 +18,7 @@ from devops_mcps.azure import (
 
 @pytest.fixture
 def mock_subscription_client():
-  with patch("devops_mcps.azure.SubscriptionClient") as mock_client:
+  with patch("devops_mcps.utils.azure.azure_subscriptions.SubscriptionClient") as mock_client:
     mock_instance = Mock()
     mock_client.return_value = mock_instance
     yield mock_instance
@@ -26,7 +26,7 @@ def mock_subscription_client():
 
 @pytest.fixture
 def mock_compute_client():
-  with patch("devops_mcps.azure.ComputeManagementClient") as mock_client:
+  with patch("devops_mcps.utils.azure.azure_compute.ComputeManagementClient") as mock_client:
     mock_instance = Mock()
     mock_client.return_value = mock_instance
     yield mock_instance
@@ -34,7 +34,7 @@ def mock_compute_client():
 
 @pytest.fixture
 def mock_container_client():
-  with patch("devops_mcps.azure.ContainerServiceClient") as mock_client:
+  with patch("devops_mcps.utils.azure.azure_containers.ContainerServiceClient") as mock_client:
     mock_instance = Mock()
     mock_client.return_value = mock_instance
     yield mock_instance

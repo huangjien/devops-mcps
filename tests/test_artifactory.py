@@ -3,11 +3,13 @@ import unittest
 from unittest.mock import patch, MagicMock
 
 from devops_mcps.artifactory import (
-  _get_auth,
-  _validate_artifactory_config,
   artifactory_list_items,
   artifactory_search_items,
   artifactory_get_item_info,
+)
+from devops_mcps.utils.artifactory.artifactory_auth import (
+  get_auth as _get_auth,
+  validate_artifactory_config as _validate_artifactory_config,
 )
 
 
@@ -75,7 +77,7 @@ class TestArtifactoryAuth(unittest.TestCase):
 class TestArtifactoryListItems(unittest.TestCase):
   """Tests for artifactory_list_items function."""
 
-  @patch("devops_mcps.artifactory._validate_artifactory_config")
+  @patch("devops_mcps.utils.artifactory.artifactory_api.validate_artifactory_config")
   def test_list_items_invalid_config(self, mock_validate):
     """Test list_items with invalid config."""
     mock_validate.return_value = {
@@ -89,11 +91,11 @@ class TestArtifactoryListItems(unittest.TestCase):
       },
     )
 
-  @patch("devops_mcps.artifactory._validate_artifactory_config")
-  @patch("devops_mcps.artifactory._get_auth")
+  @patch("devops_mcps.utils.artifactory.artifactory_api.validate_artifactory_config")
+  @patch("devops_mcps.utils.artifactory.artifactory_api.get_auth")
   @patch("requests.get")
-  @patch("devops_mcps.artifactory.cache.get")
-  @patch("devops_mcps.artifactory.cache.set")
+  @patch("devops_mcps.utils.artifactory.artifactory_api.cache.get")
+  @patch("devops_mcps.utils.artifactory.artifactory_api.cache.set")
   def test_list_items_directory(
     self, mock_cache_set, mock_cache_get, mock_get, mock_auth, mock_validate
   ):
@@ -125,11 +127,11 @@ class TestArtifactoryListItems(unittest.TestCase):
     self.assertTrue("api/storage/test-repo/test-path" in mock_get.call_args[0][0])
     mock_cache_set.assert_called_once()
 
-  @patch("devops_mcps.artifactory._validate_artifactory_config")
-  @patch("devops_mcps.artifactory._get_auth")
+  @patch("devops_mcps.utils.artifactory.artifactory_api.validate_artifactory_config")
+  @patch("devops_mcps.utils.artifactory.artifactory_api.get_auth")
   @patch("requests.get")
-  @patch("devops_mcps.artifactory.cache.get")
-  @patch("devops_mcps.artifactory.cache.set")
+  @patch("devops_mcps.utils.artifactory.artifactory_api.cache.get")
+  @patch("devops_mcps.utils.artifactory.artifactory_api.cache.set")
   def test_list_items_file(
     self, mock_cache_set, mock_cache_get, mock_get, mock_auth, mock_validate
   ):
@@ -159,10 +161,10 @@ class TestArtifactoryListItems(unittest.TestCase):
     mock_get.assert_called_once()
     mock_cache_set.assert_called_once()
 
-  @patch("devops_mcps.artifactory._validate_artifactory_config")
-  @patch("devops_mcps.artifactory._get_auth")
+  @patch("devops_mcps.utils.artifactory.artifactory_api.validate_artifactory_config")
+  @patch("devops_mcps.utils.artifactory.artifactory_api.get_auth")
   @patch("requests.get")
-  @patch("devops_mcps.artifactory.cache.get")
+  @patch("devops_mcps.utils.artifactory.artifactory_api.cache.get")
   def test_list_items_error(self, mock_cache_get, mock_get, mock_auth, mock_validate):
     """Test list_items with API error."""
     # Setup mocks
@@ -184,8 +186,8 @@ class TestArtifactoryListItems(unittest.TestCase):
     self.assertTrue("404" in result["error"])
     mock_get.assert_called_once()
 
-  @patch("devops_mcps.artifactory._validate_artifactory_config")
-  @patch("devops_mcps.artifactory.cache.get")
+  @patch("devops_mcps.utils.artifactory.artifactory_api.validate_artifactory_config")
+  @patch("devops_mcps.utils.artifactory.artifactory_api.cache.get")
   def test_list_items_from_cache(self, mock_cache_get, mock_validate):
     """Test list_items retrieving from cache."""
     # Setup mocks
@@ -203,7 +205,7 @@ class TestArtifactoryListItems(unittest.TestCase):
 class TestArtifactorySearchItems(unittest.TestCase):
   """Tests for artifactory_search_items function."""
 
-  @patch("devops_mcps.artifactory._validate_artifactory_config")
+  @patch("devops_mcps.utils.artifactory.artifactory_api.validate_artifactory_config")
   def test_search_items_invalid_config(self, mock_validate):
     """Test search_items with invalid config."""
     mock_validate.return_value = {
@@ -217,11 +219,11 @@ class TestArtifactorySearchItems(unittest.TestCase):
       },
     )
 
-  @patch("devops_mcps.artifactory._validate_artifactory_config")
-  @patch("devops_mcps.artifactory._get_auth")
+  @patch("devops_mcps.utils.artifactory.artifactory_api.validate_artifactory_config")
+  @patch("devops_mcps.utils.artifactory.artifactory_api.get_auth")
   @patch("requests.post")
-  @patch("devops_mcps.artifactory.cache.get")
-  @patch("devops_mcps.artifactory.cache.set")
+  @patch("devops_mcps.utils.artifactory.artifactory_api.cache.get")
+  @patch("devops_mcps.utils.artifactory.artifactory_api.cache.set")
   def test_search_items_success(
     self, mock_cache_set, mock_cache_get, mock_post, mock_auth, mock_validate
   ):
@@ -260,10 +262,10 @@ class TestArtifactorySearchItems(unittest.TestCase):
     self.assertTrue("repo2" in mock_post.call_args[1]["data"])
     mock_cache_set.assert_called_once()
 
-  @patch("devops_mcps.artifactory._validate_artifactory_config")
-  @patch("devops_mcps.artifactory._get_auth")
+  @patch("devops_mcps.utils.artifactory.artifactory_api.validate_artifactory_config")
+  @patch("devops_mcps.utils.artifactory.artifactory_api.get_auth")
   @patch("requests.post")
-  @patch("devops_mcps.artifactory.cache.get")
+  @patch("devops_mcps.utils.artifactory.artifactory_api.cache.get")
   def test_search_items_error(
     self, mock_cache_get, mock_post, mock_auth, mock_validate
   ):
@@ -287,8 +289,8 @@ class TestArtifactorySearchItems(unittest.TestCase):
     self.assertTrue("400" in result["error"])
     mock_post.assert_called_once()
 
-  @patch("devops_mcps.artifactory._validate_artifactory_config")
-  @patch("devops_mcps.artifactory.cache.get")
+  @patch("devops_mcps.utils.artifactory.artifactory_api.validate_artifactory_config")
+  @patch("devops_mcps.utils.artifactory.artifactory_api.cache.get")
   def test_search_items_from_cache(self, mock_cache_get, mock_validate):
     """Test search_items retrieving from cache."""
     # Setup mocks
@@ -306,7 +308,7 @@ class TestArtifactorySearchItems(unittest.TestCase):
 class TestArtifactoryGetItemInfo(unittest.TestCase):
   """Tests for artifactory_get_item_info function."""
 
-  @patch("devops_mcps.artifactory._validate_artifactory_config")
+  @patch("devops_mcps.utils.artifactory.artifactory_api.validate_artifactory_config")
   def test_get_item_info_invalid_config(self, mock_validate):
     """Test get_item_info with invalid config."""
     mock_validate.return_value = {
@@ -320,11 +322,11 @@ class TestArtifactoryGetItemInfo(unittest.TestCase):
       },
     )
 
-  @patch("devops_mcps.artifactory._validate_artifactory_config")
-  @patch("devops_mcps.artifactory._get_auth")
+  @patch("devops_mcps.utils.artifactory.artifactory_api.validate_artifactory_config")
+  @patch("devops_mcps.utils.artifactory.artifactory_api.get_auth")
   @patch("requests.get")
-  @patch("devops_mcps.artifactory.cache.get")
-  @patch("devops_mcps.artifactory.cache.set")
+  @patch("devops_mcps.utils.artifactory.artifactory_api.cache.get")
+  @patch("devops_mcps.utils.artifactory.artifactory_api.cache.set")
   def test_get_item_info_directory(
     self, mock_cache_set, mock_cache_get, mock_get, mock_auth, mock_validate
   ):
@@ -366,11 +368,11 @@ class TestArtifactoryGetItemInfo(unittest.TestCase):
     self.assertTrue("api/storage/test-repo/test-dir" in mock_get.call_args[0][0])
     mock_cache_set.assert_called_once()
 
-  @patch("devops_mcps.artifactory._validate_artifactory_config")
-  @patch("devops_mcps.artifactory._get_auth")
+  @patch("devops_mcps.utils.artifactory.artifactory_api.validate_artifactory_config")
+  @patch("devops_mcps.utils.artifactory.artifactory_api.get_auth")
   @patch("requests.get")
-  @patch("devops_mcps.artifactory.cache.get")
-  @patch("devops_mcps.artifactory.cache.set")
+  @patch("devops_mcps.utils.artifactory.artifactory_api.cache.get")
+  @patch("devops_mcps.utils.artifactory.artifactory_api.cache.set")
   def test_get_item_info_file_with_properties(
     self, mock_cache_set, mock_cache_get, mock_get, mock_auth, mock_validate
   ):
@@ -415,10 +417,10 @@ class TestArtifactoryGetItemInfo(unittest.TestCase):
     self.assertTrue("properties" in mock_get.call_args[0][0])
     mock_cache_set.assert_called_once()
 
-  @patch("devops_mcps.artifactory._validate_artifactory_config")
-  @patch("devops_mcps.artifactory._get_auth")
+  @patch("devops_mcps.utils.artifactory.artifactory_api.validate_artifactory_config")
+  @patch("devops_mcps.utils.artifactory.artifactory_api.get_auth")
   @patch("requests.get")
-  @patch("devops_mcps.artifactory.cache.get")
+  @patch("devops_mcps.utils.artifactory.artifactory_api.cache.get")
   def test_get_item_info_error(
     self, mock_cache_get, mock_get, mock_auth, mock_validate
   ):
@@ -442,8 +444,8 @@ class TestArtifactoryGetItemInfo(unittest.TestCase):
     self.assertTrue("404" in result["error"])
     mock_get.assert_called_once()
 
-  @patch("devops_mcps.artifactory._validate_artifactory_config")
-  @patch("devops_mcps.artifactory.cache.get")
+  @patch("devops_mcps.utils.artifactory.artifactory_api.validate_artifactory_config")
+  @patch("devops_mcps.utils.artifactory.artifactory_api.cache.get")
   def test_get_item_info_from_cache(self, mock_cache_get, mock_validate):
     """Test get_item_info retrieving from cache."""
     # Setup mocks

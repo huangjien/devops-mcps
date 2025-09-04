@@ -3,8 +3,8 @@ import logging
 from typing import List, Optional, Dict, Any, Union
 
 # Import utility functions from the utils package
-from .utils.github.github_client import initialize_github_client, g, GITHUB_TOKEN
-from .utils.github.github_api import (
+from .utils.github_client import initialize_github_client, g, GITHUB_TOKEN
+from .utils.github_api import (
     gh_get_current_user_info,
     gh_search_repositories,
     gh_get_file_contents,
