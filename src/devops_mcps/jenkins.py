@@ -17,7 +17,8 @@ from .utils.jenkins import (
     _to_dict,
     JENKINS_TOKEN,
     JENKINS_USER,
-    JENKINS_URL
+    JENKINS_URL,
+    j
 )
 from .cache import cache
 

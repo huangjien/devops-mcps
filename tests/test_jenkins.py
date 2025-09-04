@@ -212,53 +212,89 @@ class TestToDict:
 class TestJenkinsGetJobs:
   """Test cases for jenkins_get_jobs function."""
 
-  @patch("devops_mcps.utils.jenkins.jenkins_api.j")
+  @patch("devops_mcps.utils.jenkins.jenkins_api.JENKINS_TOKEN", "testtoken")
+  @patch("devops_mcps.utils.jenkins.jenkins_api.JENKINS_USER", "testuser")
+  @patch("devops_mcps.utils.jenkins.jenkins_api.JENKINS_URL", "http://test-jenkins.com")
   @patch("devops_mcps.utils.jenkins.jenkins_api.cache")
-  def test_jenkins_get_jobs_jenkins_api_exception(self, mock_cache, mock_j):
+  @patch("devops_mcps.utils.jenkins.jenkins_job_api.cache")
+  @patch("devops_mcps.utils.jenkins.jenkins_api.j")
+  @patch("devops_mcps.utils.jenkins.jenkins_job_api.j")
+  def test_jenkins_get_jobs_jenkins_api_exception(self, mock_j_job_api, mock_j_api, mock_cache_job_api, mock_cache_api):
     """Test jenkins_get_jobs with JenkinsAPIException."""
-    mock_cache.get.return_value = None
-    mock_cache.set.return_value = None
+    mock_cache_api.get.return_value = None
+    mock_cache_api.set.return_value = None
+    mock_cache_job_api.get.return_value = None
+    mock_cache_job_api.set.return_value = None
 
     mock_jenkins = Mock()
     mock_jenkins.values.side_effect = JenkinsAPIException("API error")
-    mock_j.return_value = mock_jenkins
-    mock_j.values = mock_jenkins.values
+    mock_j_api.return_value = mock_jenkins
+    mock_j_api.values = mock_jenkins.values
+    mock_j_job_api.return_value = mock_jenkins
+    mock_j_job_api.values = mock_jenkins.values
 
     result = jenkins_get_jobs()
 
     assert "error" in result
     assert "Jenkins API Error" in result["error"]
 
-  @patch("devops_mcps.utils.jenkins.jenkins_api.j")
+  @patch("devops_mcps.utils.jenkins.jenkins_api.JENKINS_TOKEN", "testtoken")
+  @patch("devops_mcps.utils.jenkins.jenkins_api.JENKINS_USER", "testuser")
+  @patch("devops_mcps.utils.jenkins.jenkins_api.JENKINS_URL", "http://test-jenkins.com")
   @patch("devops_mcps.utils.jenkins.jenkins_api.cache")
-  def test_jenkins_get_jobs_unexpected_exception(self, mock_cache, mock_j):
+  @patch("devops_mcps.utils.jenkins.jenkins_job_api.cache")
+  @patch("devops_mcps.utils.jenkins.jenkins_api.j")
+  @patch("devops_mcps.utils.jenkins.jenkins_job_api.j")
+  def test_jenkins_get_jobs_unexpected_exception(self, mock_j_job_api, mock_j_api, mock_cache_job_api, mock_cache_api):
     """Test jenkins_get_jobs with unexpected exception."""
-    mock_cache.get.return_value = None
-    mock_cache.set.return_value = None
+    mock_cache_api.get.return_value = None
+    mock_cache_api.set.return_value = None
+    mock_cache_job_api.get.return_value = None
+    mock_cache_job_api.set.return_value = None
     
     mock_jenkins = Mock()
     mock_jenkins.values.side_effect = ValueError("Unexpected error")
-    mock_j.return_value = mock_jenkins
-    mock_j.values = mock_jenkins.values
+    mock_j_api.return_value = mock_jenkins
+    mock_j_api.values = mock_jenkins.values
+    mock_j_job_api.return_value = mock_jenkins
+    mock_j_job_api.values = mock_jenkins.values
 
     result = jenkins_get_jobs()
 
     assert "error" in result
     assert "An unexpected error occurred" in result["error"]
 
+  @patch("devops_mcps.utils.jenkins.jenkins_api.JENKINS_TOKEN", "testtoken")
+  @patch("devops_mcps.utils.jenkins.jenkins_api.JENKINS_USER", "testuser")
+  @patch("devops_mcps.utils.jenkins.jenkins_api.JENKINS_URL", "http://test-jenkins.com")
   @patch("devops_mcps.utils.jenkins.jenkins_api.cache")
-  def test_jenkins_get_jobs_cached_result(self, mock_cache):
+  @patch("devops_mcps.utils.jenkins.jenkins_job_api.cache")
+  @patch("devops_mcps.utils.jenkins.jenkins_api.j")
+  @patch("devops_mcps.utils.jenkins.jenkins_job_api.j")
+  def test_jenkins_get_jobs_cached_result(self, mock_j_job_api, mock_j_api, mock_cache_job_api, mock_cache_api):
     """Test jenkins_get_jobs returns cached result."""
     cached_data = [{"name": "cached-job"}]
-    mock_cache.get.return_value = cached_data
+    # Since _get_cache() checks jenkins_api.cache first, we need to set that to return cached data
+    mock_cache_api.get.return_value = cached_data
+    mock_cache_api.set.return_value = None
+    mock_cache_job_api.get.return_value = None
+    mock_cache_job_api.set.return_value = None
+    
+    # Configure Jenkins client mocks (shouldn't be called due to cache hit)
+    mock_jenkins = Mock()
+    mock_j_api.return_value = mock_jenkins
+    mock_j_api.values = mock_jenkins.values
+    mock_j_job_api.return_value = mock_jenkins
+    mock_j_job_api.values = mock_jenkins.values
 
     result = jenkins_get_jobs()
 
     assert result == cached_data
-    mock_cache.get.assert_called_once_with("jenkins:jobs:all")
+    # Since _get_cache() checks jenkins_api.cache first, that's what gets called
+    mock_cache_api.get.assert_called_once_with("jenkins:jobs:all")
 
-  @patch("devops_mcps.utils.jenkins.jenkins_api.j", None)
-  @patch("devops_mcps.utils.jenkins.jenkins_api.cache")
+  @patch("devops_mcps.utils.jenkins.jenkins_job_api.j", None)
+  @patch("devops_mcps.utils.jenkins.jenkins_job_api.cache")
   def test_jenkins_get_jobs_no_client(self, mock_cache):
     """Test jenkins_get_jobs with no Jenkins client."""
     mock_cache.get.return_value = None
@@ -269,12 +305,19 @@ class TestJenkinsGetJobs:
     assert "error" in result
     assert "Jenkins client not initialized" in result["error"]
 
+  @patch("devops_mcps.utils.jenkins.jenkins_api.JENKINS_TOKEN", "test_token")
+  @patch("devops_mcps.utils.jenkins.jenkins_api.JENKINS_USER", "test_user")
+  @patch("devops_mcps.utils.jenkins.jenkins_api.JENKINS_URL", "http://test-jenkins.com")
   @patch("devops_mcps.utils.jenkins.jenkins_api.cache")
+  @patch("devops_mcps.utils.jenkins.jenkins_job_api.cache")
   @patch("devops_mcps.utils.jenkins.jenkins_api.j")
-  def test_jenkins_get_jobs_success(self, mock_j, mock_cache):
+  @patch("devops_mcps.utils.jenkins.jenkins_job_api.j")
+  def test_jenkins_get_jobs_success(self, mock_j_job_api, mock_j_api, mock_cache_job_api, mock_cache_api):
     """Test successful jenkins_get_jobs."""
-    mock_cache.get.return_value = None
-    mock_cache.set.return_value = None
+    mock_cache_api.get.return_value = None
+    mock_cache_api.set.return_value = None
+    mock_cache_job_api.get.return_value = None
+    mock_cache_job_api.set.return_value = None
 
     mock_job1 = Mock()
     mock_job1.name = "job1"
@@ -283,14 +326,16 @@ class TestJenkinsGetJobs:
     
     mock_jenkins = Mock()
     mock_jenkins.values.return_value = [mock_job1, mock_job2]
-    mock_j.return_value = mock_jenkins
-    mock_j.values = mock_jenkins.values
+    mock_j_api.return_value = mock_jenkins
+    mock_j_api.values = mock_jenkins.values
+    mock_j_job_api.return_value = mock_jenkins
+    mock_j_job_api.values = mock_jenkins.values
 
     with patch("devops_mcps.utils.jenkins.jenkins_api._to_dict", side_effect=lambda x: f"dict_{x.name}"):
       result = jenkins_get_jobs()
 
       assert result == ["dict_job1", "dict_job2"]
-      mock_cache.set.assert_called_once_with(
+      mock_cache_api.set.assert_called_once_with(
         "jenkins:jobs:all", ["dict_job1", "dict_job2"], ttl=300
       )
 
@@ -307,15 +352,18 @@ class TestJenkinsGetBuildLog:
     assert "error" in result
     assert "Jenkins client not initialized" in result["error"]
 
-  @patch("devops_mcps.utils.jenkins.jenkins_api.j")
-  @patch("devops_mcps.utils.jenkins.jenkins_api.cache")
-  @patch("devops_mcps.utils.jenkins.jenkins_api.JENKINS_URL", "http://test-jenkins.com")
-  @patch("devops_mcps.utils.jenkins.jenkins_api.JENKINS_USER", "testuser")
   @patch("devops_mcps.utils.jenkins.jenkins_api.JENKINS_TOKEN", "testtoken")
-  def test_jenkins_get_build_log_cached_result(self, mock_cache, mock_j):
+  @patch("devops_mcps.utils.jenkins.jenkins_api.JENKINS_USER", "testuser")
+  @patch("devops_mcps.utils.jenkins.jenkins_api.JENKINS_URL", "http://test-jenkins.com")
+  @patch("devops_mcps.utils.jenkins.jenkins_api.cache")
+  @patch("devops_mcps.utils.jenkins.jenkins_build_api.cache")
+  @patch("devops_mcps.utils.jenkins.jenkins_api.j")
+  @patch("devops_mcps.utils.jenkins.jenkins_build_api.j")
+  def test_jenkins_get_build_log_cached_result(self, mock_j_build_api, mock_j_api, mock_cache_build_api, mock_cache_api):
     """Test jenkins_get_build_log returns cached result."""
     cached_log = "cached build log"
-    mock_cache.get.return_value = cached_log
+    mock_cache_api.get.return_value = cached_log
+    mock_cache_build_api.get.return_value = cached_log
 
     mock_jenkins = Mock()
     mock_job = Mock()
@@ -328,34 +376,49 @@ class TestJenkinsGetBuildLog:
 
     assert result == cached_log
 
-  @patch("devops_mcps.utils.jenkins.jenkins_api.j")
-  @patch("devops_mcps.utils.jenkins.jenkins_api.cache")
-  @patch("devops_mcps.utils.jenkins.jenkins_api.JENKINS_URL", "http://test-jenkins.com")
-  @patch("devops_mcps.utils.jenkins.jenkins_api.JENKINS_USER", "testuser")
+  @patch("devops_mcps.utils.jenkins.jenkins_build_api.requests.get")
   @patch("devops_mcps.utils.jenkins.jenkins_api.JENKINS_TOKEN", "testtoken")
-  def test_jenkins_get_build_log_success(self, mock_cache, mock_j):
+  @patch("devops_mcps.utils.jenkins.jenkins_api.JENKINS_USER", "testuser")
+  @patch("devops_mcps.utils.jenkins.jenkins_api.JENKINS_URL", "http://test-jenkins.com")
+  @patch("devops_mcps.utils.jenkins.jenkins_api.cache")
+  @patch("devops_mcps.utils.jenkins.jenkins_build_api.cache")
+  @patch("devops_mcps.utils.jenkins.jenkins_api.j")
+  @patch("devops_mcps.utils.jenkins.jenkins_build_api.j")
+  def test_jenkins_get_build_log_success(self, mock_j_build_api, mock_j_api, mock_cache_build_api, mock_cache_api, mock_requests_get):
     """Test successful jenkins_get_build_log."""
-    mock_cache.get.return_value = None
-    mock_cache.set.return_value = None
+    mock_cache_api.get.return_value = None
+    mock_cache_build_api.get.return_value = None
+    mock_cache_api.set.return_value = None
+    mock_cache_build_api.set.return_value = None
 
-    mock_job = Mock()
-    mock_build = Mock()
-    mock_build.get_console.return_value = (
-      "This is a long build log that should be truncated"
-    )
-
-    mock_job.get_last_buildnumber.return_value = 5
-    mock_job.get_build.return_value = mock_build
+    # Mock the HTTP response for getting job info (when build_number is 0)
+    mock_response_job = Mock()
+    mock_response_job.json.return_value = {
+      "lastBuild": {"number": 5}
+    }
+    mock_response_job.raise_for_status.return_value = None
     
-    mock_jenkins = Mock()
-    mock_jenkins.get_job.return_value = mock_job
-    mock_j.return_value = mock_jenkins
-    mock_j.get_job = mock_jenkins.get_job
+    # Mock the HTTP response for getting console output
+    mock_response_console = Mock()
+    mock_response_console.text = "This is a long build log that should be truncated"
+    mock_response_console.raise_for_status.return_value = None
+    
+    # Configure requests.get to return different responses based on URL
+    def mock_get_side_effect(url, **kwargs):
+      if "api/json" in url:
+        return mock_response_job
+      elif "consoleText" in url:
+        return mock_response_console
+      return Mock()
+    
+    mock_requests_get.side_effect = mock_get_side_effect
 
     result = jenkins_get_build_log("test-job", 0)  # Use 0 to get latest
 
     assert isinstance(result, str)
-    mock_cache.set.assert_called_once()
+    assert "This is a long build log that should be truncated" in result
+    mock_cache_api.set.assert_called_once()
+    mock_requests_get.assert_called()
 
 
 
@@ -377,23 +440,28 @@ class TestJenkinsGetAllViews:
       assert "error" in result
       assert "Jenkins client not initialized" in result["error"]
 
-  @patch("devops_mcps.utils.jenkins.jenkins_api.j")
+  @patch("devops_mcps.utils.jenkins.jenkins_api.JENKINS_TOKEN", "testtoken")
+  @patch("devops_mcps.utils.jenkins.jenkins_api.JENKINS_USER", "testuser")
+  @patch("devops_mcps.utils.jenkins.jenkins_api.JENKINS_URL", "http://test-jenkins.com")
   @patch("devops_mcps.utils.jenkins.jenkins_api.cache")
-  def test_jenkins_get_all_views_success(self, mock_cache, mock_j):
+  @patch("devops_mcps.utils.jenkins.jenkins_view_api.cache")
+  @patch("devops_mcps.utils.jenkins.jenkins_api.j")
+  @patch("devops_mcps.utils.jenkins.jenkins_view_api.j")
+  def test_jenkins_get_all_views_success(self, mock_j_view_api, mock_j_api, mock_cache_view_api, mock_cache_api):
     """Test successful jenkins_get_all_views."""
-    mock_cache.get.return_value = None
-    mock_cache.set.return_value = None
+    mock_cache_api.get.return_value = None
+    mock_cache_api.set.return_value = None
 
     mock_jenkins = Mock()
     mock_jenkins.views.keys.return_value = ["view1", "view2"]
-    mock_j.return_value = mock_jenkins
-    mock_j.views = mock_jenkins.views
+    mock_j_api.return_value = mock_jenkins
+    mock_j_api.views = mock_jenkins.views
 
     with patch("devops_mcps.utils.jenkins.jenkins_api._to_dict", side_effect=lambda x: f"dict_{x}"):
       result = jenkins_get_all_views()
 
     assert result == ["dict_view1", "dict_view2"]
-    mock_cache.set.assert_called_once()
+    mock_cache_api.set.assert_called_once()
 
 
 
@@ -410,52 +478,85 @@ class TestJenkinsGetBuildParameters:
     assert "error" in result
     assert "Jenkins client not initialized" in result["error"]
 
-  @patch("devops_mcps.utils.jenkins.jenkins_api.j")
-  @patch("devops_mcps.utils.jenkins.jenkins_api.cache")
-  @patch("devops_mcps.utils.jenkins.jenkins_api.JENKINS_URL", "http://test-jenkins.com")
-  @patch("devops_mcps.utils.jenkins.jenkins_api.JENKINS_USER", "testuser")
+  @patch("devops_mcps.utils.jenkins.jenkins_build_api.requests.get")
   @patch("devops_mcps.utils.jenkins.jenkins_api.JENKINS_TOKEN", "testtoken")
-  def test_jenkins_get_build_parameters_success(self, mock_cache, mock_j):
+  @patch("devops_mcps.utils.jenkins.jenkins_api.JENKINS_USER", "testuser")
+  @patch("devops_mcps.utils.jenkins.jenkins_api.JENKINS_URL", "http://test-jenkins.com")
+  @patch("devops_mcps.utils.jenkins.jenkins_api.cache")
+  @patch("devops_mcps.utils.jenkins.jenkins_build_api.cache")
+  @patch("devops_mcps.utils.jenkins.jenkins_api.j")
+  @patch("devops_mcps.utils.jenkins.jenkins_build_api.j")
+  def test_jenkins_get_build_parameters_success(self, mock_j_build_api, mock_j_api, mock_cache_build_api, mock_cache_api, mock_requests_get):
     """Test successful jenkins_get_build_parameters."""
-    mock_cache.get.return_value = None
-    mock_cache.set.return_value = None
+    mock_cache_build_api.get.return_value = None
+    mock_cache_build_api.set.return_value = None
+    mock_cache_api.get.return_value = None
+    mock_cache_api.set.return_value = None
 
-    mock_jenkins = Mock()
-    mock_job = Mock()
-    mock_build = Mock()
-    mock_build.get_params.return_value = {"param1": "value1", "param2": "value2"}
-
-    mock_job.get_build.return_value = mock_build
-    mock_jenkins.get_job.return_value = mock_job
-    mock_j.return_value = mock_jenkins
-    mock_j.get_job = mock_jenkins.get_job
+    # Mock HTTP responses for job info and build parameters
+    def mock_response_side_effect(url, **kwargs):
+      mock_response = Mock()
+      if "job/test-job/api/json" in url:
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"name": "test-job"}
+      elif "job/test-job/1/api/json" in url:
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+          "actions": [{
+            "_class": "hudson.model.ParametersAction",
+            "parameters": [
+              {"name": "param1", "value": "value1"},
+              {"name": "param2", "value": "value2"}
+            ]
+          }]
+        }
+      return mock_response
+    
+    mock_requests_get.side_effect = mock_response_side_effect
 
     result = jenkins_get_build_parameters("test-job", 1)
 
+    # Verify the result
     assert result == {"param1": "value1", "param2": "value2"}
-    mock_cache.set.assert_called_once()
+    mock_cache_api.set.assert_called_once()
+    mock_requests_get.assert_called()
 
+  @patch("devops_mcps.utils.jenkins.jenkins_build_api.requests.get")
+  @patch("devops_mcps.utils.jenkins.jenkins_build_api.j")
   @patch("devops_mcps.utils.jenkins.jenkins_api.j")
+  @patch("devops_mcps.utils.jenkins.jenkins_build_api.cache")
   @patch("devops_mcps.utils.jenkins.jenkins_api.cache")
-  @patch("devops_mcps.utils.jenkins.jenkins_api.JENKINS_URL", "http://test-jenkins.com")
-  @patch("devops_mcps.utils.jenkins.jenkins_api.JENKINS_USER", "testuser")
   @patch("devops_mcps.utils.jenkins.jenkins_api.JENKINS_TOKEN", "testtoken")
-  def test_jenkins_get_build_parameters_build_not_found(self, mock_cache, mock_j):
+  @patch("devops_mcps.utils.jenkins.jenkins_api.JENKINS_USER", "testuser")
+  @patch("devops_mcps.utils.jenkins.jenkins_api.JENKINS_URL", "http://test-jenkins.com")
+  def test_jenkins_get_build_parameters_build_not_found(self, mock_cache_api, mock_cache_build_api, mock_j_api, mock_j_build_api, mock_requests_get):
     """Test jenkins_get_build_parameters with build not found."""
-    mock_cache.get.return_value = None
-    mock_cache.set.return_value = None
+    mock_cache_build_api.get.return_value = None
+    mock_cache_build_api.set.return_value = None
+    mock_cache_api.get.return_value = None
+    mock_cache_api.set.return_value = None
 
-    mock_jenkins = Mock()
-    mock_job = Mock()
-    mock_job.get_build.return_value = None
-    mock_jenkins.get_job.return_value = mock_job
-    mock_j.return_value = mock_jenkins
-    mock_j.get_job = mock_jenkins.get_job
+    # Mock HTTP responses for job info and build parameters
+    def mock_response_side_effect(url, **kwargs):
+      mock_response = Mock()
+      if "job/test-job/api/json" in url:
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"name": "test-job"}
+      elif "job/test-job/999/api/json" in url:
+        # Simulate 404 HTTPError
+        from requests.exceptions import HTTPError
+        mock_response.status_code = 404
+        mock_response.raise_for_status.side_effect = HTTPError(response=mock_response)
+      return mock_response
+    
+    mock_requests_get.side_effect = mock_response_side_effect
 
     result = jenkins_get_build_parameters("test-job", 999)
 
+    # Verify the result
     assert "error" in result
-    assert "Build #999 not found" in result["error"]
+    assert "Job 'test-job' or build 999 not found" in result["error"]
+    mock_requests_get.assert_called()
 
 
 class TestJenkinsGetQueue:
@@ -474,26 +575,31 @@ class TestJenkinsGetQueue:
       assert "error" in result
       assert "Jenkins client not initialized" in result["error"]
 
-  @patch("devops_mcps.utils.jenkins.jenkins_api.j")
+  @patch("devops_mcps.utils.jenkins.jenkins_api.JENKINS_TOKEN", "testtoken")
+  @patch("devops_mcps.utils.jenkins.jenkins_api.JENKINS_USER", "testuser")
+  @patch("devops_mcps.utils.jenkins.jenkins_api.JENKINS_URL", "http://test-jenkins.com")
   @patch("devops_mcps.utils.jenkins.jenkins_api.cache")
-  def test_jenkins_get_queue_success(self, mock_cache, mock_j):
+  @patch("devops_mcps.utils.jenkins.jenkins_queue_api.cache")
+  @patch("devops_mcps.utils.jenkins.jenkins_api.j")
+  @patch("devops_mcps.utils.jenkins.jenkins_queue_api.j")
+  def test_jenkins_get_queue_success(self, mock_j_queue_api, mock_j_api, mock_cache_queue_api, mock_cache_api):
     """Test successful jenkins_get_queue."""
-    mock_cache.get.return_value = None
-    mock_cache.set.return_value = None
+    mock_cache_api.get.return_value = None
+    mock_cache_api.set.return_value = None
 
     mock_jenkins = Mock()
     mock_queue = Mock()
     mock_queue.get_queue_items.return_value = ["item1", "item2"]
     mock_jenkins.get_queue.return_value = mock_queue
-    mock_j.return_value = mock_jenkins
-    mock_j.get_queue = mock_jenkins.get_queue
+    mock_j_queue_api.return_value = mock_jenkins
+    mock_j_queue_api.get_queue = mock_jenkins.get_queue
 
     with patch("devops_mcps.utils.jenkins.jenkins_api._to_dict", return_value=["item1", "item2"]):
       result = jenkins_get_queue()
 
     expected = {"queue_items": ["item1", "item2"]}
     assert result == expected
-    mock_cache.set.assert_called_once()
+    mock_cache_api.set.assert_called_once()
 
 
 
@@ -502,19 +608,21 @@ class TestJenkinsGetRecentFailedBuilds:
   """Test cases for jenkins_get_recent_failed_builds function."""
 
   @patch("devops_mcps.utils.jenkins.jenkins_api.cache")
-  def test_jenkins_get_recent_failed_builds_cached_result(self, mock_cache):
+  @patch("devops_mcps.utils.jenkins.jenkins_build_api.cache")
+  def test_jenkins_get_recent_failed_builds_cached_result(self, mock_cache_build_api, mock_cache_api):
     """Test jenkins_get_recent_failed_builds returns cached result."""
     cached_data = [{"job_name": "cached-job"}]
-    mock_cache.get.return_value = cached_data
+    mock_cache_api.get.return_value = cached_data
+    mock_cache_build_api.get.return_value = cached_data
 
     result = jenkins_get_recent_failed_builds(8)
 
     assert result == cached_data
-    mock_cache.get.assert_called_once_with("jenkins:recent_failed_builds:8")
+    mock_cache_api.get.assert_called_once_with("jenkins:recent_failed_builds:8")
 
-  @patch("devops_mcps.utils.jenkins.jenkins_api.JENKINS_URL", None)
-  @patch("devops_mcps.utils.jenkins.jenkins_api.JENKINS_USER", None)
   @patch("devops_mcps.utils.jenkins.jenkins_api.JENKINS_TOKEN", None)
+  @patch("devops_mcps.utils.jenkins.jenkins_api.JENKINS_USER", None)
+  @patch("devops_mcps.utils.jenkins.jenkins_api.JENKINS_URL", None)
   def test_jenkins_get_recent_failed_builds_no_credentials(self):
     """Test jenkins_get_recent_failed_builds with no credentials."""
     with patch("devops_mcps.jenkins.cache") as mock_cache:
@@ -526,17 +634,20 @@ class TestJenkinsGetRecentFailedBuilds:
       assert "error" in result
       assert "Jenkins client not initialized" in result["error"]
 
-  @patch("devops_mcps.utils.jenkins.jenkins_api.requests.get")
-  @patch("devops_mcps.utils.jenkins.jenkins_api.cache")
-  @patch("devops_mcps.utils.jenkins.jenkins_api.JENKINS_URL", "http://test-jenkins.com")
-  @patch("devops_mcps.utils.jenkins.jenkins_api.JENKINS_USER", "testuser")
+  @patch("devops_mcps.utils.jenkins.jenkins_build_api.requests.get")
   @patch("devops_mcps.utils.jenkins.jenkins_api.JENKINS_TOKEN", "testtoken")
+  @patch("devops_mcps.utils.jenkins.jenkins_api.JENKINS_USER", "testuser")
+  @patch("devops_mcps.utils.jenkins.jenkins_api.JENKINS_URL", "http://test-jenkins.com")
+  @patch("devops_mcps.utils.jenkins.jenkins_api.cache")
+  @patch("devops_mcps.utils.jenkins.jenkins_build_api.cache")
   def test_jenkins_get_recent_failed_builds_connection_error(
-    self, mock_cache, mock_requests_get
+    self, mock_cache_build_api, mock_cache_api, mock_requests_get
   ):
     """Test jenkins_get_recent_failed_builds with ConnectionError."""
-    mock_cache.get.return_value = None
-    mock_cache.set.return_value = None
+    mock_cache_api.get.return_value = None
+    mock_cache_build_api.get.return_value = None
+    mock_cache_api.set.return_value = None
+    mock_cache_build_api.set.return_value = None
     mock_requests_get.side_effect = ConnectionError("Connection failed")
 
     result = jenkins_get_recent_failed_builds(8)
@@ -544,17 +655,18 @@ class TestJenkinsGetRecentFailedBuilds:
     assert "error" in result
     assert "Could not connect to Jenkins API" in result["error"]
 
-  @patch("devops_mcps.utils.jenkins.jenkins_api.requests.get")
-  @patch("devops_mcps.utils.jenkins.jenkins_api.cache")
-  @patch("devops_mcps.utils.jenkins.jenkins_api.JENKINS_URL", "http://test-jenkins.com")
-  @patch("devops_mcps.utils.jenkins.jenkins_api.JENKINS_USER", "testuser")
+  @patch("devops_mcps.utils.jenkins.jenkins_build_api.requests.get")
   @patch("devops_mcps.utils.jenkins.jenkins_api.JENKINS_TOKEN", "testtoken")
+  @patch("devops_mcps.utils.jenkins.jenkins_api.JENKINS_USER", "testuser")
+  @patch("devops_mcps.utils.jenkins.jenkins_api.JENKINS_URL", "http://test-jenkins.com")
+  @patch("devops_mcps.utils.jenkins.jenkins_api.cache")
+  @patch("devops_mcps.utils.jenkins.jenkins_build_api.cache")
   def test_jenkins_get_recent_failed_builds_http_error(
-    self, mock_cache, mock_requests_get
+    self, mock_cache_build_api, mock_cache_api, mock_requests_get
   ):
     """Test jenkins_get_recent_failed_builds with HTTPError."""
-    mock_cache.get.return_value = None
-    mock_cache.set.return_value = None
+    mock_cache_api.get.return_value = None
+    mock_cache_api.set.return_value = None
 
     mock_response = Mock()
     mock_response.status_code = 404
@@ -571,17 +683,20 @@ class TestJenkinsGetRecentFailedBuilds:
     assert "Jenkins API HTTP Error" in result["error"]
     assert "404" in result["error"]
 
-  @patch("devops_mcps.utils.jenkins.jenkins_api.requests.get")
-  @patch("devops_mcps.utils.jenkins.jenkins_api.cache")
-  @patch("devops_mcps.utils.jenkins.jenkins_api.JENKINS_URL", "http://test-jenkins.com")
-  @patch("devops_mcps.utils.jenkins.jenkins_api.JENKINS_USER", "testuser")
+  @patch("devops_mcps.utils.jenkins.jenkins_build_api.requests.get")
   @patch("devops_mcps.utils.jenkins.jenkins_api.JENKINS_TOKEN", "testtoken")
+  @patch("devops_mcps.utils.jenkins.jenkins_api.JENKINS_USER", "testuser")
+  @patch("devops_mcps.utils.jenkins.jenkins_api.JENKINS_URL", "http://test-jenkins.com")
+  @patch("devops_mcps.utils.jenkins.jenkins_api.cache")
+  @patch("devops_mcps.utils.jenkins.jenkins_build_api.cache")
   def test_jenkins_get_recent_failed_builds_request_exception(
-    self, mock_cache, mock_requests_get
+    self, mock_cache_build_api, mock_cache_api, mock_requests_get
   ):
     """Test jenkins_get_recent_failed_builds with RequestException."""
-    mock_cache.get.return_value = None
-    mock_cache.set.return_value = None
+    mock_cache_api.get.return_value = None
+    mock_cache_build_api.get.return_value = None
+    mock_cache_api.set.return_value = None
+    mock_cache_build_api.set.return_value = None
     mock_requests_get.side_effect = RequestException("Request failed")
 
     result = jenkins_get_recent_failed_builds(8)
@@ -589,17 +704,20 @@ class TestJenkinsGetRecentFailedBuilds:
     assert "error" in result
     assert "Jenkins API Request Error" in result["error"]
 
-  @patch("devops_mcps.utils.jenkins.jenkins_api.requests.get")
-  @patch("devops_mcps.utils.jenkins.jenkins_api.cache")
-  @patch("devops_mcps.utils.jenkins.jenkins_api.JENKINS_URL", "http://test-jenkins.com")
-  @patch("devops_mcps.utils.jenkins.jenkins_api.JENKINS_USER", "testuser")
+  @patch("devops_mcps.utils.jenkins.jenkins_build_api.requests.get")
   @patch("devops_mcps.utils.jenkins.jenkins_api.JENKINS_TOKEN", "testtoken")
+  @patch("devops_mcps.utils.jenkins.jenkins_api.JENKINS_USER", "testuser")
+  @patch("devops_mcps.utils.jenkins.jenkins_api.JENKINS_URL", "http://test-jenkins.com")
+  @patch("devops_mcps.utils.jenkins.jenkins_api.cache")
+  @patch("devops_mcps.utils.jenkins.jenkins_build_api.cache")
   def test_jenkins_get_recent_failed_builds_success(
-    self, mock_cache, mock_requests_get
+    self, mock_cache_build_api, mock_cache_api, mock_requests_get
   ):
     """Test successful jenkins_get_recent_failed_builds."""
-    mock_cache.get.return_value = None
-    mock_cache.set.return_value = None
+    mock_cache_api.get.return_value = None
+    mock_cache_build_api.get.return_value = None
+    mock_cache_api.set.return_value = None
+    mock_cache_build_api.set.return_value = None
 
     # Mock the API response
     now = datetime.now(timezone.utc)
@@ -637,19 +755,20 @@ class TestJenkinsGetRecentFailedBuilds:
     assert len(result) == 1
     assert result[0]["job_name"] == "failed-job"
     assert result[0]["status"] == "FAILURE"
-    mock_cache.set.assert_called_once()
+    mock_cache_api.set.assert_called_once()
 
-  @patch("devops_mcps.utils.jenkins.jenkins_api.requests.get")
-  @patch("devops_mcps.utils.jenkins.jenkins_api.cache")
-  @patch("devops_mcps.utils.jenkins.jenkins_api.JENKINS_URL", "http://test-jenkins.com")
-  @patch("devops_mcps.utils.jenkins.jenkins_api.JENKINS_USER", "testuser")
+  @patch("devops_mcps.utils.jenkins.jenkins_build_api.requests.get")
   @patch("devops_mcps.utils.jenkins.jenkins_api.JENKINS_TOKEN", "testtoken")
+  @patch("devops_mcps.utils.jenkins.jenkins_api.JENKINS_USER", "testuser")
+  @patch("devops_mcps.utils.jenkins.jenkins_api.JENKINS_URL", "http://test-jenkins.com")
+  @patch("devops_mcps.utils.jenkins.jenkins_api.cache")
+  @patch("devops_mcps.utils.jenkins.jenkins_build_api.cache")
   def test_jenkins_get_recent_failed_builds_timeout(
-    self, mock_cache, mock_requests_get
+    self, mock_cache_build_api, mock_cache_api, mock_requests_get
   ):
     """Test jenkins_get_recent_failed_builds with timeout error."""
-    mock_cache.get.return_value = None
-    mock_cache.set.return_value = None
+    mock_cache_api.get.return_value = None
+    mock_cache_api.set.return_value = None
     mock_requests_get.side_effect = Timeout("Request timeout")
 
     result = jenkins_get_recent_failed_builds(8)

@@ -18,6 +18,17 @@ JENKINS_TOKEN = os.environ.get("JENKINS_TOKEN")
 LOG_LENGTH = os.environ.get("LOG_LENGTH", 10240)  # Default to 10KB if not set
 j: Optional[Jenkins] = None
 
+# Export constants and functions
+__all__ = [
+    'JENKINS_URL',
+    'JENKINS_USER', 
+    'JENKINS_TOKEN',
+    'LOG_LENGTH',
+    'j',
+    'initialize_jenkins_client',
+    'set_jenkins_client_for_testing'
+]
+
 
 def initialize_jenkins_client():
     """Initializes the global Jenkins client 'j'."""

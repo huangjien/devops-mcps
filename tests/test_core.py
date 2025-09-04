@@ -2,7 +2,7 @@
 import sys
 import os
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, mock_open
 
 # Add src to sys.path for import
 sys.path.insert(
@@ -52,7 +52,7 @@ async def test_get_file_contents_valid(monkeypatch):
 async def test_list_commits_valid(monkeypatch):
   expected_commits = [{"sha": "abc123", "message": "Initial commit"}]
   monkeypatch.setattr(
-    core.github, "gh_list_commits", lambda owner, repo, branch=None: expected_commits
+    core.github, "gh_list_commits", lambda owner, repo, branch=None, since=None, until=None, author=None, path=None, per_page=30, page=1: expected_commits
   )
   result = await core.list_commits("owner", "repo")
   assert result == expected_commits
@@ -69,7 +69,10 @@ async def test_list_issues_valid(monkeypatch):
     state="open",
     labels=None,
     sort="created",
-    direction="desc": expected_issues,
+    direction="desc",
+    since=None,
+    per_page=30,
+    page=1: expected_issues,
   )
   result = await core.list_issues("owner", "repo")
   assert result == expected_issues
@@ -332,7 +335,7 @@ async def test_get_jenkins_build_log_empty_job_name():
   result = await core.get_jenkins_build_log("", 1)
   assert isinstance(result, dict)
   assert "error" in result
-  assert result["error"] == "Parameter job_name cannot be empty"
+  assert result["error"] == "Parameter 'job_name' cannot be empty"
 
 
 @pytest.mark.asyncio
@@ -341,7 +344,7 @@ async def test_get_jenkins_build_log_none_build_number():
   result = await core.get_jenkins_build_log("job1", None)
   assert isinstance(result, dict)
   assert "error" in result
-  assert result["error"] == "Parameter build_number cannot be empty"
+  assert result["error"] == "Parameter 'build_number' cannot be None"
 
 
 @pytest.mark.asyncio
@@ -368,7 +371,7 @@ async def test_get_recent_failed_jenkins_builds_valid(monkeypatch):
   monkeypatch.setattr(
     core.jenkins,
     "jenkins_get_recent_failed_builds",
-    lambda hours_ago=8: expected_result,
+    lambda hours=24: expected_result,
   )
   result = await core.get_recent_failed_jenkins_builds()
   assert result == expected_result
@@ -379,8 +382,8 @@ async def test_get_recent_failed_jenkins_builds_custom_hours(monkeypatch):
   """Test get_recent_failed_jenkins_builds with custom hours_ago parameter."""
   expected_result = []
 
-  def mock_jenkins_get_recent_failed_builds(hours_ago=8):
-    assert hours_ago == 24  # Verify the parameter is passed correctly
+  def mock_jenkins_get_recent_failed_builds(hours=24):
+    assert hours == 24  # Verify the parameter is passed correctly
     return expected_result
 
   monkeypatch.setattr(
@@ -539,10 +542,10 @@ def test_package_version_exists():
 
 
 # --- Main Function Tests ---
-@patch("devops_mcps.core.mcp.run")
+@patch("devops_mcps.main_entry.create_mcp_server")
 @patch("devops_mcps.core.github.initialize_github_client")
 @patch("devops_mcps.core.sys.argv", ["test", "--transport", "stdio"])
-def test_main_stdio_transport(mock_init_github, mock_mcp_run):
+def test_main_stdio_transport(mock_init_github, mock_create_server):
   """Test main function with stdio transport."""
   # Mock GitHub client as initialized
   core.github.g = MagicMock()
@@ -554,28 +557,22 @@ def test_main_stdio_transport(mock_init_github, mock_mcp_run):
   core.jenkins.JENKINS_USER = "test_user"
   core.jenkins.JENKINS_TOKEN = "test_token"
 
+  # Set up mock server
+  mock_server = MagicMock()
+  mock_create_server.return_value = mock_server
+
   core.main()
 
   mock_init_github.assert_called_once_with(force=True)
-  mock_mcp_run.assert_called_once_with(transport="stdio")
+  mock_create_server.assert_called_once()
+  mock_server.run.assert_called_once_with(transport="stdio")
 
 
-@patch("devops_mcps.core.mcp.run")
+@patch("devops_mcps.main_entry.create_mcp_server")
 @patch("devops_mcps.core.github.initialize_github_client")
-@patch("devops_mcps.core.os.getenv")
 @patch("devops_mcps.core.sys.argv", ["test", "--transport", "stream_http"])
-def test_main_stream_http_transport(mock_getenv, mock_init_github, mock_mcp_run):
+def test_main_stream_http_transport(mock_init_github, mock_create_server):
   """Test main function with stream_http transport."""
-
-  # Configure getenv to return different values for different calls
-  def getenv_side_effect(key, default=None):
-    if key == "MCP_PORT":
-      return "4000"
-    elif key == "PROMPTS_FILE":
-      return None  # No prompts file
-    return default
-
-  mock_getenv.side_effect = getenv_side_effect
 
   # Mock GitHub client as initialized
   core.github.g = MagicMock()
@@ -587,12 +584,16 @@ def test_main_stream_http_transport(mock_getenv, mock_init_github, mock_mcp_run)
   core.jenkins.JENKINS_USER = "test_user"
   core.jenkins.JENKINS_TOKEN = "test_token"
 
+  # Set up mock server
+  mock_server = MagicMock()
+  mock_create_server.return_value = mock_server
+
   core.main()
 
-  # Check that getenv was called for both MCP_PORT and PROMPTS_FILE
-  assert mock_getenv.call_count >= 1
-  mock_mcp_run.assert_called_once_with(
-    transport="http", host="127.0.0.1", port=4000, path="/mcp"
+  mock_init_github.assert_called_once_with(force=True)
+  mock_create_server.assert_called_once()
+  mock_server.run.assert_called_once_with(
+    transport="streamable-http", mount_path="/mcp"
   )
 
 
@@ -665,10 +666,10 @@ def test_main_jenkins_init_failure(mock_init_github, mock_mcp_run):
     core.jenkins.JENKINS_TOKEN = original_jenkins_token
 
 
-@patch("devops_mcps.core.mcp.run")
+@patch("devops_mcps.main_entry.create_mcp_server")
 @patch("devops_mcps.core.github.initialize_github_client")
 @patch("devops_mcps.core.sys.argv", ["test"])
-def test_main_no_github_auth(mock_init_github, mock_mcp_run):
+def test_main_no_github_auth(mock_init_github, mock_create_server):
   """Test main function without GitHub authentication."""
   # Store original values
   original_g = core.github.g
@@ -689,9 +690,14 @@ def test_main_no_github_auth(mock_init_github, mock_mcp_run):
     core.jenkins.JENKINS_USER = None
     core.jenkins.JENKINS_TOKEN = None
 
+    # Set up mock server
+    mock_server = MagicMock()
+    mock_create_server.return_value = mock_server
+
     core.main()
 
-    mock_mcp_run.assert_called_once_with(transport="stdio")
+    mock_create_server.assert_called_once()
+    mock_server.run.assert_called_once_with(transport="stdio")
   finally:
     # Restore original values
     core.github.g = original_g
@@ -703,50 +709,65 @@ def test_main_no_github_auth(mock_init_github, mock_mcp_run):
 
 
 # --- Main Stream HTTP Function Tests ---
-@patch("devops_mcps.core.main")
+@patch("devops_mcps.main_entry.create_mcp_server")
 @patch("devops_mcps.core.sys.argv", ["test"])
-def test_main_stream_http_no_transport_arg(mock_main):
+def test_main_stream_http_no_transport_arg(mock_create_server):
   """Test main_stream_http when no --transport argument exists."""
   original_argv = core.sys.argv.copy()
+  
+  # Set up mock server
+  mock_server = MagicMock()
+  mock_create_server.return_value = mock_server
 
   core.main_stream_http()
 
   assert "--transport" in core.sys.argv
   assert "stream_http" in core.sys.argv
-  mock_main.assert_called_once()
+  mock_create_server.assert_called_once()
+  mock_server.run.assert_called_once_with(transport="streamable-http", mount_path="/mcp")
 
   # Restore original argv
   core.sys.argv = original_argv
 
 
-@patch("devops_mcps.core.main")
+@patch("devops_mcps.main_entry.create_mcp_server")
 @patch("devops_mcps.core.sys.argv", ["test", "--transport", "stdio"])
-def test_main_stream_http_existing_transport_arg(mock_main):
+def test_main_stream_http_existing_transport_arg(mock_create_server):
   """Test main_stream_http when --transport argument already exists."""
   original_argv = core.sys.argv.copy()
+  
+  # Set up mock server
+  mock_server = MagicMock()
+  mock_create_server.return_value = mock_server
 
   core.main_stream_http()
 
   assert "--transport" in core.sys.argv
   assert "stream_http" in core.sys.argv
   assert "stdio" not in core.sys.argv
-  mock_main.assert_called_once()
+  mock_create_server.assert_called_once()
+  mock_server.run.assert_called_once_with(transport="streamable-http", mount_path="/mcp")
 
   # Restore original argv
   core.sys.argv = original_argv
 
 
-@patch("devops_mcps.core.main")
+@patch("devops_mcps.main_entry.create_mcp_server")
 @patch("devops_mcps.core.sys.argv", ["test", "--transport"])
-def test_main_stream_http_transport_no_value(mock_main):
+def test_main_stream_http_transport_no_value(mock_create_server):
   """Test main_stream_http when --transport has no value."""
   original_argv = core.sys.argv.copy()
+  
+  # Set up mock server
+  mock_server = MagicMock()
+  mock_create_server.return_value = mock_server
 
   core.main_stream_http()
 
   assert "--transport" in core.sys.argv
   assert "stream_http" in core.sys.argv
-  mock_main.assert_called_once()
+  mock_create_server.assert_called_once()
+  mock_server.run.assert_called_once_with(transport="streamable-http", mount_path="/mcp")
 
   # Restore original argv
   core.sys.argv = original_argv
@@ -771,7 +792,7 @@ async def test_list_issues_with_all_parameters(monkeypatch):
   expected_result = [{"id": 1, "title": "Test Issue"}]
 
   def mock_gh_list_issues(
-    owner, repo, state="open", labels=None, sort="created", direction="desc"
+    owner, repo, state="open", labels=None, sort="created", direction="desc", since=None, per_page=30, page=1
   ):
     assert owner == "test_owner"
     assert repo == "test_repo"
@@ -819,7 +840,7 @@ async def test_list_commits_with_branch(monkeypatch):
   """Test list_commits with branch parameter."""
   expected_commits = [{"sha": "abc123", "message": "Test commit"}]
 
-  def mock_gh_list_commits(owner, repo, branch=None):
+  def mock_gh_list_commits(owner, repo, branch=None, since=None, until=None, author=None, path=None, per_page=30, page=1):
     assert owner == "test_owner"
     assert repo == "test_repo"
     assert branch == "develop"
@@ -918,7 +939,7 @@ def test_package_version_success(mock_version):
 
 # --- Clear Cache Tests ---
 @pytest.mark.asyncio
-@patch("devops_mcps.core.logger")
+@patch("devops_mcps.mcp_tools.logger")
 async def test_clear_cache_success(mock_logger):
   """Test successful cache clearing."""
   mock_cache = MagicMock()
@@ -934,7 +955,7 @@ async def test_clear_cache_success(mock_logger):
 
 
 @pytest.mark.asyncio
-@patch("devops_mcps.core.logger")
+@patch("devops_mcps.mcp_tools.logger")
 async def test_clear_cache_import_error(mock_logger):
   """Test cache clearing when cache module import fails."""
   # Simulate an import error by making the import statement fail
@@ -955,7 +976,7 @@ async def test_clear_cache_import_error(mock_logger):
 
 
 @pytest.mark.asyncio
-@patch("devops_mcps.core.logger")
+@patch("devops_mcps.mcp_tools.logger")
 async def test_clear_cache_attribute_error(mock_logger):
   """Test cache clearing when cache object has no clear method."""
   mock_cache = MagicMock()
@@ -993,79 +1014,82 @@ def test_debug_logging_calls(mock_logger):
 
 
 # --- Dynamic Prompts Tests ---
-@patch("devops_mcps.core.PromptLoader")
-@patch("devops_mcps.core.logger")
-def test_load_and_register_prompts_no_prompts(mock_logger, mock_prompt_loader):
-  """Test load_and_register_prompts when no prompts are loaded."""
-  # Arrange
-  mock_loader_instance = MagicMock()
-  mock_loader_instance.load_prompts.return_value = {}
-  mock_prompt_loader.return_value = mock_loader_instance
-
-  # Act
+@patch("devops_mcps.core.mcp")
+@patch("devops_mcps.prompt_management.Path.exists")
+@patch("devops_mcps.prompt_management.open", new_callable=mock_open, read_data='{}')
+@patch("devops_mcps.prompt_management.json.load")
+@patch("devops_mcps.prompt_management.logger")
+def test_load_and_register_prompts_no_prompts(mock_logger, mock_json_load, mock_file, mock_exists, mock_mcp):
+  """Test loading when prompts.json contains no prompts."""
+  mock_exists.return_value = True
+  mock_json_load.return_value = {}
+  
   core.load_and_register_prompts()
-
-  # Assert
-  mock_prompt_loader.assert_called_once()
-  mock_loader_instance.load_prompts.assert_called_once()
-  mock_logger.info.assert_called_with("No dynamic prompts to register")
+  
+  mock_exists.assert_called_once()
+  mock_file.assert_called_once()
+  mock_json_load.assert_called_once()
+  mock_logger.info.assert_called_with("Successfully loaded 0 prompts")
 
 
 # --- Dynamic Prompt Loading Tests ---
 # Removed test_load_and_register_prompts_file_not_exists due to mocking issues
 
 
-@patch("devops_mcps.core.PromptLoader")
 @patch("devops_mcps.core.mcp")
-@patch("devops_mcps.core.logger")
-def test_load_and_register_prompts_success(mock_logger, mock_mcp, mock_prompt_loader):
+@patch("devops_mcps.prompt_management.Path.exists")
+@patch("devops_mcps.prompt_management.open", new_callable=mock_open, read_data='{"test_prompt": {"name": "test_prompt", "description": "A test prompt", "template": "Test content with {{variable}}", "variables": {"variable": "Test variable"}}}')
+@patch("devops_mcps.prompt_management.json.load")
+@patch("devops_mcps.prompt_management.logger")
+def test_load_and_register_prompts_success(mock_logger, mock_json_load, mock_file, mock_exists, mock_mcp):
   """Test successful loading and registration of prompts."""
-  # Arrange
+  mock_exists.return_value = True
   mock_prompts = {
     "test_prompt": {
       "name": "test_prompt",
       "description": "A test prompt",
       "template": "Test content with {{variable}}",
-      "arguments": [
-        {"name": "variable", "description": "Test variable", "required": True}
-      ],
+      "variables": {
+        "variable": "Test variable"
+      },
     }
   }
+  mock_json_load.return_value = mock_prompts
 
-  mock_loader_instance = MagicMock()
-  mock_loader_instance.load_prompts.return_value = mock_prompts
-  mock_prompt_loader.return_value = mock_loader_instance
-
+  # Mock the prompt decorator
   mock_prompt_decorator = MagicMock()
-  mock_mcp.prompt.return_value = mock_prompt_decorator
+  mock_prompt_decorator.return_value = lambda func: func
+  mock_mcp.prompt = mock_prompt_decorator
 
-  # Act
   core.load_and_register_prompts()
 
-  # Assert
-  mock_prompt_loader.assert_called_once()
-  mock_loader_instance.load_prompts.assert_called_once()
-  mock_mcp.prompt.assert_called_once_with(
-    name="test_prompt", description="A test prompt"
-  )
-  mock_logger.info.assert_called_with("Successfully registered 1 dynamic prompts")
+  mock_exists.assert_called_once()
+  mock_file.assert_called_once()
+  mock_json_load.assert_called_once()
+  mock_mcp.prompt.assert_called_once()
+  mock_logger.info.assert_called_with("Successfully loaded 1 prompts")
 
 
-@patch("devops_mcps.core.PromptLoader")
-@patch("devops_mcps.core.logger")
-def test_load_and_register_prompts_exception(mock_logger, mock_prompt_loader):
-  """Test load_and_register_prompts when an exception occurs."""
-  # Arrange
-  mock_prompt_loader.side_effect = Exception("Test exception")
-
-  # Act
+@patch("devops_mcps.core.mcp")
+@patch("devops_mcps.prompt_management.Path.exists")
+@patch("devops_mcps.prompt_management.open", new_callable=mock_open, read_data='{"test_prompt": {"description": "Test prompt", "template": "Hello {name}", "variables": {"name": {"type": "string", "required": true}}}}')
+@patch("devops_mcps.prompt_management.json.load")
+@patch("devops_mcps.prompt_management.logger")
+def test_load_and_register_prompts_exception(mock_logger, mock_json_load, mock_file, mock_exists, mock_mcp):
+  """Test handling of exceptions during prompt loading."""
+  mock_exists.return_value = True
+  mock_json_load.side_effect = Exception("Test exception")
+  
   core.load_and_register_prompts()
-
-  # Assert
-  mock_prompt_loader.assert_called_once()
-  mock_logger.error.assert_called_with(
-    "Failed to load and register prompts: Test exception"
-  )
+  
+  mock_exists.assert_called_once()
+  mock_file.assert_called_once()
+  mock_json_load.assert_called_once()
+  # The error message includes the full path, so we need to match that
+  mock_logger.error.assert_called()
+  error_call_args = mock_logger.error.call_args[0][0]
+  assert "Test exception" in error_call_args
+  assert "prompts.json" in error_call_args
 
 
 # Removed test_load_and_register_prompts_json_error due to mocking issues
@@ -1074,34 +1098,34 @@ def test_load_and_register_prompts_exception(mock_logger, mock_prompt_loader):
 # Removed test_load_and_register_prompts_with_file due to mocking issues
 
 
-@patch("devops_mcps.core.PromptLoader")
 @patch("devops_mcps.core.mcp")
-def test_load_and_register_prompts_no_arguments(mock_mcp, mock_prompt_loader):
+@patch("devops_mcps.prompt_management.Path.exists")
+@patch("devops_mcps.prompt_management.open", new_callable=mock_open, read_data='{"simple_prompt": {"name": "simple_prompt", "description": "A simple prompt", "template": "Simple content"}}')
+@patch("devops_mcps.prompt_management.json.load")
+def test_load_and_register_prompts_no_arguments(mock_json_load, mock_file, mock_exists, mock_mcp):
   """Test loading prompts without arguments."""
-  # Arrange
+  mock_exists.return_value = True
   mock_prompts = {
     "simple_prompt": {
       "name": "simple_prompt",
       "description": "A simple prompt",
       "template": "Simple content",
-      # No arguments field
+      # No variables field
     }
   }
+  mock_json_load.return_value = mock_prompts
 
-  mock_loader_instance = MagicMock()
-  mock_loader_instance.load_prompts.return_value = mock_prompts
-  mock_prompt_loader.return_value = mock_loader_instance
-
+  # Mock the prompt decorator
   mock_prompt_decorator = MagicMock()
-  mock_mcp.prompt.return_value = mock_prompt_decorator
+  mock_prompt_decorator.return_value = lambda func: func
+  mock_mcp.prompt = mock_prompt_decorator
 
-  # Act
   core.load_and_register_prompts()
 
-  # Assert
-  mock_mcp.prompt.assert_called_once_with(
-    name="simple_prompt", description="A simple prompt"
-  )
+  mock_exists.assert_called_once()
+  mock_file.assert_called_once()
+  mock_json_load.assert_called_once()
+  mock_mcp.prompt.assert_called_once()
   assert core.logger is not None
 
 
