@@ -16,6 +16,16 @@ from devops_mcps.github import (
   gh_search_code,
   gh_get_issue_content,
   gh_get_current_user_info,
+  # Legacy wrapper functions
+  search_repositories,
+  get_current_user_info,
+  get_file_contents,
+  list_commits,
+  list_issues,
+  get_repository,
+  search_code,
+  get_issue_details,
+  get_github_issue_content,
 )
 from devops_mcps.utils.github.github_converters import _to_dict, _handle_paginated_list
 from github import (
@@ -2201,3 +2211,276 @@ def test_gh_list_issues_repository_not_found(mock_github_api, mock_env_vars):
 
   assert "error" in result
   assert "not found" in result["error"].lower()
+
+
+# Additional tests for github_repository_api.py coverage improvement
+
+
+@patch("devops_mcps.utils.github.github_repository_api.cache")
+def test_gh_get_file_contents_unicode_decode_error(mock_cache_patch, mock_github_api):
+  """Test file content retrieval with UnicodeDecodeError."""
+  mock_cache_patch.get.return_value = None
+  mock_cache_patch.set.return_value = None
+  mock_repo = Mock()
+  mock_content = Mock(spec=ContentFile)
+  mock_content.type = "file"
+  mock_content.encoding = "base64"
+  mock_content.content = "dGVzdCBjb250ZW50"  # "test content" in base64
+  mock_content.decoded_content = b"\xff\xfe"  # Invalid UTF-8 bytes
+  mock_content.size = 100
+  mock_content.name = "binary_file.bin"
+  mock_content.path = "path/to/binary_file.bin"
+  mock_content._rawData = {
+    "type": "file",
+    "encoding": "base64",
+    "content": "dGVzdCBjb250ZW50",
+    "path": "path/to/binary_file.bin",
+    "size": 100,
+    "name": "binary_file.bin"
+  }
+  mock_github_api.get_repo.return_value = mock_repo
+  mock_repo.get_contents.return_value = mock_content
+
+  result = gh_get_file_contents("owner", "repo", "path/to/binary_file.bin")
+
+  assert isinstance(result, dict)
+  assert "error" in result
+  assert "Could not decode content (likely binary file)" in result["error"]
+  assert "type" in result
+  assert "size" in result
+
+
+@patch("devops_mcps.utils.github.github_repository_api.cache")
+def test_gh_get_file_contents_decode_exception(mock_cache_patch, mock_github_api):
+  """Test file content retrieval with general decode exception."""
+  mock_cache_patch.get.return_value = None
+  mock_cache_patch.set.return_value = None
+  mock_repo = Mock()
+  mock_content = Mock(spec=ContentFile)
+  mock_content.type = "file"
+  mock_content.encoding = "base64"
+  mock_content.content = "dGVzdCBjb250ZW50"
+  # Mock decoded_content to raise a general exception
+  mock_content.decoded_content = property(lambda self: exec('raise Exception("Decode error")'))
+  mock_content.size = 100
+  mock_content.name = "problematic_file.txt"
+  mock_content.path = "path/to/problematic_file.txt"
+  mock_content._rawData = {
+    "type": "file",
+    "encoding": "base64",
+    "content": "dGVzdCBjb250ZW50",
+    "path": "path/to/problematic_file.txt",
+    "size": 100,
+    "name": "problematic_file.txt"
+  }
+  mock_github_api.get_repo.return_value = mock_repo
+  mock_repo.get_contents.return_value = mock_content
+
+  result = gh_get_file_contents("owner", "repo", "path/to/problematic_file.txt")
+
+  assert isinstance(result, dict)
+  assert "error" in result
+  assert "Error decoding content" in result["error"]
+  assert "type" in result
+
+
+@patch("devops_mcps.utils.github.github_repository_api.cache")
+def test_gh_get_file_contents_empty_content(mock_cache_patch, mock_github_api):
+  """Test file content retrieval with empty/None content."""
+  mock_cache_patch.get.return_value = None
+  mock_cache_patch.set.return_value = None
+  mock_repo = Mock()
+  mock_content = Mock(spec=ContentFile)
+  mock_content.type = "file"
+  mock_content.encoding = "base64"
+  mock_content.content = None  # Empty content
+  mock_content.size = 0
+  mock_content.name = "empty_file.txt"
+  mock_content.path = "path/to/empty_file.txt"
+  mock_content._rawData = {
+    "type": "file",
+    "encoding": "base64",
+    "content": None,
+    "path": "path/to/empty_file.txt",
+    "size": 0,
+    "name": "empty_file.txt"
+  }
+  mock_github_api.get_repo.return_value = mock_repo
+  mock_repo.get_contents.return_value = mock_content
+
+  result = gh_get_file_contents("owner", "repo", "path/to/empty_file.txt")
+
+  assert isinstance(result, dict)
+  assert "message" in result
+  assert "File appears to be empty or content is inaccessible" in result["message"]
+  assert "type" in result
+  mock_cache_patch.set.assert_called_once()
+
+
+@patch("devops_mcps.utils.github.github_repository_api.cache")
+def test_gh_get_file_contents_large_file_error(mock_cache_patch, mock_github_api):
+  """Test file content retrieval with 'too large' GitHub error."""
+  mock_cache_patch.get.return_value = None
+  mock_repo = Mock()
+  mock_github_api.get_repo.return_value = mock_repo
+  mock_repo.get_contents.side_effect = GithubException(
+    413, {"message": "File too large to retrieve via API"}, {}
+  )
+
+  result = gh_get_file_contents("owner", "repo", "path/to/large_file.zip")
+
+  assert isinstance(result, dict)
+  assert "error" in result
+  assert "too large to retrieve via the API" in result["error"]
+
+
+@patch("devops_mcps.utils.github.github_repository_api.cache")
+def test_gh_get_repository_github_exception(mock_cache_patch, mock_github_api):
+  """Test repository retrieval with GitHub API exception."""
+  mock_cache_patch.get.return_value = None
+  mock_github_api.get_repo.side_effect = GithubException(
+    500, {"message": "Internal server error"}, {}
+  )
+
+  result = gh_get_repository("owner", "repo")
+
+  assert isinstance(result, dict)
+  assert "error" in result
+  assert "GitHub API Error: 500" in result["error"]
+  assert "Internal server error" in result["error"]
+
+
+@patch("devops_mcps.utils.github.github_repository_api.cache")
+def test_gh_get_repository_unexpected_exception(mock_cache_patch, mock_github_api):
+  """Test repository retrieval with unexpected exception."""
+  mock_cache_patch.get.return_value = None
+  mock_github_api.get_repo.side_effect = Exception("Unexpected error")
+
+  result = gh_get_repository("owner", "repo")
+
+  assert isinstance(result, dict)
+  assert "error" in result
+  assert "An unexpected error occurred: Unexpected error" in result["error"]
+
+
+# Tests for legacy wrapper functions
+@patch("devops_mcps.github.gh_search_repositories")
+def test_search_repositories_wrapper(mock_gh_search):
+  """Test search_repositories legacy wrapper function."""
+  mock_gh_search.return_value = {"repositories": []}
+  
+  result = search_repositories("test query")
+  
+  mock_gh_search.assert_called_once_with("test query")
+  assert result == {"repositories": []}
+
+
+@patch("devops_mcps.github.gh_get_current_user_info")
+def test_get_current_user_info_wrapper(mock_gh_get_user):
+  """Test get_current_user_info legacy wrapper function."""
+  mock_gh_get_user.return_value = {"login": "testuser"}
+  
+  result = get_current_user_info()
+  
+  mock_gh_get_user.assert_called_once()
+  assert result == {"login": "testuser"}
+
+
+@patch("devops_mcps.github.gh_get_file_contents")
+def test_get_file_contents_wrapper(mock_gh_get_file):
+  """Test get_file_contents legacy wrapper function."""
+  mock_gh_get_file.return_value = {"content": "test content"}
+  
+  result = get_file_contents("owner", "repo", "path/to/file")
+  
+  mock_gh_get_file.assert_called_once_with("owner", "repo", "path/to/file", None)
+  assert result == {"content": "test content"}
+
+
+@patch("devops_mcps.github.gh_list_commits")
+def test_list_commits_wrapper(mock_gh_list_commits):
+  """Test list_commits legacy wrapper function."""
+  mock_gh_list_commits.return_value = {"commits": []}
+  
+  result = list_commits("owner", "repo")
+  
+  mock_gh_list_commits.assert_called_once_with("owner", "repo", None)
+  assert result == {"commits": []}
+
+
+@patch("devops_mcps.github.gh_list_issues")
+def test_list_issues_wrapper(mock_gh_list_issues):
+  """Test list_issues legacy wrapper function."""
+  mock_gh_list_issues.return_value = {"issues": []}
+  
+  result = list_issues("owner", "repo")
+  
+  mock_gh_list_issues.assert_called_once_with("owner", "repo", "open", None, "created", "desc")
+  assert result == {"issues": []}
+
+
+@patch("devops_mcps.github.gh_get_repository")
+def test_get_repository_wrapper(mock_gh_get_repo):
+  """Test get_repository legacy wrapper function."""
+  mock_gh_get_repo.return_value = {"name": "test-repo"}
+  
+  result = get_repository("owner", "repo")
+  
+  mock_gh_get_repo.assert_called_once_with("owner", "repo")
+  assert result == {"name": "test-repo"}
+
+
+@patch("devops_mcps.github.gh_search_code")
+def test_search_code_wrapper(mock_gh_search_code):
+  """Test search_code legacy wrapper function."""
+  mock_gh_search_code.return_value = {"code_results": []}
+  
+  result = search_code("test query")
+  
+  mock_gh_search_code.assert_called_once_with("test query", "indexed", "desc")
+  assert result == {"code_results": []}
+
+
+@patch("devops_mcps.github.gh_get_issue_details")
+def test_get_issue_details_wrapper(mock_gh_get_issue):
+  """Test get_issue_details legacy wrapper function."""
+  mock_gh_get_issue.return_value = {"title": "Test Issue"}
+  
+  result = get_issue_details("owner", "repo", 1)
+  
+  mock_gh_get_issue.assert_called_once_with("owner", "repo", 1)
+  assert result == {"title": "Test Issue"}
+
+
+@patch("devops_mcps.github.gh_get_issue_content")
+def test_get_github_issue_content_wrapper(mock_gh_get_issue):
+  """Test get_github_issue_content legacy wrapper function."""
+  mock_gh_get_issue.return_value = {"body": "Issue content"}
+  
+  result = get_github_issue_content("owner", "repo", 1)
+  
+  mock_gh_get_issue.assert_called_once_with("owner", "repo", 1)
+  assert result == {"body": "Issue content"}
+
+
+# Test error propagation through wrapper functions
+@patch("devops_mcps.github.gh_search_repositories")
+def test_search_repositories_wrapper_error_propagation(mock_gh_search):
+  """Test search_repositories wrapper propagates errors correctly."""
+  mock_gh_search.return_value = {"error": "API Error"}
+  
+  result = search_repositories("test query")
+  
+  mock_gh_search.assert_called_once_with("test query")
+  assert result == {"error": "API Error"}
+
+
+@patch("devops_mcps.github.gh_get_current_user_info")
+def test_get_current_user_info_wrapper_error_propagation(mock_gh_get_user):
+  """Test get_current_user_info wrapper propagates errors correctly."""
+  mock_gh_get_user.return_value = {"error": "Authentication failed"}
+  
+  result = get_current_user_info()
+  
+  mock_gh_get_user.assert_called_once()
+  assert result == {"error": "Authentication failed"}
