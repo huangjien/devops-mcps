@@ -468,7 +468,9 @@ class TestArtifactoryErrorHandling(unittest.TestCase):
   @patch("devops_mcps.utils.artifactory.artifactory_api.get_auth")
   @patch("requests.get")
   @patch("devops_mcps.utils.artifactory.artifactory_api.cache.get")
-  def test_list_items_401_unauthorized(self, mock_cache_get, mock_get, mock_auth, mock_validate):
+  def test_list_items_401_unauthorized(
+    self, mock_cache_get, mock_get, mock_auth, mock_validate
+  ):
     """Test list_items with 401 Unauthorized response."""
     # Setup mocks
     mock_validate.return_value = True
@@ -493,7 +495,9 @@ class TestArtifactoryErrorHandling(unittest.TestCase):
   @patch("devops_mcps.utils.artifactory.artifactory_api.get_auth")
   @patch("requests.get")
   @patch("devops_mcps.utils.artifactory.artifactory_api.cache.get")
-  def test_list_items_403_forbidden(self, mock_cache_get, mock_get, mock_auth, mock_validate):
+  def test_list_items_403_forbidden(
+    self, mock_cache_get, mock_get, mock_auth, mock_validate
+  ):
     """Test list_items with 403 Forbidden response."""
     # Setup mocks
     mock_validate.return_value = True
@@ -518,7 +522,9 @@ class TestArtifactoryErrorHandling(unittest.TestCase):
   @patch("devops_mcps.utils.artifactory.artifactory_api.get_auth")
   @patch("requests.get")
   @patch("devops_mcps.utils.artifactory.artifactory_api.cache.get")
-  def test_list_items_404_not_found(self, mock_cache_get, mock_get, mock_auth, mock_validate):
+  def test_list_items_404_not_found(
+    self, mock_cache_get, mock_get, mock_auth, mock_validate
+  ):
     """Test list_items with 404 Not Found response."""
     # Setup mocks
     mock_validate.return_value = True
@@ -543,7 +549,9 @@ class TestArtifactoryErrorHandling(unittest.TestCase):
   @patch("devops_mcps.utils.artifactory.artifactory_api.get_auth")
   @patch("requests.get")
   @patch("devops_mcps.utils.artifactory.artifactory_api.cache.get")
-  def test_list_items_500_server_error(self, mock_cache_get, mock_get, mock_auth, mock_validate):
+  def test_list_items_500_server_error(
+    self, mock_cache_get, mock_get, mock_auth, mock_validate
+  ):
     """Test list_items with 500 Internal Server Error response."""
     # Setup mocks
     mock_validate.return_value = True
@@ -568,7 +576,9 @@ class TestArtifactoryErrorHandling(unittest.TestCase):
   @patch("devops_mcps.utils.artifactory.artifactory_api.get_auth")
   @patch("requests.post")
   @patch("devops_mcps.utils.artifactory.artifactory_api.cache.get")
-  def test_search_items_401_unauthorized(self, mock_cache_get, mock_post, mock_auth, mock_validate):
+  def test_search_items_401_unauthorized(
+    self, mock_cache_get, mock_post, mock_auth, mock_validate
+  ):
     """Test search_items with 401 Unauthorized response."""
     # Setup mocks
     mock_validate.return_value = True
@@ -593,7 +603,9 @@ class TestArtifactoryErrorHandling(unittest.TestCase):
   @patch("devops_mcps.utils.artifactory.artifactory_api.get_auth")
   @patch("requests.post")
   @patch("devops_mcps.utils.artifactory.artifactory_api.cache.get")
-  def test_search_items_http_error_exception(self, mock_cache_get, mock_post, mock_auth, mock_validate):
+  def test_search_items_http_error_exception(
+    self, mock_cache_get, mock_post, mock_auth, mock_validate
+  ):
     """Test search_items with HTTPError exception."""
     # Setup mocks
     mock_validate.return_value = True
@@ -614,7 +626,9 @@ class TestArtifactoryErrorHandling(unittest.TestCase):
   @patch("devops_mcps.utils.artifactory.artifactory_api.get_auth")
   @patch("requests.get")
   @patch("devops_mcps.utils.artifactory.artifactory_api.cache.get")
-  def test_get_item_info_request_exception(self, mock_cache_get, mock_get, mock_auth, mock_validate):
+  def test_get_item_info_request_exception(
+    self, mock_cache_get, mock_get, mock_auth, mock_validate
+  ):
     """Test get_item_info with RequestException."""
     # Setup mocks
     mock_validate.return_value = True
@@ -635,7 +649,9 @@ class TestArtifactoryErrorHandling(unittest.TestCase):
   @patch("devops_mcps.utils.artifactory.artifactory_api.get_auth")
   @patch("requests.get")
   @patch("devops_mcps.utils.artifactory.artifactory_api.cache.get")
-  def test_get_item_info_ssl_error(self, mock_cache_get, mock_get, mock_auth, mock_validate):
+  def test_get_item_info_ssl_error(
+    self, mock_cache_get, mock_get, mock_auth, mock_validate
+  ):
     """Test get_item_info with SSL error."""
     # Setup mocks
     mock_validate.return_value = True
@@ -656,7 +672,9 @@ class TestArtifactoryErrorHandling(unittest.TestCase):
   @patch("devops_mcps.utils.artifactory.artifactory_api.get_auth")
   @patch("requests.get")
   @patch("devops_mcps.utils.artifactory.artifactory_api.cache.get")
-  def test_get_item_info_401_unauthorized(self, mock_cache_get, mock_get, mock_auth, mock_validate):
+  def test_get_item_info_401_unauthorized(
+    self, mock_cache_get, mock_get, mock_auth, mock_validate
+  ):
     """Test get_item_info with 401 Unauthorized response."""
     # Setup mocks
     mock_validate.return_value = True
@@ -681,7 +699,9 @@ class TestArtifactoryErrorHandling(unittest.TestCase):
   @patch("devops_mcps.utils.artifactory.artifactory_api.get_auth")
   @patch("requests.get")
   @patch("devops_mcps.utils.artifactory.artifactory_api.cache.get")
-  def test_get_item_info_403_forbidden(self, mock_cache_get, mock_get, mock_auth, mock_validate):
+  def test_get_item_info_403_forbidden(
+    self, mock_cache_get, mock_get, mock_auth, mock_validate
+  ):
     """Test get_item_info with 403 Forbidden response."""
     # Setup mocks
     mock_validate.return_value = True
@@ -706,7 +726,9 @@ class TestArtifactoryErrorHandling(unittest.TestCase):
   @patch("devops_mcps.utils.artifactory.artifactory_api.get_auth")
   @patch("requests.get")
   @patch("devops_mcps.utils.artifactory.artifactory_api.cache.get")
-  def test_get_item_info_500_server_error(self, mock_cache_get, mock_get, mock_auth, mock_validate):
+  def test_get_item_info_500_server_error(
+    self, mock_cache_get, mock_get, mock_auth, mock_validate
+  ):
     """Test get_item_info with 500 Internal Server Error response."""
     # Setup mocks
     mock_validate.return_value = True
@@ -731,7 +753,9 @@ class TestArtifactoryErrorHandling(unittest.TestCase):
   @patch("devops_mcps.utils.artifactory.artifactory_api.get_auth")
   @patch("requests.post")
   @patch("devops_mcps.utils.artifactory.artifactory_api.cache.get")
-  def test_search_items_403_forbidden(self, mock_cache_get, mock_post, mock_auth, mock_validate):
+  def test_search_items_403_forbidden(
+    self, mock_cache_get, mock_post, mock_auth, mock_validate
+  ):
     """Test search_items with 403 Forbidden response."""
     # Setup mocks
     mock_validate.return_value = True
@@ -756,7 +780,9 @@ class TestArtifactoryErrorHandling(unittest.TestCase):
   @patch("devops_mcps.utils.artifactory.artifactory_api.get_auth")
   @patch("requests.post")
   @patch("devops_mcps.utils.artifactory.artifactory_api.cache.get")
-  def test_search_items_404_not_found(self, mock_cache_get, mock_post, mock_auth, mock_validate):
+  def test_search_items_404_not_found(
+    self, mock_cache_get, mock_post, mock_auth, mock_validate
+  ):
     """Test search_items with 404 Not Found response."""
     # Setup mocks
     mock_validate.return_value = True
@@ -781,7 +807,9 @@ class TestArtifactoryErrorHandling(unittest.TestCase):
   @patch("devops_mcps.utils.artifactory.artifactory_api.get_auth")
   @patch("requests.post")
   @patch("devops_mcps.utils.artifactory.artifactory_api.cache.get")
-  def test_search_items_500_server_error(self, mock_cache_get, mock_post, mock_auth, mock_validate):
+  def test_search_items_500_server_error(
+    self, mock_cache_get, mock_post, mock_auth, mock_validate
+  ):
     """Test search_items with 500 Internal Server Error response."""
     # Setup mocks
     mock_validate.return_value = True
@@ -806,7 +834,9 @@ class TestArtifactoryErrorHandling(unittest.TestCase):
   @patch("devops_mcps.utils.artifactory.artifactory_api.get_auth")
   @patch("requests.get")
   @patch("devops_mcps.utils.artifactory.artifactory_api.cache.get")
-  def test_list_items_connection_error(self, mock_cache_get, mock_get, mock_auth, mock_validate):
+  def test_list_items_connection_error(
+    self, mock_cache_get, mock_get, mock_auth, mock_validate
+  ):
     """Test list_items with connection error."""
     # Setup mocks
     mock_validate.return_value = True
@@ -827,7 +857,9 @@ class TestArtifactoryErrorHandling(unittest.TestCase):
   @patch("devops_mcps.utils.artifactory.artifactory_api.get_auth")
   @patch("requests.get")
   @patch("devops_mcps.utils.artifactory.artifactory_api.cache.get")
-  def test_list_items_timeout_error(self, mock_cache_get, mock_get, mock_auth, mock_validate):
+  def test_list_items_timeout_error(
+    self, mock_cache_get, mock_get, mock_auth, mock_validate
+  ):
     """Test list_items with timeout error."""
     # Setup mocks
     mock_validate.return_value = True
@@ -848,7 +880,9 @@ class TestArtifactoryErrorHandling(unittest.TestCase):
   @patch("devops_mcps.utils.artifactory.artifactory_api.get_auth")
   @patch("requests.get")
   @patch("devops_mcps.utils.artifactory.artifactory_api.cache.get")
-  def test_get_item_info_connection_error(self, mock_cache_get, mock_get, mock_auth, mock_validate):
+  def test_get_item_info_connection_error(
+    self, mock_cache_get, mock_get, mock_auth, mock_validate
+  ):
     """Test get_item_info with connection error."""
     # Setup mocks
     mock_validate.return_value = True
@@ -873,7 +907,9 @@ class TestArtifactoryEdgeCases(unittest.TestCase):
   @patch("devops_mcps.utils.artifactory.artifactory_api.get_auth")
   @patch("requests.get")
   @patch("devops_mcps.utils.artifactory.artifactory_api.cache.get")
-  def test_list_items_empty_response(self, mock_cache_get, mock_get, mock_auth, mock_validate):
+  def test_list_items_empty_response(
+    self, mock_cache_get, mock_get, mock_auth, mock_validate
+  ):
     """Test list_items with empty response from API."""
     # Setup mocks
     mock_validate.return_value = True
@@ -896,7 +932,9 @@ class TestArtifactoryEdgeCases(unittest.TestCase):
   @patch("devops_mcps.utils.artifactory.artifactory_api.get_auth")
   @patch("requests.get")
   @patch("devops_mcps.utils.artifactory.artifactory_api.cache.get")
-  def test_list_items_malformed_json(self, mock_cache_get, mock_get, mock_auth, mock_validate):
+  def test_list_items_malformed_json(
+    self, mock_cache_get, mock_get, mock_auth, mock_validate
+  ):
     """Test list_items with malformed JSON response."""
     # Setup mocks
     mock_validate.return_value = True
@@ -920,7 +958,9 @@ class TestArtifactoryEdgeCases(unittest.TestCase):
   @patch("devops_mcps.utils.artifactory.artifactory_api.get_auth")
   @patch("requests.get")
   @patch("devops_mcps.utils.artifactory.artifactory_api.cache.get")
-  def test_list_items_network_timeout(self, mock_cache_get, mock_get, mock_auth, mock_validate):
+  def test_list_items_network_timeout(
+    self, mock_cache_get, mock_get, mock_auth, mock_validate
+  ):
     """Test list_items with network timeout."""
     # Setup mocks
     mock_validate.return_value = True
@@ -941,7 +981,9 @@ class TestArtifactoryEdgeCases(unittest.TestCase):
   @patch("devops_mcps.utils.artifactory.artifactory_api.get_auth")
   @patch("requests.post")
   @patch("devops_mcps.utils.artifactory.artifactory_api.cache.get")
-  def test_search_items_empty_query(self, mock_cache_get, mock_post, mock_auth, mock_validate):
+  def test_search_items_empty_query(
+    self, mock_cache_get, mock_post, mock_auth, mock_validate
+  ):
     """Test search_items with empty query string."""
     # Setup mocks
     mock_validate.return_value = True
@@ -967,7 +1009,9 @@ class TestArtifactoryEdgeCases(unittest.TestCase):
   @patch("devops_mcps.utils.artifactory.artifactory_api.get_auth")
   @patch("requests.post")
   @patch("devops_mcps.utils.artifactory.artifactory_api.cache.get")
-  def test_search_items_malformed_json(self, mock_cache_get, mock_post, mock_auth, mock_validate):
+  def test_search_items_malformed_json(
+    self, mock_cache_get, mock_post, mock_auth, mock_validate
+  ):
     """Test search_items with malformed JSON response."""
     # Setup mocks
     mock_validate.return_value = True
@@ -991,7 +1035,9 @@ class TestArtifactoryEdgeCases(unittest.TestCase):
   @patch("devops_mcps.utils.artifactory.artifactory_api.get_auth")
   @patch("requests.post")
   @patch("devops_mcps.utils.artifactory.artifactory_api.cache.get")
-  def test_search_items_network_timeout(self, mock_cache_get, mock_post, mock_auth, mock_validate):
+  def test_search_items_network_timeout(
+    self, mock_cache_get, mock_post, mock_auth, mock_validate
+  ):
     """Test search_items with network timeout."""
     # Setup mocks
     mock_validate.return_value = True
@@ -1012,7 +1058,9 @@ class TestArtifactoryEdgeCases(unittest.TestCase):
   @patch("devops_mcps.utils.artifactory.artifactory_api.get_auth")
   @patch("requests.get")
   @patch("devops_mcps.utils.artifactory.artifactory_api.cache.get")
-  def test_get_item_info_empty_response(self, mock_cache_get, mock_get, mock_auth, mock_validate):
+  def test_get_item_info_empty_response(
+    self, mock_cache_get, mock_get, mock_auth, mock_validate
+  ):
     """Test get_item_info with empty response from API."""
     # Setup mocks
     mock_validate.return_value = True
@@ -1035,7 +1083,9 @@ class TestArtifactoryEdgeCases(unittest.TestCase):
   @patch("devops_mcps.utils.artifactory.artifactory_api.get_auth")
   @patch("requests.get")
   @patch("devops_mcps.utils.artifactory.artifactory_api.cache.get")
-  def test_get_item_info_malformed_json(self, mock_cache_get, mock_get, mock_auth, mock_validate):
+  def test_get_item_info_malformed_json(
+    self, mock_cache_get, mock_get, mock_auth, mock_validate
+  ):
     """Test get_item_info with malformed JSON response."""
     # Setup mocks
     mock_validate.return_value = True
@@ -1059,7 +1109,9 @@ class TestArtifactoryEdgeCases(unittest.TestCase):
   @patch("devops_mcps.utils.artifactory.artifactory_api.get_auth")
   @patch("requests.get")
   @patch("devops_mcps.utils.artifactory.artifactory_api.cache.get")
-  def test_get_item_info_network_timeout(self, mock_cache_get, mock_get, mock_auth, mock_validate):
+  def test_get_item_info_network_timeout(
+    self, mock_cache_get, mock_get, mock_auth, mock_validate
+  ):
     """Test get_item_info with network timeout."""
     # Setup mocks
     mock_validate.return_value = True
@@ -1080,7 +1132,7 @@ class TestArtifactoryEdgeCases(unittest.TestCase):
   def test_list_items_invalid_parameters(self, mock_validate):
     """Test list_items with invalid parameters."""
     mock_validate.return_value = True
-    
+
     # Test with None repository
     result = artifactory_list_items(None, "/path")
     self.assertIn("error", result)
@@ -1100,7 +1152,7 @@ class TestArtifactoryEdgeCases(unittest.TestCase):
   def test_search_items_invalid_parameters(self, mock_validate):
     """Test search_items with invalid parameters."""
     mock_validate.return_value = True
-    
+
     # Test with None query
     result = artifactory_search_items(None, ["repo1"])
     self.assertIn("error", result)
@@ -1120,7 +1172,7 @@ class TestArtifactoryEdgeCases(unittest.TestCase):
   def test_get_item_info_invalid_parameters(self, mock_validate):
     """Test get_item_info with invalid parameters."""
     mock_validate.return_value = True
-    
+
     # Test with None repository
     result = artifactory_get_item_info(None, "/path")
     self.assertIn("error", result)
@@ -1140,7 +1192,9 @@ class TestArtifactoryEdgeCases(unittest.TestCase):
   @patch("devops_mcps.utils.artifactory.artifactory_api.get_auth")
   @patch("requests.post")
   @patch("devops_mcps.utils.artifactory.artifactory_api.cache.get")
-  def test_search_items_connection_error(self, mock_cache_get, mock_post, mock_auth, mock_validate):
+  def test_search_items_connection_error(
+    self, mock_cache_get, mock_post, mock_auth, mock_validate
+  ):
     """Test search_items with connection error."""
     # Setup mocks
     mock_validate.return_value = True
@@ -1161,7 +1215,9 @@ class TestArtifactoryEdgeCases(unittest.TestCase):
   @patch("devops_mcps.utils.artifactory.artifactory_api.get_auth")
   @patch("requests.get")
   @patch("devops_mcps.utils.artifactory.artifactory_api.cache.get")
-  def test_get_item_info_invalid_path_characters(self, mock_cache_get, mock_get, mock_auth, mock_validate):
+  def test_get_item_info_invalid_path_characters(
+    self, mock_cache_get, mock_get, mock_auth, mock_validate
+  ):
     """Test get_item_info with invalid path characters."""
     # Setup mocks
     mock_validate.return_value = True
@@ -1188,7 +1244,9 @@ class TestArtifactoryEdgeCases(unittest.TestCase):
   @patch("devops_mcps.utils.artifactory.artifactory_api.get_auth")
   @patch("requests.get")
   @patch("devops_mcps.utils.artifactory.artifactory_api.cache.get")
-  def test_get_item_info_properties_request_fails(self, mock_cache_get, mock_get, mock_auth, mock_validate):
+  def test_get_item_info_properties_request_fails(
+    self, mock_cache_get, mock_get, mock_auth, mock_validate
+  ):
     """Test get_item_info when properties request fails but main request succeeds."""
     # Setup mocks
     mock_validate.return_value = True
@@ -1221,7 +1279,9 @@ class TestArtifactoryAQLQueryConstruction(unittest.TestCase):
   @patch("devops_mcps.utils.artifactory.artifactory_api.get_auth")
   @patch("requests.post")
   @patch("devops_mcps.utils.artifactory.artifactory_api.cache.get")
-  def test_search_items_single_repository(self, mock_cache_get, mock_post, mock_auth, mock_validate):
+  def test_search_items_single_repository(
+    self, mock_cache_get, mock_post, mock_auth, mock_validate
+  ):
     """Test search_items with single repository in AQL query."""
     # Setup mocks
     mock_validate.return_value = True
@@ -1231,7 +1291,9 @@ class TestArtifactoryAQLQueryConstruction(unittest.TestCase):
     # Mock successful response
     mock_response = MagicMock()
     mock_response.status_code = 200
-    mock_response.json.return_value = {"results": [{"name": "test.jar", "repo": "test-repo"}]}
+    mock_response.json.return_value = {
+      "results": [{"name": "test.jar", "repo": "test-repo"}]
+    }
     mock_post.return_value = mock_response
 
     # Call function with single repository
@@ -1249,7 +1311,9 @@ class TestArtifactoryAQLQueryConstruction(unittest.TestCase):
   @patch("devops_mcps.utils.artifactory.artifactory_api.get_auth")
   @patch("requests.post")
   @patch("devops_mcps.utils.artifactory.artifactory_api.cache.get")
-  def test_search_items_multiple_repositories(self, mock_cache_get, mock_post, mock_auth, mock_validate):
+  def test_search_items_multiple_repositories(
+    self, mock_cache_get, mock_post, mock_auth, mock_validate
+  ):
     """Test search_items with multiple repositories in AQL query."""
     # Setup mocks
     mock_validate.return_value = True
@@ -1259,7 +1323,9 @@ class TestArtifactoryAQLQueryConstruction(unittest.TestCase):
     # Mock successful response
     mock_response = MagicMock()
     mock_response.status_code = 200
-    mock_response.json.return_value = {"results": [{"name": "test.jar", "repo": "repo1"}]}
+    mock_response.json.return_value = {
+      "results": [{"name": "test.jar", "repo": "repo1"}]
+    }
     mock_post.return_value = mock_response
 
     # Call function with multiple repositories
@@ -1279,7 +1345,9 @@ class TestArtifactoryAQLQueryConstruction(unittest.TestCase):
   @patch("devops_mcps.utils.artifactory.artifactory_api.get_auth")
   @patch("requests.post")
   @patch("devops_mcps.utils.artifactory.artifactory_api.cache.get")
-  def test_search_items_complex_pattern(self, mock_cache_get, mock_post, mock_auth, mock_validate):
+  def test_search_items_complex_pattern(
+    self, mock_cache_get, mock_post, mock_auth, mock_validate
+  ):
     """Test search_items with complex search pattern."""
     # Setup mocks
     mock_validate.return_value = True
@@ -1308,7 +1376,9 @@ class TestArtifactoryAQLQueryConstruction(unittest.TestCase):
   @patch("devops_mcps.utils.artifactory.artifactory_api.get_auth")
   @patch("requests.post")
   @patch("devops_mcps.utils.artifactory.artifactory_api.cache.get")
-  def test_search_items_special_characters_in_pattern(self, mock_cache_get, mock_post, mock_auth, mock_validate):
+  def test_search_items_special_characters_in_pattern(
+    self, mock_cache_get, mock_post, mock_auth, mock_validate
+  ):
     """Test search_items with special characters in search pattern."""
     # Setup mocks
     mock_validate.return_value = True
@@ -1336,7 +1406,9 @@ class TestArtifactoryAQLQueryConstruction(unittest.TestCase):
   @patch("devops_mcps.utils.artifactory.artifactory_api.get_auth")
   @patch("requests.post")
   @patch("devops_mcps.utils.artifactory.artifactory_api.cache.get")
-  def test_search_items_empty_repository_list(self, mock_cache_get, mock_post, mock_auth, mock_validate):
+  def test_search_items_empty_repository_list(
+    self, mock_cache_get, mock_post, mock_auth, mock_validate
+  ):
     """Test search_items with empty repository list."""
     # Setup mocks
     mock_validate.return_value = True
@@ -1363,7 +1435,9 @@ class TestArtifactoryAQLQueryConstruction(unittest.TestCase):
   @patch("devops_mcps.utils.artifactory.artifactory_api.get_auth")
   @patch("requests.post")
   @patch("devops_mcps.utils.artifactory.artifactory_api.cache.get")
-  def test_search_items_wildcard_patterns(self, mock_cache_get, mock_post, mock_auth, mock_validate):
+  def test_search_items_wildcard_patterns(
+    self, mock_cache_get, mock_post, mock_auth, mock_validate
+  ):
     """Test search_items with various wildcard patterns."""
     # Setup mocks
     mock_validate.return_value = True
@@ -1378,11 +1452,11 @@ class TestArtifactoryAQLQueryConstruction(unittest.TestCase):
 
     # Test different wildcard patterns
     patterns = ["*", "**/*", "*.jar", "test-*-*.jar", "**/target/*.jar"]
-    
+
     for pattern in patterns:
       with self.subTest(pattern=pattern):
         result = artifactory_search_items(pattern, ["test-repo"])
-        
+
         # Assertions
         self.assertIsInstance(result, list)
         mock_post.assert_called()
@@ -1394,7 +1468,9 @@ class TestArtifactoryAQLQueryConstruction(unittest.TestCase):
   @patch("devops_mcps.utils.artifactory.artifactory_api.get_auth")
   @patch("requests.post")
   @patch("devops_mcps.utils.artifactory.artifactory_api.cache.get")
-  def test_search_items_aql_query_structure_single_repo(self, mock_cache_get, mock_post, mock_auth, mock_validate):
+  def test_search_items_aql_query_structure_single_repo(
+    self, mock_cache_get, mock_post, mock_auth, mock_validate
+  ):
     """Test AQL query structure for single repository search."""
     # Setup mocks
     mock_validate.return_value = True
@@ -1408,13 +1484,13 @@ class TestArtifactoryAQLQueryConstruction(unittest.TestCase):
     mock_post.return_value = mock_response
 
     # Call function
-    result = artifactory_search_items("test.jar", ["maven-repo"])
+    artifactory_search_items("test.jar", ["maven-repo"])
 
     # Verify AQL query structure
     posted_data = mock_post.call_args[1]["data"]
-    
+
     # Should contain proper AQL structure with $and, $or operators
-    self.assertIn('items.find', posted_data)
+    self.assertIn("items.find", posted_data)
     self.assertIn('"$and"', posted_data)
     self.assertIn('"$or"', posted_data)
     self.assertIn('"name"', posted_data)
@@ -1422,13 +1498,15 @@ class TestArtifactoryAQLQueryConstruction(unittest.TestCase):
     self.assertIn('"$match"', posted_data)
     self.assertIn('"repo"', posted_data)
     self.assertIn('"maven-repo"', posted_data)
-    self.assertIn('*test.jar*', posted_data)
+    self.assertIn("*test.jar*", posted_data)
 
   @patch("devops_mcps.utils.artifactory.artifactory_api.validate_artifactory_config")
   @patch("devops_mcps.utils.artifactory.artifactory_api.get_auth")
   @patch("requests.post")
   @patch("devops_mcps.utils.artifactory.artifactory_api.cache.get")
-  def test_search_items_aql_query_structure_multiple_repos(self, mock_cache_get, mock_post, mock_auth, mock_validate):
+  def test_search_items_aql_query_structure_multiple_repos(
+    self, mock_cache_get, mock_post, mock_auth, mock_validate
+  ):
     """Test AQL query structure for multiple repository search."""
     # Setup mocks
     mock_validate.return_value = True
@@ -1442,24 +1520,26 @@ class TestArtifactoryAQLQueryConstruction(unittest.TestCase):
     mock_post.return_value = mock_response
 
     # Call function with multiple repositories
-    result = artifactory_search_items("*.war", ["repo1", "repo2", "repo3"])
+    artifactory_search_items("*.war", ["repo1", "repo2", "repo3"])
 
     # Verify AQL query structure
     posted_data = mock_post.call_args[1]["data"]
-    
+
     # Should contain all repositories in OR condition
     self.assertIn('"repo":"repo1"', posted_data)
     self.assertIn('"repo":"repo2"', posted_data)
     self.assertIn('"repo":"repo3"', posted_data)
     # Should have proper nested structure
     self.assertIn('"$and"', posted_data)
-    self.assertIn('**.war*', posted_data)
+    self.assertIn("**.war*", posted_data)
 
   @patch("devops_mcps.utils.artifactory.artifactory_api.validate_artifactory_config")
   @patch("devops_mcps.utils.artifactory.artifactory_api.get_auth")
   @patch("requests.post")
   @patch("devops_mcps.utils.artifactory.artifactory_api.cache.get")
-  def test_search_items_aql_query_no_repositories(self, mock_cache_get, mock_post, mock_auth, mock_validate):
+  def test_search_items_aql_query_no_repositories(
+    self, mock_cache_get, mock_post, mock_auth, mock_validate
+  ):
     """Test AQL query structure when no repositories specified."""
     # Setup mocks
     mock_validate.return_value = True
@@ -1473,24 +1553,26 @@ class TestArtifactoryAQLQueryConstruction(unittest.TestCase):
     mock_post.return_value = mock_response
 
     # Call function with empty repository list
-    result = artifactory_search_items("test.jar", [])
+    artifactory_search_items("test.jar", [])
 
     # Verify AQL query structure without repository filter
     posted_data = mock_post.call_args[1]["data"]
-    
+
     # Should not contain $and operator when no repo filter
     self.assertNotIn('"$and"', posted_data)
     # Should still contain name and path matching
     self.assertIn('"$or"', posted_data)
     self.assertIn('"name"', posted_data)
     self.assertIn('"path"', posted_data)
-    self.assertIn('*test.jar*', posted_data)
+    self.assertIn("*test.jar*", posted_data)
 
   @patch("devops_mcps.utils.artifactory.artifactory_api.validate_artifactory_config")
   @patch("devops_mcps.utils.artifactory.artifactory_api.get_auth")
   @patch("requests.post")
   @patch("devops_mcps.utils.artifactory.artifactory_api.cache.get")
-  def test_search_items_query_with_quotes_and_escaping(self, mock_cache_get, mock_post, mock_auth, mock_validate):
+  def test_search_items_query_with_quotes_and_escaping(
+    self, mock_cache_get, mock_post, mock_auth, mock_validate
+  ):
     """Test search_items with queries containing quotes and special characters."""
     # Setup mocks
     mock_validate.return_value = True
@@ -1509,13 +1591,13 @@ class TestArtifactoryAQLQueryConstruction(unittest.TestCase):
       "file'with'apostrophes.jar",
       "file[with]brackets.jar",
       "file{with}braces.jar",
-      "file\\with\\backslashes.jar"
+      "file\\with\\backslashes.jar",
     ]
-    
+
     for query in special_queries:
       with self.subTest(query=query):
         result = artifactory_search_items(query, ["test-repo"])
-        
+
         # Verify the query is included in AQL
         posted_data = mock_post.call_args[1]["data"]
         self.assertIn(query, posted_data)
@@ -1525,7 +1607,9 @@ class TestArtifactoryAQLQueryConstruction(unittest.TestCase):
   @patch("devops_mcps.utils.artifactory.artifactory_api.get_auth")
   @patch("requests.post")
   @patch("devops_mcps.utils.artifactory.artifactory_api.cache.get")
-  def test_search_items_repository_names_with_special_characters(self, mock_cache_get, mock_post, mock_auth, mock_validate):
+  def test_search_items_repository_names_with_special_characters(
+    self, mock_cache_get, mock_post, mock_auth, mock_validate
+  ):
     """Test search_items with repository names containing special characters."""
     # Setup mocks
     mock_validate.return_value = True
@@ -1544,11 +1628,11 @@ class TestArtifactoryAQLQueryConstruction(unittest.TestCase):
       "repo_with_underscores",
       "repo.with.dots",
       "repo123with456numbers",
-      "REPO-WITH-CAPS"
+      "REPO-WITH-CAPS",
     ]
-    
+
     result = artifactory_search_items("*.jar", special_repos)
-    
+
     # Verify all repository names are included in AQL
     posted_data = mock_post.call_args[1]["data"]
     for repo in special_repos:
@@ -1559,7 +1643,9 @@ class TestArtifactoryAQLQueryConstruction(unittest.TestCase):
   @patch("devops_mcps.utils.artifactory.artifactory_api.get_auth")
   @patch("requests.post")
   @patch("devops_mcps.utils.artifactory.artifactory_api.cache.get")
-  def test_search_items_very_long_query_pattern(self, mock_cache_get, mock_post, mock_auth, mock_validate):
+  def test_search_items_very_long_query_pattern(
+    self, mock_cache_get, mock_post, mock_auth, mock_validate
+  ):
     """Test search_items with very long query patterns."""
     # Setup mocks
     mock_validate.return_value = True
@@ -1573,10 +1659,12 @@ class TestArtifactoryAQLQueryConstruction(unittest.TestCase):
     mock_post.return_value = mock_response
 
     # Create a very long query pattern
-    long_pattern = "com/example/very/long/path/with/many/segments/" + "a" * 100 + "/*.jar"
-    
+    long_pattern = (
+      "com/example/very/long/path/with/many/segments/" + "a" * 100 + "/*.jar"
+    )
+
     result = artifactory_search_items(long_pattern, ["maven-repo"])
-    
+
     # Verify the long pattern is handled correctly
     posted_data = mock_post.call_args[1]["data"]
     self.assertIn(long_pattern, posted_data)
@@ -1586,7 +1674,9 @@ class TestArtifactoryAQLQueryConstruction(unittest.TestCase):
   @patch("devops_mcps.utils.artifactory.artifactory_api.get_auth")
   @patch("requests.post")
   @patch("devops_mcps.utils.artifactory.artifactory_api.cache.get")
-  def test_search_items_unicode_patterns_and_repos(self, mock_cache_get, mock_post, mock_auth, mock_validate):
+  def test_search_items_unicode_patterns_and_repos(
+    self, mock_cache_get, mock_post, mock_auth, mock_validate
+  ):
     """Test search_items with Unicode characters in patterns and repository names."""
     # Setup mocks
     mock_validate.return_value = True
@@ -1602,9 +1692,9 @@ class TestArtifactoryAQLQueryConstruction(unittest.TestCase):
     # Test with Unicode characters
     unicode_pattern = "测试文件-*.jar"
     unicode_repos = ["测试仓库", "репозиторий", "リポジトリ"]
-    
+
     result = artifactory_search_items(unicode_pattern, unicode_repos)
-    
+
     # Verify Unicode characters are handled correctly
     posted_data = mock_post.call_args[1]["data"]
     self.assertIn(unicode_pattern, posted_data)
@@ -1620,7 +1710,9 @@ class TestArtifactoryPathNormalization(unittest.TestCase):
   @patch("devops_mcps.utils.artifactory.artifactory_api.get_auth")
   @patch("requests.get")
   @patch("devops_mcps.utils.artifactory.artifactory_api.cache.get")
-  def test_list_items_path_with_leading_slash(self, mock_cache_get, mock_get, mock_auth, mock_validate):
+  def test_list_items_path_with_leading_slash(
+    self, mock_cache_get, mock_get, mock_auth, mock_validate
+  ):
     """Test list_items with path that has leading slash."""
     # Setup mocks
     mock_validate.return_value = True
@@ -1630,7 +1722,10 @@ class TestArtifactoryPathNormalization(unittest.TestCase):
     # Mock successful response for directory
     mock_response = MagicMock()
     mock_response.status_code = 200
-    mock_response.json.return_value = {"uri": "/test", "children": [{"uri": "/item1"}, {"uri": "/item2"}]}
+    mock_response.json.return_value = {
+      "uri": "/test",
+      "children": [{"uri": "/item1"}, {"uri": "/item2"}],
+    }
     mock_get.return_value = mock_response
 
     # Call function with leading slash
@@ -1648,7 +1743,9 @@ class TestArtifactoryPathNormalization(unittest.TestCase):
   @patch("devops_mcps.utils.artifactory.artifactory_api.get_auth")
   @patch("requests.get")
   @patch("devops_mcps.utils.artifactory.artifactory_api.cache.get")
-  def test_list_items_path_without_leading_slash(self, mock_cache_get, mock_get, mock_auth, mock_validate):
+  def test_list_items_path_without_leading_slash(
+    self, mock_cache_get, mock_get, mock_auth, mock_validate
+  ):
     """Test list_items with path that doesn't have leading slash."""
     # Setup mocks
     mock_validate.return_value = True
@@ -1676,7 +1773,9 @@ class TestArtifactoryPathNormalization(unittest.TestCase):
   @patch("devops_mcps.utils.artifactory.artifactory_api.get_auth")
   @patch("requests.get")
   @patch("devops_mcps.utils.artifactory.artifactory_api.cache.get")
-  def test_list_items_root_path(self, mock_cache_get, mock_get, mock_auth, mock_validate):
+  def test_list_items_root_path(
+    self, mock_cache_get, mock_get, mock_auth, mock_validate
+  ):
     """Test list_items with root path."""
     # Setup mocks
     mock_validate.return_value = True
@@ -1686,7 +1785,10 @@ class TestArtifactoryPathNormalization(unittest.TestCase):
     # Mock successful response for root directory
     mock_response = MagicMock()
     mock_response.status_code = 200
-    mock_response.json.return_value = {"uri": "/", "children": [{"uri": "/folder1"}, {"uri": "/folder2"}]}
+    mock_response.json.return_value = {
+      "uri": "/",
+      "children": [{"uri": "/folder1"}, {"uri": "/folder2"}],
+    }
     mock_get.return_value = mock_response
 
     # Call function with root path
@@ -1703,7 +1805,9 @@ class TestArtifactoryPathNormalization(unittest.TestCase):
   @patch("devops_mcps.utils.artifactory.artifactory_api.get_auth")
   @patch("requests.get")
   @patch("devops_mcps.utils.artifactory.artifactory_api.cache.get")
-  def test_get_item_info_path_with_double_slashes(self, mock_cache_get, mock_get, mock_auth, mock_validate):
+  def test_get_item_info_path_with_double_slashes(
+    self, mock_cache_get, mock_get, mock_auth, mock_validate
+  ):
     """Test get_item_info with path containing double slashes."""
     # Setup mocks
     mock_validate.return_value = True
@@ -1730,7 +1834,9 @@ class TestArtifactoryPathNormalization(unittest.TestCase):
   @patch("devops_mcps.utils.artifactory.artifactory_api.get_auth")
   @patch("requests.get")
   @patch("devops_mcps.utils.artifactory.artifactory_api.cache.get")
-  def test_get_item_info_path_with_trailing_slash(self, mock_cache_get, mock_get, mock_auth, mock_validate):
+  def test_get_item_info_path_with_trailing_slash(
+    self, mock_cache_get, mock_get, mock_auth, mock_validate
+  ):
     """Test get_item_info with path that has trailing slash."""
     # Setup mocks
     mock_validate.return_value = True
@@ -1756,7 +1862,9 @@ class TestArtifactoryPathNormalization(unittest.TestCase):
   @patch("devops_mcps.utils.artifactory.artifactory_api.get_auth")
   @patch("requests.get")
   @patch("devops_mcps.utils.artifactory.artifactory_api.cache.get")
-  def test_get_item_info_empty_path(self, mock_cache_get, mock_get, mock_auth, mock_validate):
+  def test_get_item_info_empty_path(
+    self, mock_cache_get, mock_get, mock_auth, mock_validate
+  ):
     """Test get_item_info with empty path."""
     # Setup mocks
     mock_validate.return_value = True
@@ -1783,7 +1891,9 @@ class TestArtifactoryPathNormalization(unittest.TestCase):
   @patch("devops_mcps.utils.artifactory.artifactory_api.get_auth")
   @patch("requests.get")
   @patch("devops_mcps.utils.artifactory.artifactory_api.cache.get")
-  def test_list_items_path_with_spaces(self, mock_cache_get, mock_get, mock_auth, mock_validate):
+  def test_list_items_path_with_spaces(
+    self, mock_cache_get, mock_get, mock_auth, mock_validate
+  ):
     """Test list_items with path containing spaces."""
     # Setup mocks
     mock_validate.return_value = True
@@ -1810,7 +1920,9 @@ class TestArtifactoryPathNormalization(unittest.TestCase):
   @patch("devops_mcps.utils.artifactory.artifactory_api.get_auth")
   @patch("requests.get")
   @patch("devops_mcps.utils.artifactory.artifactory_api.cache.get")
-  def test_get_item_info_path_with_special_characters(self, mock_cache_get, mock_get, mock_auth, mock_validate):
+  def test_get_item_info_path_with_special_characters(
+    self, mock_cache_get, mock_get, mock_auth, mock_validate
+  ):
     """Test get_item_info with path containing special characters."""
     # Setup mocks
     mock_validate.return_value = True
@@ -1824,7 +1936,9 @@ class TestArtifactoryPathNormalization(unittest.TestCase):
     mock_get.return_value = mock_response
 
     # Call function with special characters in path
-    result = artifactory_get_item_info("test-repo", "/path/with-special_chars@#$%/file.txt")
+    result = artifactory_get_item_info(
+      "test-repo", "/path/with-special_chars@#$%/file.txt"
+    )
 
     # Assertions
     self.assertIn("uri", result)
@@ -1836,7 +1950,9 @@ class TestArtifactoryPathNormalization(unittest.TestCase):
   @patch("devops_mcps.utils.artifactory.artifactory_api.get_auth")
   @patch("requests.get")
   @patch("devops_mcps.utils.artifactory.artifactory_api.cache.get")
-  def test_list_items_path_normalization_trailing_slash_removal(self, mock_cache_get, mock_get, mock_auth, mock_validate):
+  def test_list_items_path_normalization_trailing_slash_removal(
+    self, mock_cache_get, mock_get, mock_auth, mock_validate
+  ):
     """Test list_items removes trailing slash from non-root paths."""
     # Setup mocks
     mock_validate.return_value = True
@@ -1864,7 +1980,9 @@ class TestArtifactoryPathNormalization(unittest.TestCase):
   @patch("devops_mcps.utils.artifactory.artifactory_api.get_auth")
   @patch("requests.get")
   @patch("devops_mcps.utils.artifactory.artifactory_api.cache.get")
-  def test_list_items_root_path_preserves_trailing_slash(self, mock_cache_get, mock_get, mock_auth, mock_validate):
+  def test_list_items_root_path_preserves_trailing_slash(
+    self, mock_cache_get, mock_get, mock_auth, mock_validate
+  ):
     """Test list_items preserves trailing slash for root path."""
     # Setup mocks
     mock_validate.return_value = True
@@ -1891,7 +2009,9 @@ class TestArtifactoryPathNormalization(unittest.TestCase):
   @patch("devops_mcps.utils.artifactory.artifactory_api.get_auth")
   @patch("requests.get")
   @patch("devops_mcps.utils.artifactory.artifactory_api.cache.get")
-  def test_get_item_info_path_with_unicode_characters(self, mock_cache_get, mock_get, mock_auth, mock_validate):
+  def test_get_item_info_path_with_unicode_characters(
+    self, mock_cache_get, mock_get, mock_auth, mock_validate
+  ):
     """Test get_item_info with path containing Unicode characters."""
     # Setup mocks
     mock_validate.return_value = True
@@ -1905,7 +2025,9 @@ class TestArtifactoryPathNormalization(unittest.TestCase):
     mock_get.return_value = mock_response
 
     # Call function with Unicode characters in path
-    result = artifactory_get_item_info("test-repo", "/path/with/ünïcödé/characters/文件.txt")
+    result = artifactory_get_item_info(
+      "test-repo", "/path/with/ünïcödé/characters/文件.txt"
+    )
 
     # Assertions
     self.assertIn("uri", result)
@@ -1922,7 +2044,9 @@ class TestArtifactoryCachingBehavior(unittest.TestCase):
   @patch("requests.get")
   @patch("devops_mcps.utils.artifactory.artifactory_api.cache.get")
   @patch("devops_mcps.utils.artifactory.artifactory_api.cache.set")
-  def test_list_items_cache_miss_and_set(self, mock_cache_set, mock_cache_get, mock_get, mock_auth, mock_validate):
+  def test_list_items_cache_miss_and_set(
+    self, mock_cache_set, mock_cache_get, mock_get, mock_auth, mock_validate
+  ):
     """Test list_items cache miss scenario and cache setting."""
     # Setup mocks
     mock_validate.return_value = True
@@ -1953,7 +2077,9 @@ class TestArtifactoryCachingBehavior(unittest.TestCase):
   @patch("devops_mcps.utils.artifactory.artifactory_api.get_auth")
   @patch("requests.get")
   @patch("devops_mcps.utils.artifactory.artifactory_api.cache.get")
-  def test_list_items_cache_hit(self, mock_cache_get, mock_get, mock_auth, mock_validate):
+  def test_list_items_cache_hit(
+    self, mock_cache_get, mock_get, mock_auth, mock_validate
+  ):
     """Test list_items cache hit scenario."""
     # Setup mocks
     mock_validate.return_value = True
@@ -1975,7 +2101,9 @@ class TestArtifactoryCachingBehavior(unittest.TestCase):
   @patch("requests.post")
   @patch("devops_mcps.utils.artifactory.artifactory_api.cache.get")
   @patch("devops_mcps.utils.artifactory.artifactory_api.cache.set")
-  def test_search_items_cache_key_generation(self, mock_cache_set, mock_cache_get, mock_post, mock_auth, mock_validate):
+  def test_search_items_cache_key_generation(
+    self, mock_cache_set, mock_cache_get, mock_post, mock_auth, mock_validate
+  ):
     """Test search_items cache key generation with different parameters."""
     # Setup mocks
     mock_validate.return_value = True
@@ -1991,7 +2119,7 @@ class TestArtifactoryCachingBehavior(unittest.TestCase):
 
     # Call function with multiple repositories
     result = artifactory_search_items("*.jar", ["repo1", "repo2"])
-    
+
     # Assertions
     self.assertEqual(result, response_data["results"])
     mock_cache_get.assert_called_once()
@@ -2008,7 +2136,9 @@ class TestArtifactoryCachingBehavior(unittest.TestCase):
   @patch("requests.get")
   @patch("devops_mcps.utils.artifactory.artifactory_api.cache.get")
   @patch("devops_mcps.utils.artifactory.artifactory_api.cache.set")
-  def test_get_item_info_cache_ttl_setting(self, mock_cache_set, mock_cache_get, mock_get, mock_auth, mock_validate):
+  def test_get_item_info_cache_ttl_setting(
+    self, mock_cache_set, mock_cache_get, mock_get, mock_auth, mock_validate
+  ):
     """Test get_item_info cache TTL setting."""
     # Setup mocks
     mock_validate.return_value = True
@@ -2031,15 +2161,17 @@ class TestArtifactoryCachingBehavior(unittest.TestCase):
     # Verify cache TTL is set (should be 300 seconds based on implementation)
     cache_set_args = mock_cache_set.call_args
     self.assertEqual(len(cache_set_args[0]), 2)  # key, value
-    self.assertIn('ttl', cache_set_args[1])  # ttl as keyword argument
-    ttl = cache_set_args[1]['ttl']
+    self.assertIn("ttl", cache_set_args[1])  # ttl as keyword argument
+    ttl = cache_set_args[1]["ttl"]
     self.assertEqual(ttl, 300)
 
   @patch("devops_mcps.utils.artifactory.artifactory_api.validate_artifactory_config")
   @patch("devops_mcps.utils.artifactory.artifactory_api.get_auth")
   @patch("requests.get")
   @patch("devops_mcps.utils.artifactory.artifactory_api.cache.get")
-  def test_cache_key_uniqueness(self, mock_cache_get, mock_get, mock_auth, mock_validate):
+  def test_cache_key_uniqueness(
+    self, mock_cache_get, mock_get, mock_auth, mock_validate
+  ):
     """Test that different parameters generate unique cache keys."""
     # Setup mocks
     mock_validate.return_value = True
@@ -2055,10 +2187,10 @@ class TestArtifactoryCachingBehavior(unittest.TestCase):
     # Call function with different parameters
     artifactory_list_items("repo1", "/path1")
     cache_key1 = mock_cache_get.call_args[0][0]
-    
+
     artifactory_list_items("repo2", "/path1")
     cache_key2 = mock_cache_get.call_args[0][0]
-    
+
     artifactory_list_items("repo1", "/path2")
     cache_key3 = mock_cache_get.call_args[0][0]
 
@@ -2071,7 +2203,9 @@ class TestArtifactoryCachingBehavior(unittest.TestCase):
   @patch("devops_mcps.utils.artifactory.artifactory_api.get_auth")
   @patch("requests.post")
   @patch("devops_mcps.utils.artifactory.artifactory_api.cache.get")
-  def test_search_items_cache_with_sorted_repositories(self, mock_cache_get, mock_post, mock_auth, mock_validate):
+  def test_search_items_cache_with_sorted_repositories(
+    self, mock_cache_get, mock_post, mock_auth, mock_validate
+  ):
     """Test that repository order doesn't affect cache key generation."""
     # Setup mocks
     mock_validate.return_value = True
@@ -2087,7 +2221,7 @@ class TestArtifactoryCachingBehavior(unittest.TestCase):
     # Call function with repositories in different order
     artifactory_search_items("*.jar", ["repo1", "repo2", "repo3"])
     cache_key1 = mock_cache_get.call_args[0][0]
-    
+
     artifactory_search_items("*.jar", ["repo3", "repo1", "repo2"])
     cache_key2 = mock_cache_get.call_args[0][0]
 
@@ -2099,7 +2233,9 @@ class TestArtifactoryCachingBehavior(unittest.TestCase):
   @patch("requests.get")
   @patch("devops_mcps.utils.artifactory.artifactory_api.cache.get")
   @patch("devops_mcps.utils.artifactory.artifactory_api.cache.set")
-  def test_cache_behavior_with_special_characters(self, mock_cache_set, mock_cache_get, mock_get, mock_auth, mock_validate):
+  def test_cache_behavior_with_special_characters(
+    self, mock_cache_set, mock_cache_get, mock_get, mock_auth, mock_validate
+  ):
     """Test cache behavior with special characters in paths."""
     # Setup mocks
     mock_validate.return_value = True

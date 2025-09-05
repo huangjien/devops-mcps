@@ -15,16 +15,16 @@ from .github_converters import _to_dict, _handle_paginated_list
 
 # Re-export all functions for backward compatibility
 __all__ = [
-    "gh_get_current_user_info",
-    "gh_search_repositories",
-    "gh_get_file_contents",
-    "gh_list_commits",
-    "gh_list_issues",
-    "gh_get_repository",
-    "gh_search_code",
-    "gh_get_issue_details",
-    "gh_get_issue_content",
-    "initialize_github_client",
-    "_to_dict",
-    "_handle_paginated_list",
+  "gh_get_current_user_info",
+  "gh_search_repositories",
+  "gh_get_file_contents",
+  "gh_list_commits",
+  "gh_list_issues",
+  "gh_get_repository",
+  "gh_search_code",
+  "gh_get_issue_details",
+  "gh_get_issue_content",
+  "initialize_github_client",
+  "_to_dict",
+  "_handle_paginated_list",
 ]

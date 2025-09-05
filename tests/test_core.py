@@ -52,7 +52,17 @@ async def test_get_file_contents_valid(monkeypatch):
 async def test_list_commits_valid(monkeypatch):
   expected_commits = [{"sha": "abc123", "message": "Initial commit"}]
   monkeypatch.setattr(
-    core.github, "gh_list_commits", lambda owner, repo, branch=None, since=None, until=None, author=None, path=None, per_page=30, page=1: expected_commits
+    core.github,
+    "gh_list_commits",
+    lambda owner,
+    repo,
+    branch=None,
+    since=None,
+    until=None,
+    author=None,
+    path=None,
+    per_page=30,
+    page=1: expected_commits,
   )
   result = await core.list_commits("owner", "repo")
   assert result == expected_commits
@@ -714,7 +724,7 @@ def test_main_no_github_auth(mock_init_github, mock_create_server):
 def test_main_stream_http_no_transport_arg(mock_create_server):
   """Test main_stream_http when no --transport argument exists."""
   original_argv = core.sys.argv.copy()
-  
+
   # Set up mock server
   mock_server = MagicMock()
   mock_create_server.return_value = mock_server
@@ -724,7 +734,9 @@ def test_main_stream_http_no_transport_arg(mock_create_server):
   assert "--transport" in core.sys.argv
   assert "stream_http" in core.sys.argv
   mock_create_server.assert_called_once()
-  mock_server.run.assert_called_once_with(transport="streamable-http", mount_path="/mcp")
+  mock_server.run.assert_called_once_with(
+    transport="streamable-http", mount_path="/mcp"
+  )
 
   # Restore original argv
   core.sys.argv = original_argv
@@ -735,7 +747,7 @@ def test_main_stream_http_no_transport_arg(mock_create_server):
 def test_main_stream_http_existing_transport_arg(mock_create_server):
   """Test main_stream_http when --transport argument already exists."""
   original_argv = core.sys.argv.copy()
-  
+
   # Set up mock server
   mock_server = MagicMock()
   mock_create_server.return_value = mock_server
@@ -746,7 +758,9 @@ def test_main_stream_http_existing_transport_arg(mock_create_server):
   assert "stream_http" in core.sys.argv
   assert "stdio" not in core.sys.argv
   mock_create_server.assert_called_once()
-  mock_server.run.assert_called_once_with(transport="streamable-http", mount_path="/mcp")
+  mock_server.run.assert_called_once_with(
+    transport="streamable-http", mount_path="/mcp"
+  )
 
   # Restore original argv
   core.sys.argv = original_argv
@@ -757,7 +771,7 @@ def test_main_stream_http_existing_transport_arg(mock_create_server):
 def test_main_stream_http_transport_no_value(mock_create_server):
   """Test main_stream_http when --transport has no value."""
   original_argv = core.sys.argv.copy()
-  
+
   # Set up mock server
   mock_server = MagicMock()
   mock_create_server.return_value = mock_server
@@ -767,7 +781,9 @@ def test_main_stream_http_transport_no_value(mock_create_server):
   assert "--transport" in core.sys.argv
   assert "stream_http" in core.sys.argv
   mock_create_server.assert_called_once()
-  mock_server.run.assert_called_once_with(transport="streamable-http", mount_path="/mcp")
+  mock_server.run.assert_called_once_with(
+    transport="streamable-http", mount_path="/mcp"
+  )
 
   # Restore original argv
   core.sys.argv = original_argv
@@ -792,7 +808,15 @@ async def test_list_issues_with_all_parameters(monkeypatch):
   expected_result = [{"id": 1, "title": "Test Issue"}]
 
   def mock_gh_list_issues(
-    owner, repo, state="open", labels=None, sort="created", direction="desc", since=None, per_page=30, page=1
+    owner,
+    repo,
+    state="open",
+    labels=None,
+    sort="created",
+    direction="desc",
+    since=None,
+    per_page=30,
+    page=1,
   ):
     assert owner == "test_owner"
     assert repo == "test_repo"
@@ -840,7 +864,17 @@ async def test_list_commits_with_branch(monkeypatch):
   """Test list_commits with branch parameter."""
   expected_commits = [{"sha": "abc123", "message": "Test commit"}]
 
-  def mock_gh_list_commits(owner, repo, branch=None, since=None, until=None, author=None, path=None, per_page=30, page=1):
+  def mock_gh_list_commits(
+    owner,
+    repo,
+    branch=None,
+    since=None,
+    until=None,
+    author=None,
+    path=None,
+    per_page=30,
+    page=1,
+  ):
     assert owner == "test_owner"
     assert repo == "test_repo"
     assert branch == "develop"
@@ -1016,16 +1050,18 @@ def test_debug_logging_calls(mock_logger):
 # --- Dynamic Prompts Tests ---
 @patch("devops_mcps.core.mcp")
 @patch("devops_mcps.prompt_management.Path.exists")
-@patch("devops_mcps.prompt_management.open", new_callable=mock_open, read_data='{}')
+@patch("devops_mcps.prompt_management.open", new_callable=mock_open, read_data="{}")
 @patch("devops_mcps.prompt_management.json.load")
 @patch("devops_mcps.prompt_management.logger")
-def test_load_and_register_prompts_no_prompts(mock_logger, mock_json_load, mock_file, mock_exists, mock_mcp):
+def test_load_and_register_prompts_no_prompts(
+  mock_logger, mock_json_load, mock_file, mock_exists, mock_mcp
+):
   """Test loading when prompts.json contains no prompts."""
   mock_exists.return_value = True
   mock_json_load.return_value = {}
-  
+
   core.load_and_register_prompts()
-  
+
   mock_exists.assert_called_once()
   mock_file.assert_called_once()
   mock_json_load.assert_called_once()
@@ -1038,10 +1074,16 @@ def test_load_and_register_prompts_no_prompts(mock_logger, mock_json_load, mock_
 
 @patch("devops_mcps.core.mcp")
 @patch("devops_mcps.prompt_management.Path.exists")
-@patch("devops_mcps.prompt_management.open", new_callable=mock_open, read_data='{"test_prompt": {"name": "test_prompt", "description": "A test prompt", "template": "Test content with {{variable}}", "variables": {"variable": "Test variable"}}}')
+@patch(
+  "devops_mcps.prompt_management.open",
+  new_callable=mock_open,
+  read_data='{"test_prompt": {"name": "test_prompt", "description": "A test prompt", "template": "Test content with {{variable}}", "variables": {"variable": "Test variable"}}}',
+)
 @patch("devops_mcps.prompt_management.json.load")
 @patch("devops_mcps.prompt_management.logger")
-def test_load_and_register_prompts_success(mock_logger, mock_json_load, mock_file, mock_exists, mock_mcp):
+def test_load_and_register_prompts_success(
+  mock_logger, mock_json_load, mock_file, mock_exists, mock_mcp
+):
   """Test successful loading and registration of prompts."""
   mock_exists.return_value = True
   mock_prompts = {
@@ -1049,9 +1091,7 @@ def test_load_and_register_prompts_success(mock_logger, mock_json_load, mock_fil
       "name": "test_prompt",
       "description": "A test prompt",
       "template": "Test content with {{variable}}",
-      "variables": {
-        "variable": "Test variable"
-      },
+      "variables": {"variable": "Test variable"},
     }
   }
   mock_json_load.return_value = mock_prompts
@@ -1072,16 +1112,22 @@ def test_load_and_register_prompts_success(mock_logger, mock_json_load, mock_fil
 
 @patch("devops_mcps.core.mcp")
 @patch("devops_mcps.prompt_management.Path.exists")
-@patch("devops_mcps.prompt_management.open", new_callable=mock_open, read_data='{"test_prompt": {"description": "Test prompt", "template": "Hello {name}", "variables": {"name": {"type": "string", "required": true}}}}')
+@patch(
+  "devops_mcps.prompt_management.open",
+  new_callable=mock_open,
+  read_data='{"test_prompt": {"description": "Test prompt", "template": "Hello {name}", "variables": {"name": {"type": "string", "required": true}}}}',
+)
 @patch("devops_mcps.prompt_management.json.load")
 @patch("devops_mcps.prompt_management.logger")
-def test_load_and_register_prompts_exception(mock_logger, mock_json_load, mock_file, mock_exists, mock_mcp):
+def test_load_and_register_prompts_exception(
+  mock_logger, mock_json_load, mock_file, mock_exists, mock_mcp
+):
   """Test handling of exceptions during prompt loading."""
   mock_exists.return_value = True
   mock_json_load.side_effect = Exception("Test exception")
-  
+
   core.load_and_register_prompts()
-  
+
   mock_exists.assert_called_once()
   mock_file.assert_called_once()
   mock_json_load.assert_called_once()
@@ -1100,9 +1146,15 @@ def test_load_and_register_prompts_exception(mock_logger, mock_json_load, mock_f
 
 @patch("devops_mcps.core.mcp")
 @patch("devops_mcps.prompt_management.Path.exists")
-@patch("devops_mcps.prompt_management.open", new_callable=mock_open, read_data='{"simple_prompt": {"name": "simple_prompt", "description": "A simple prompt", "template": "Simple content"}}')
+@patch(
+  "devops_mcps.prompt_management.open",
+  new_callable=mock_open,
+  read_data='{"simple_prompt": {"name": "simple_prompt", "description": "A simple prompt", "template": "Simple content"}}',
+)
 @patch("devops_mcps.prompt_management.json.load")
-def test_load_and_register_prompts_no_arguments(mock_json_load, mock_file, mock_exists, mock_mcp):
+def test_load_and_register_prompts_no_arguments(
+  mock_json_load, mock_file, mock_exists, mock_mcp
+):
   """Test loading prompts without arguments."""
   mock_exists.return_value = True
   mock_prompts = {

@@ -8,7 +8,7 @@ from devops_mcps.github import gh_get_issue_content
 def test_gh_get_issue_content_success(mock_init_client, mock_cache_patch):
   """Test successful retrieval of GitHub issue content."""
   mock_cache_patch.get.return_value = None  # No cached result
-  
+
   mock_issue = Mock()
   mock_issue.title = "Test Issue"
   mock_issue.body = "Test Body"
@@ -31,7 +31,7 @@ def test_gh_get_issue_content_success(mock_init_client, mock_cache_patch):
 
   mock_repo = Mock()
   mock_repo.get_issue.return_value = mock_issue
-  
+
   mock_client = Mock()
   mock_client.get_repo.return_value = mock_repo
   mock_init_client.return_value = mock_client
@@ -40,11 +40,17 @@ def test_gh_get_issue_content_success(mock_init_client, mock_cache_patch):
 
   # Update assertions to match actual function return structure
   assert result["title"] == "Test Issue"
-  assert result["description"] == "Test Body"  # Function returns 'description', not 'body'
+  assert (
+    result["description"] == "Test Body"
+  )  # Function returns 'description', not 'body'
   assert result["labels"] == ["bug", "feature"]
-  assert result["timestamp"] == "2024-01-01T00:00:00Z"  # Function returns 'timestamp', not 'created_at'
+  assert (
+    result["timestamp"] == "2024-01-01T00:00:00Z"
+  )  # Function returns 'timestamp', not 'created_at'
   assert len(result["comments"]) == 1
-  assert result["comments"][0] == "Test Comment"  # Function returns comment body strings, not objects
+  assert (
+    result["comments"][0] == "Test Comment"
+  )  # Function returns comment body strings, not objects
 
 
 @patch("devops_mcps.utils.github.github_issue_api.cache")
@@ -52,7 +58,7 @@ def test_gh_get_issue_content_success(mock_init_client, mock_cache_patch):
 def test_gh_get_issue_content_not_found(mock_init_client, mock_cache_patch):
   """Test handling of non-existent issue."""
   mock_cache_patch.get.return_value = None  # No cached result
-  
+
   mock_client = Mock()
   mock_repo = Mock()
   mock_repo.get_issue.side_effect = UnknownObjectException(404, "Not Found")
@@ -70,10 +76,12 @@ def test_gh_get_issue_content_not_found(mock_init_client, mock_cache_patch):
 def test_gh_get_issue_content_api_error(mock_init_client, mock_cache_patch):
   """Test handling of GitHub API errors."""
   mock_cache_patch.get.return_value = None  # No cached result
-  
+
   mock_client = Mock()
   mock_repo = Mock()
-  mock_repo.get_issue.side_effect = GithubException(500, {"message": "Internal Server Error"})
+  mock_repo.get_issue.side_effect = GithubException(
+    500, {"message": "Internal Server Error"}
+  )
   mock_client.get_repo.return_value = mock_repo
   mock_init_client.return_value = mock_client
 

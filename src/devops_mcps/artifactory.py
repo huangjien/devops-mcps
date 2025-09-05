@@ -5,18 +5,17 @@ This module serves as the main interface for Artifactory operations,
 importing functionality from utility modules.
 """
 
-from typing import Dict, List, Any, Union, Optional
 
 # Import from utility modules
 from .utils.artifactory import (
-    artifactory_list_items,
-    artifactory_search_items,
-    artifactory_get_item_info,
+  artifactory_list_items,
+  artifactory_search_items,
+  artifactory_get_item_info,
 )
 
 # Re-export functions for backward compatibility
 __all__ = [
-    "artifactory_list_items",
-    "artifactory_search_items", 
-    "artifactory_get_item_info",
+  "artifactory_list_items",
+  "artifactory_search_items",
+  "artifactory_get_item_info",
 ]

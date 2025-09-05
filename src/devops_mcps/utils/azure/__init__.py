@@ -13,8 +13,8 @@ from .azure_containers import list_aks_clusters
 from .azure_subscriptions import get_subscriptions
 
 __all__ = [
-    "get_azure_credential",
-    "list_virtual_machines",
-    "list_aks_clusters",
-    "get_subscriptions",
+  "get_azure_credential",
+  "list_virtual_machines",
+  "list_aks_clusters",
+  "get_subscriptions",
 ]

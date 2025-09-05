@@ -13,8 +13,8 @@ from .utils.azure.azure_auth import get_azure_credential
 
 # Re-export all functions for backward compatibility
 __all__ = [
-    "get_subscriptions",
-    "list_virtual_machines",
-    "list_aks_clusters",
-    "get_azure_credential",
+  "get_subscriptions",
+  "list_virtual_machines",
+  "list_aks_clusters",
+  "get_azure_credential",
 ]

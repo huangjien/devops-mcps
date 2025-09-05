@@ -20,54 +20,54 @@ j: Optional[Jenkins] = None
 
 # Export constants and functions
 __all__ = [
-    'JENKINS_URL',
-    'JENKINS_USER', 
-    'JENKINS_TOKEN',
-    'LOG_LENGTH',
-    'j',
-    'initialize_jenkins_client',
-    'set_jenkins_client_for_testing'
+  "JENKINS_URL",
+  "JENKINS_USER",
+  "JENKINS_TOKEN",
+  "LOG_LENGTH",
+  "j",
+  "initialize_jenkins_client",
+  "set_jenkins_client_for_testing",
 ]
 
 
 def initialize_jenkins_client():
-    """Initializes the global Jenkins client 'j'."""
-    global j
-    if j:  # Already initialized
-        return j
-
-    if JENKINS_URL and JENKINS_USER and JENKINS_TOKEN:
-        try:
-            j = Jenkins(JENKINS_URL, username=JENKINS_USER, password=JENKINS_TOKEN)
-            # Basic connection test
-            _ = j.get_master_data()
-            logger.info(
-                "Successfully authenticated with Jenkins using JENKINS_URL, JENKINS_USER and JENKINS_TOKEN."
-            )
-        except JenkinsAPIException as e:
-            logger.error(f"Failed to initialize authenticated Jenkins client: {e}")
-            j = None
-        except ConnectionError as e:
-            logger.error(f"Failed to connect to Jenkins server: {e}")
-            j = None
-        except Exception as e:
-            logger.error(f"Unexpected error initializing authenticated Jenkins client: {e}")
-            j = None
-    else:
-        logger.warning(
-            "JENKINS_URL, JENKINS_USER, or JENKINS_TOKEN environment variable not set."
-        )
-        logger.warning("Jenkins related tools will have limited functionality.")
-        j = None
+  """Initializes the global Jenkins client 'j'."""
+  global j
+  if j:  # Already initialized
     return j
+
+  if JENKINS_URL and JENKINS_USER and JENKINS_TOKEN:
+    try:
+      j = Jenkins(JENKINS_URL, username=JENKINS_USER, password=JENKINS_TOKEN)
+      # Basic connection test
+      _ = j.get_master_data()
+      logger.info(
+        "Successfully authenticated with Jenkins using JENKINS_URL, JENKINS_USER and JENKINS_TOKEN."
+      )
+    except JenkinsAPIException as e:
+      logger.error(f"Failed to initialize authenticated Jenkins client: {e}")
+      j = None
+    except ConnectionError as e:
+      logger.error(f"Failed to connect to Jenkins server: {e}")
+      j = None
+    except Exception as e:
+      logger.error(f"Unexpected error initializing authenticated Jenkins client: {e}")
+      j = None
+  else:
+    logger.warning(
+      "JENKINS_URL, JENKINS_USER, or JENKINS_TOKEN environment variable not set."
+    )
+    logger.warning("Jenkins related tools will have limited functionality.")
+    j = None
+  return j
 
 
 def set_jenkins_client_for_testing(client):
-    """Set Jenkins client for testing purposes."""
-    global j
-    j = client
+  """Set Jenkins client for testing purposes."""
+  global j
+  j = client
 
 
 # Call initialization when the module is loaded
 if not any("pytest" in arg or "unittest" in arg for arg in sys.argv):
-    initialize_jenkins_client()
+  initialize_jenkins_client()

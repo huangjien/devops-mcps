@@ -1,6 +1,6 @@
 [project]
 name = "devops-mcps"
-version = "0.8.10"
+version = "0.8.11"
 description = "A FastMCP-based, Readonly MCP server for DevOps"
 authors = [{ name = "Jien Huang", email = "huangjien@gmail.com" }]
 readme = "README.md"
@@ -116,6 +116,11 @@ unfixable = []
 
 # Allow unused variables when underscore-prefixed.
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[tool.ruff.lint.per-file-ignores]
+# Some test files intentionally redefine test functions/classes for parametrization-like patterns
+"tests/test_github.py" = ["F811"]
+"tests/test_jenkins_view_api.py" = ["F811"]
 
 [tool.ruff.format]
 # Like Black, use double quotes for strings.

@@ -44,9 +44,7 @@ except PackageNotFoundError:
 
 # --- MCP Server Setup ---
 
-mcp = FastMCP(
-  f"DevOps MCP Server v{package_version} (Github & Jenkins)"
-)
+mcp = FastMCP(f"DevOps MCP Server v{package_version} (Github & Jenkins)")
 
 
 # --- Dynamic Prompts Loading ---
