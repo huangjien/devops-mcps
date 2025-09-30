@@ -142,6 +142,21 @@ wheels = [
 ]
 
 [[package]]
+name = "azure-mgmt-web"
+version = "10.0.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "azure-common" },
+    { name = "azure-mgmt-core" },
+    { name = "isodate" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/e2/e5/cbd65755cc26b0709e65849d7812f023e17dccd5a322430298645eaa7c61/azure_mgmt_web-10.0.0.tar.gz", hash = "sha256:6a32b6f41b1743184390636ab781c43def12fcfd6dd788f3029635d3f7d64c7b", size = 584941, upload-time = "2025-08-25T03:38:03.334Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ce/ec/6d58847abb39e2f7f8b237664aa5f68d43751e79c1cd576a2255cbf3c0d6/azure_mgmt_web-10.0.0-py3-none-any.whl", hash = "sha256:ddf241479baebc818db86570a07d47532b11583041d1eed16b44dfbe5ffedcb8", size = 667990, upload-time = "2025-08-25T03:38:05.514Z" },
+]
+
+[[package]]
 name = "certifi"
 version = "2025.8.3"
 source = { registry = "https://pypi.org/simple" }
@@ -369,6 +384,7 @@ dependencies = [
     { name = "azure-mgmt-compute" },
     { name = "azure-mgmt-containerservice" },
     { name = "azure-mgmt-subscription" },
+    { name = "azure-mgmt-web" },
     { name = "dotenv" },
     { name = "fastapi" },
     { name = "fastmcp" },
@@ -403,6 +419,7 @@ requires-dist = [
     { name = "azure-mgmt-compute", specifier = ">=30.6.0" },
     { name = "azure-mgmt-containerservice", specifier = ">=28.1.0" },
     { name = "azure-mgmt-subscription", specifier = ">=3.1.1" },
+    { name = "azure-mgmt-web", specifier = ">=7.0.0" },
     { name = "dotenv", specifier = ">=0.9.9" },
     { name = "fastapi", specifier = ">=0.115.12" },
     { name = "fastmcp", specifier = ">=2.11.0" },

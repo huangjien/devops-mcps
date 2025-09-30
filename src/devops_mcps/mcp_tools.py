@@ -59,6 +59,104 @@ async def list_aks_clusters(
   return azure.list_aks_clusters(subscription_id=subscription_id)
 
 
+async def list_azure_app_services(
+  subscription_id: str,
+  resource_group: Optional[str] = None,
+) -> Union[List[Dict[str, Any]], Dict[str, str]]:
+  """List all App Services in an Azure subscription or resource group.
+
+  Args:
+      subscription_id: Azure subscription ID.
+      resource_group: Optional resource group name to filter results.
+
+  Returns:
+      List of App Service dictionaries or an error dictionary.
+  """
+  logger.debug(f"Executing list_azure_app_services for subscription: {subscription_id}")
+  if not subscription_id:
+    logger.error("Parameter 'subscription_id' cannot be empty")
+    return {"error": "Parameter 'subscription_id' cannot be empty"}
+  return azure.list_app_services(subscription_id=subscription_id, resource_group=resource_group)
+
+
+async def get_azure_app_service_details(
+  subscription_id: str,
+  resource_group: str,
+  app_name: str,
+) -> Union[Dict[str, Any], Dict[str, str]]:
+  """Get detailed information about a specific Azure App Service.
+
+  Args:
+      subscription_id: Azure subscription ID.
+      resource_group: Resource group name.
+      app_name: App Service name.
+
+  Returns:
+      App Service details dictionary or an error dictionary.
+  """
+  logger.debug(f"Executing get_azure_app_service_details for app: {app_name}")
+  if not subscription_id:
+    logger.error("Parameter 'subscription_id' cannot be empty")
+    return {"error": "Parameter 'subscription_id' cannot be empty"}
+  if not resource_group:
+    logger.error("Parameter 'resource_group' cannot be empty")
+    return {"error": "Parameter 'resource_group' cannot be empty"}
+  if not app_name:
+    logger.error("Parameter 'app_name' cannot be empty")
+    return {"error": "Parameter 'app_name' cannot be empty"}
+  return azure.get_app_service_details(subscription_id=subscription_id, resource_group=resource_group, app_name=app_name)
+
+
+async def get_azure_app_service_metrics(
+  subscription_id: str,
+  resource_group: str,
+  app_name: str,
+  time_range: str = "PT1H",
+) -> Union[Dict[str, Any], Dict[str, str]]:
+  """Get metrics for a specific Azure App Service.
+
+  Args:
+      subscription_id: Azure subscription ID.
+      resource_group: Resource group name.
+      app_name: App Service name.
+      time_range: Time range for metrics (ISO 8601 duration format).
+
+  Returns:
+      App Service metrics dictionary or an error dictionary.
+  """
+  logger.debug(f"Executing get_azure_app_service_metrics for app: {app_name}")
+  if not subscription_id:
+    logger.error("Parameter 'subscription_id' cannot be empty")
+    return {"error": "Parameter 'subscription_id' cannot be empty"}
+  if not resource_group:
+    logger.error("Parameter 'resource_group' cannot be empty")
+    return {"error": "Parameter 'resource_group' cannot be empty"}
+  if not app_name:
+    logger.error("Parameter 'app_name' cannot be empty")
+    return {"error": "Parameter 'app_name' cannot be empty"}
+  return azure.get_app_service_metrics(subscription_id=subscription_id, resource_group=resource_group, app_name=app_name, time_range=time_range)
+
+
+async def list_azure_app_service_plans(
+  subscription_id: str,
+  resource_group: Optional[str] = None,
+) -> Union[List[Dict[str, Any]], Dict[str, str]]:
+  """List all App Service Plans in an Azure subscription or resource group.
+
+  Args:
+      subscription_id: Azure subscription ID.
+      resource_group: Optional resource group name to filter results.
+
+  Returns:
+      List of App Service Plan dictionaries or an error dictionary.
+  """
+  logger.debug(f"Executing list_azure_app_service_plans for subscription: {subscription_id}")
+  if not subscription_id:
+    logger.error("Parameter 'subscription_id' cannot be empty")
+    return {"error": "Parameter 'subscription_id' cannot be empty"}
+  return azure.list_app_service_plans(subscription_id=subscription_id, resource_group=resource_group)
+
+
 # --- GitHub Tools ---
 async def search_repositories(
   query: str,
@@ -414,6 +512,10 @@ def register_tools(mcp):
   mcp.tool()(get_azure_subscriptions)
   mcp.tool()(list_azure_vms)
   mcp.tool()(list_aks_clusters)
+  mcp.tool()(list_azure_app_services)
+  mcp.tool()(get_azure_app_service_details)
+  mcp.tool()(get_azure_app_service_metrics)
+  mcp.tool()(list_azure_app_service_plans)
 
   # Register GitHub tools
   mcp.tool()(search_repositories)

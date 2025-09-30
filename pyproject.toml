@@ -35,6 +35,7 @@ dependencies = [
     "azure-mgmt-compute>=30.6.0",
     "azure-mgmt-containerservice>=28.1.0",
     "azure-mgmt-subscription>=3.1.1",
+    "azure-mgmt-web>=7.0.0",
 ]
 requires-python = ">=3.12"
 
