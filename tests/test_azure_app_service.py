@@ -2,7 +2,8 @@
 
 import pytest
 from unittest.mock import Mock, patch, MagicMock
-from src.devops_mcps.utils.azure.azure_app_service import (
+
+from devops_mcps.utils.azure.azure_app_service import (
     list_app_services,
     get_app_service_details,
     get_app_service_metrics,
@@ -13,8 +14,8 @@ from src.devops_mcps.utils.azure.azure_app_service import (
 class TestAzureAppService:
     """Test cases for Azure App Service utilities."""
 
-    @patch("src.devops_mcps.utils.azure.azure_app_service.get_azure_credential")
-    @patch("src.devops_mcps.utils.azure.azure_app_service.WebSiteManagementClient")
+    @patch("devops_mcps.utils.azure.azure_app_service.get_azure_credential")
+    @patch("devops_mcps.utils.azure.azure_app_service.WebSiteManagementClient")
     def test_list_app_services_success(self, mock_web_client_class, mock_get_credential):
         """Test successful listing of App Services."""
         # Setup mocks
@@ -70,8 +71,8 @@ class TestAzureAppService:
         mock_web_client_class.assert_called_once_with(mock_credential, "test-subscription-id")
         mock_web_client.web_apps.list.assert_called_once()
 
-    @patch("src.devops_mcps.utils.azure.azure_app_service.get_azure_credential")
-    @patch("src.devops_mcps.utils.azure.azure_app_service.WebSiteManagementClient")
+    @patch("devops_mcps.utils.azure.azure_app_service.get_azure_credential")
+    @patch("devops_mcps.utils.azure.azure_app_service.WebSiteManagementClient")
     def test_list_app_services_by_resource_group(self, mock_web_client_class, mock_get_credential):
         """Test listing App Services filtered by resource group."""
         # Setup mocks
@@ -89,7 +90,7 @@ class TestAzureAppService:
         assert isinstance(result, list)
         mock_web_client.web_apps.list_by_resource_group.assert_called_once_with("test-rg")
 
-    @patch("src.devops_mcps.utils.azure.azure_app_service.get_azure_credential")
+    @patch("devops_mcps.utils.azure.azure_app_service.get_azure_credential")
     def test_list_app_services_auth_error(self, mock_get_credential):
         """Test handling of authentication errors."""
         mock_get_credential.side_effect = Exception("Authentication failed")
@@ -100,8 +101,8 @@ class TestAzureAppService:
         assert "error" in result
         assert "Authentication failed" in result["error"]
 
-    @patch("src.devops_mcps.utils.azure.azure_app_service.get_azure_credential")
-    @patch("src.devops_mcps.utils.azure.azure_app_service.WebSiteManagementClient")
+    @patch("devops_mcps.utils.azure.azure_app_service.get_azure_credential")
+    @patch("devops_mcps.utils.azure.azure_app_service.WebSiteManagementClient")
     def test_get_app_service_details_success(self, mock_web_client_class, mock_get_credential):
         """Test successful retrieval of App Service details."""
         # Setup mocks
@@ -168,8 +169,8 @@ class TestAzureAppService:
         assert len(result["deployment_slots"]) == 1
         assert result["deployment_slots"][0]["name"] == "test-app/staging"
 
-    @patch("src.devops_mcps.utils.azure.azure_app_service.get_azure_credential")
-    @patch("src.devops_mcps.utils.azure.azure_app_service.WebSiteManagementClient")
+    @patch("devops_mcps.utils.azure.azure_app_service.get_azure_credential")
+    @patch("devops_mcps.utils.azure.azure_app_service.WebSiteManagementClient")
     def test_get_app_service_metrics_success(self, mock_web_client_class, mock_get_credential):
         """Test successful retrieval of App Service metrics."""
         # Setup mocks
@@ -207,8 +208,8 @@ class TestAzureAppService:
         assert result["resource_usage"][0]["name"] == "CpuTime"
         assert result["resource_usage"][0]["current_value"] == 120.5
 
-    @patch("src.devops_mcps.utils.azure.azure_app_service.get_azure_credential")
-    @patch("src.devops_mcps.utils.azure.azure_app_service.WebSiteManagementClient")
+    @patch("devops_mcps.utils.azure.azure_app_service.get_azure_credential")
+    @patch("devops_mcps.utils.azure.azure_app_service.WebSiteManagementClient")
     def test_list_app_service_plans_success(self, mock_web_client_class, mock_get_credential):
         """Test successful listing of App Service Plans."""
         # Setup mocks
@@ -272,8 +273,8 @@ class TestAzureAppService:
         assert isinstance(result, dict)
         assert "error" in result
 
-    @patch("src.devops_mcps.utils.azure.azure_app_service.get_azure_credential")
-    @patch("src.devops_mcps.utils.azure.azure_app_service.WebSiteManagementClient")
+    @patch("devops_mcps.utils.azure.azure_app_service.get_azure_credential")
+    @patch("devops_mcps.utils.azure.azure_app_service.WebSiteManagementClient")
     def test_configuration_access_error(self, mock_web_client_class, mock_get_credential):
         """Test handling of configuration access errors."""
         # Setup mocks
