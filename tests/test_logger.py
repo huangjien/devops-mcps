@@ -195,7 +195,7 @@ def test_successful_file_logging_info_message(mock_logger_info, mock_rotating_ha
   info_call_args = mock_logger_info.call_args[0][0]
   assert "Logging configured" in info_call_args
   assert "Level: DEBUG" in info_call_args
-  assert "File (src/mcp_server.log" in info_call_args
+  assert "File (mcp_server.log" in info_call_args
   assert "MaxSize: 5MB" in info_call_args
   assert "Backups: 0" in info_call_args
 
@@ -321,7 +321,7 @@ def test_handler_configuration_parameters(mock_rotating_handler):
 
   # Verify handler was called with correct parameters
   mock_rotating_handler.assert_called_once_with(
-    filename="src/mcp_server.log",
+    filename="mcp_server.log",
     maxBytes=5 * 1024 * 1024,  # 5MB
     backupCount=0,
     encoding="utf-8",
@@ -366,7 +366,7 @@ def test_module_constants_values(mock_rotating_handler):
     importlib.reload(logger)
 
   # Test module constants
-  assert logger.LOG_FILENAME == "src/mcp_server.log"
+  assert logger.LOG_FILENAME == "mcp_server.log"
   assert logger.MAX_LOG_SIZE_MB == 5
   assert logger.MAX_BYTES == 5 * 1024 * 1024
   assert logger.BACKUP_COUNT == 0
@@ -468,5 +468,5 @@ def test_exception_handling_with_different_errors(
   mock_logging_error.assert_called_once()
   error_message = mock_logging_error.call_args[0][0]
   assert "Failed to configure file logging" in error_message
-  assert "src/mcp_server.log" in error_message
+  assert "mcp_server.log" in error_message
   assert "IO Error" in error_message

@@ -553,46 +553,26 @@ def test_package_version_exists():
 
 # --- Main Function Tests ---
 @patch("devops_mcps.main_entry.create_mcp_server")
-@patch("devops_mcps.core.github.initialize_github_client")
+@patch("devops_mcps.main_entry.initialize_clients")
 @patch("devops_mcps.core.sys.argv", ["test", "--transport", "stdio"])
-def test_main_stdio_transport(mock_init_github, mock_create_server):
+def test_main_stdio_transport(mock_init_clients, mock_create_server):
   """Test main function with stdio transport."""
-  # Mock GitHub client as initialized
-  core.github.g = MagicMock()
-  core.github.GITHUB_TOKEN = "test_token"
-
-  # Mock Jenkins client as initialized
-  core.jenkins.j = MagicMock()
-  core.jenkins.JENKINS_URL = "http://test"
-  core.jenkins.JENKINS_USER = "test_user"
-  core.jenkins.JENKINS_TOKEN = "test_token"
-
   # Set up mock server
   mock_server = MagicMock()
   mock_create_server.return_value = mock_server
 
   core.main()
 
-  mock_init_github.assert_called_once_with(force=True)
+  mock_init_clients.assert_called_once()
   mock_create_server.assert_called_once()
   mock_server.run.assert_called_once_with(transport="stdio")
 
 
 @patch("devops_mcps.main_entry.create_mcp_server")
-@patch("devops_mcps.core.github.initialize_github_client")
+@patch("devops_mcps.main_entry.initialize_clients")
 @patch("devops_mcps.core.sys.argv", ["test", "--transport", "stream_http"])
-def test_main_stream_http_transport(mock_init_github, mock_create_server):
+def test_main_stream_http_transport(mock_init_clients, mock_create_server):
   """Test main function with stream_http transport."""
-
-  # Mock GitHub client as initialized
-  core.github.g = MagicMock()
-  core.github.GITHUB_TOKEN = "test_token"
-
-  # Mock Jenkins client as initialized
-  core.jenkins.j = MagicMock()
-  core.jenkins.JENKINS_URL = "http://test"
-  core.jenkins.JENKINS_USER = "test_user"
-  core.jenkins.JENKINS_TOKEN = "test_token"
 
   # Set up mock server
   mock_server = MagicMock()
@@ -600,7 +580,7 @@ def test_main_stream_http_transport(mock_init_github, mock_create_server):
 
   core.main()
 
-  mock_init_github.assert_called_once_with(force=True)
+  mock_init_clients.assert_called_once()
   mock_create_server.assert_called_once()
   mock_server.run.assert_called_once_with(
     transport="streamable-http", mount_path="/mcp"
