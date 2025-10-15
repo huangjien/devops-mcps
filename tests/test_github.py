@@ -823,7 +823,9 @@ def test_gh_get_file_contents_directory(mock_cache_patch, mock_github_api):
 @patch("devops_mcps.utils.github.github_repository_api.logger")
 def test_gh_get_file_contents_not_found(mock_logger, mock_github):
   mock_instance = mock_github.return_value
-  mock_instance.get_repo.side_effect = UnknownObjectException(
+  mock_repo = Mock()
+  mock_instance.get_repo.return_value = mock_repo
+  mock_repo.get_contents.side_effect = UnknownObjectException(
     404, {"message": "Not Found"}
   )
 
@@ -876,7 +878,9 @@ def test_gh_list_commits_success(mock_cache_patch, mock_github_api):
 @patch("devops_mcps.utils.github.github_commit_api.logger")
 def test_gh_list_commits_empty_repo(mock_logger, mock_github):
   mock_instance = mock_github.return_value
-  mock_instance.get_repo.side_effect = GithubException(
+  mock_repo = Mock()
+  mock_instance.get_repo.return_value = mock_repo
+  mock_repo.get_commits.side_effect = GithubException(
     409, {"message": "Git Repository is empty"}
   )
 
