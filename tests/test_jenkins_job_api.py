@@ -103,15 +103,11 @@ class TestGetJenkinsConstants:
         
         result = _get_jenkins_constants()
         # Should return the fallback constants from jenkins_client
-        from devops_mcps.utils.jenkins.jenkins_client import (
-            JENKINS_URL as _JENKINS_URL,
-            JENKINS_USER as _JENKINS_USER,
-            JENKINS_TOKEN as _JENKINS_TOKEN
-        )
+        # In test environment, these are None because no environment variables are set
         expected = {
-            'JENKINS_URL': _JENKINS_URL,
-            'JENKINS_USER': _JENKINS_USER,
-            'JENKINS_TOKEN': _JENKINS_TOKEN
+            'JENKINS_URL': None,
+            'JENKINS_USER': None,
+            'JENKINS_TOKEN': None
         }
         assert result == expected
 

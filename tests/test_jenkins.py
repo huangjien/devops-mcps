@@ -122,10 +122,8 @@ class TestInitializeJenkinsClient:
 
     result = initialize_jenkins_client()
 
+  @patch.dict(os.environ, {"JENKINS_URL": "http://test-jenkins.com", "JENKINS_USER": "testuser", "JENKINS_TOKEN": "testtoken"}, clear=True)
   @patch("devops_mcps.utils.jenkins.jenkins_client.Jenkins")
-  @patch("devops_mcps.utils.jenkins.jenkins_client.JENKINS_URL", "http://test-jenkins.com")
-  @patch("devops_mcps.utils.jenkins.jenkins_client.JENKINS_USER", "testuser")
-  @patch("devops_mcps.utils.jenkins.jenkins_client.JENKINS_TOKEN", "testtoken")
   @patch("devops_mcps.utils.jenkins.jenkins_client.logger")
   def test_initialize_jenkins_client_basic_connection_test(self, mock_logger, mock_jenkins_class):
     """Test basic connection test in initialize_jenkins_client."""
@@ -142,10 +140,8 @@ class TestInitializeJenkinsClient:
     assert result == mock_jenkins_instance
     mock_jenkins_instance.get_master_data.assert_called_once()
 
+  @patch.dict(os.environ, {"JENKINS_URL": "http://test-jenkins.com", "JENKINS_USER": "testuser", "JENKINS_TOKEN": "testtoken"}, clear=True)
   @patch("devops_mcps.utils.jenkins.jenkins_client.Jenkins")
-  @patch("devops_mcps.utils.jenkins.jenkins_client.JENKINS_URL", "http://test-jenkins.com")
-  @patch("devops_mcps.utils.jenkins.jenkins_client.JENKINS_USER", "testuser")
-  @patch("devops_mcps.utils.jenkins.jenkins_client.JENKINS_TOKEN", "testtoken")
   @patch("devops_mcps.utils.jenkins.jenkins_client.logger")
   def test_initialize_jenkins_client_jenkins_api_exception_logging(self, mock_logger, mock_jenkins_class):
     """Test JenkinsAPIException error logging in initialize_jenkins_client."""
@@ -160,10 +156,8 @@ class TestInitializeJenkinsClient:
     assert result is None
     mock_logger.error.assert_called_with("Failed to initialize authenticated Jenkins client: API error")
 
+  @patch.dict(os.environ, {"JENKINS_URL": "http://test-jenkins.com", "JENKINS_USER": "testuser", "JENKINS_TOKEN": "testtoken"}, clear=True)
   @patch("devops_mcps.utils.jenkins.jenkins_client.Jenkins")
-  @patch("devops_mcps.utils.jenkins.jenkins_client.JENKINS_URL", "http://test-jenkins.com")
-  @patch("devops_mcps.utils.jenkins.jenkins_client.JENKINS_USER", "testuser")
-  @patch("devops_mcps.utils.jenkins.jenkins_client.JENKINS_TOKEN", "testtoken")
   @patch("devops_mcps.utils.jenkins.jenkins_client.logger")
   def test_initialize_jenkins_client_exception_logging(self, mock_logger, mock_jenkins_class):
     """Test general Exception error logging in initialize_jenkins_client."""
