@@ -57,13 +57,14 @@ def initialize_clients():
   their configuration, logging appropriate warnings or errors.
   """
   from . import github, jenkins
+  from .utils.github import github_client
   import sys
 
   # Initialize GitHub client
   github.initialize_github_client(force=True)
 
   # Check if the GitHub client initialized successfully
-  if github.g is None:
+  if github_client.g is None:
     # Check the environment variable directly instead of the cached value
     current_github_token = os.environ.get("GITHUB_PERSONAL_ACCESS_TOKEN")
     if current_github_token:

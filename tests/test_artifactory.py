@@ -1076,6 +1076,7 @@ class TestArtifactoryEdgeCases(unittest.TestCase):
     self.assertIn("error", result)
     self.assertIn("unexpected error", result["error"].lower())
 
+  @patch.dict(os.environ, {}, clear=True)
   @patch("devops_mcps.utils.artifactory.artifactory_api.validate_artifactory_config")
   def test_list_items_invalid_parameters(self, mock_validate):
     """Test list_items with invalid parameters."""
@@ -1096,6 +1097,7 @@ class TestArtifactoryEdgeCases(unittest.TestCase):
     self.assertIn("error", result)
     self.assertIn("unexpected error", result["error"].lower())
 
+  @patch.dict(os.environ, {}, clear=True)
   @patch("devops_mcps.utils.artifactory.artifactory_api.validate_artifactory_config")
   def test_search_items_invalid_parameters(self, mock_validate):
     """Test search_items with invalid parameters."""
@@ -1116,6 +1118,7 @@ class TestArtifactoryEdgeCases(unittest.TestCase):
     self.assertIn("error", result)
     self.assertIn("unexpected error", result["error"].lower())
 
+  @patch.dict(os.environ, {}, clear=True)
   @patch("devops_mcps.utils.artifactory.artifactory_api.validate_artifactory_config")
   def test_get_item_info_invalid_parameters(self, mock_validate):
     """Test get_item_info with invalid parameters."""

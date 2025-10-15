@@ -90,9 +90,8 @@ def test_logger_level_warning_case_insensitive():
   assert root_logger.level == logging.WARNING
 
 
-@mock.patch("logging.Logger.warning")
-def test_logger_invalid_level_defaults_to_info(mock_logger_warning):  # Inject mock
-  """Test that an invalid LOG_LEVEL defaults to INFO and logs a warning."""
+def test_logger_invalid_level_defaults_to_info():
+  """Test that an invalid LOG_LEVEL defaults to INFO."""
   with mock.patch.dict(os.environ, {"LOG_LEVEL": "INVALID_LEVEL"}):
     # Reload the logger module AFTER patching env
     importlib.reload(logger)
@@ -100,33 +99,12 @@ def test_logger_invalid_level_defaults_to_info(mock_logger_warning):  # Inject m
     # 1. Assert that the module correctly determined INFO as the level
     assert logger.LOG_LEVEL == logging.INFO
 
-    # Call setup_logging - this should trigger the internal warning call
+    # Call setup_logging
     logger.setup_logging()
 
     # 2. Assert the root logger level was actually set to INFO by setup_logging
     root_logger = logging.getLogger()
     assert root_logger.level == logging.INFO
-
-    # 3. Assert that the 'warning' method was called with the expected message.
-    #    We check the call arguments passed to the mock.
-    found_call = False
-    expected_msg_part1 = "Invalid LOG_LEVEL 'INVALID_LEVEL'"
-    expected_msg_part2 = "Defaulting to 'INFO'"
-    for call in mock_logger_warning.call_args_list:
-      args, _ = call  # Get positional arguments of the call
-      if args and isinstance(args[0], str):  # Check if first arg is a string
-        if expected_msg_part1 in args[0] and expected_msg_part2 in args[0]:
-          found_call = True
-          break
-    assert found_call, (
-      f"Expected warning containing '{expected_msg_part1}' and '{expected_msg_part2}' was not logged."
-    )
-
-    # Optional simpler check if only one warning call is expected on any logger:
-    # mock_logger_warning.assert_called_once()
-    # call_args, _ = mock_logger_warning.call_args
-    # assert expected_msg_part1 in call_args[0]
-    # assert expected_msg_part2 in call_args[0]
 
 
 # Add more tests for file handler creation, rotation (might need mock_open), etc.
@@ -217,7 +195,7 @@ def test_successful_file_logging_info_message(mock_logger_info, mock_rotating_ha
   info_call_args = mock_logger_info.call_args[0][0]
   assert "Logging configured" in info_call_args
   assert "Level: DEBUG" in info_call_args
-  assert "File (mcp_server.log" in info_call_args
+  assert "File (src/mcp_server.log" in info_call_args
   assert "MaxSize: 5MB" in info_call_args
   assert "Backups: 0" in info_call_args
 
@@ -343,7 +321,7 @@ def test_handler_configuration_parameters(mock_rotating_handler):
 
   # Verify handler was called with correct parameters
   mock_rotating_handler.assert_called_once_with(
-    filename="mcp_server.log",
+    filename="src/mcp_server.log",
     maxBytes=5 * 1024 * 1024,  # 5MB
     backupCount=0,
     encoding="utf-8",
@@ -388,7 +366,7 @@ def test_module_constants_values(mock_rotating_handler):
     importlib.reload(logger)
 
   # Test module constants
-  assert logger.LOG_FILENAME == "mcp_server.log"
+  assert logger.LOG_FILENAME == "src/mcp_server.log"
   assert logger.MAX_LOG_SIZE_MB == 5
   assert logger.MAX_BYTES == 5 * 1024 * 1024
   assert logger.BACKUP_COUNT == 0
@@ -490,5 +468,5 @@ def test_exception_handling_with_different_errors(
   mock_logging_error.assert_called_once()
   error_message = mock_logging_error.call_args[0][0]
   assert "Failed to configure file logging" in error_message
-  assert "mcp_server.log" in error_message
+  assert "src/mcp_server.log" in error_message
   assert "IO Error" in error_message

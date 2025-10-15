@@ -64,6 +64,12 @@ def mock_github_api(mock_env_vars):
     mock_instance.get_user.return_value = MagicMock(login="test_user")
     mock_instance.get_rate_limit.return_value = MagicMock()
     mock_instance.get_repo.return_value = MagicMock()
+    
+    # Add all the methods that tests are trying to mock
+    mock_instance.search_code = MagicMock()
+    mock_instance.search_repositories = MagicMock()
+    mock_instance.search_issues = MagicMock()
+    mock_instance.search_users = MagicMock()
 
     # Patch the global client directly
     with patch("devops_mcps.utils.github_client.g", new=mock_instance):
@@ -176,24 +182,25 @@ def mock_converters_logger():
 
 def test_initialize_github_client_with_token(mock_github, mock_logger):
   # Setup
-  os.environ["GITHUB_PERSONAL_ACCESS_TOKEN"] = "test_token"
   mock_instance = mock_github.return_value
   mock_instance.get_user.return_value.login = "test_user"
 
   # Execute
   with patch.dict("os.environ", {"GITHUB_PERSONAL_ACCESS_TOKEN": "test_token"}):
-    client = initialize_github_client()
+    with patch("devops_mcps.utils.github.github_client.g", None):  # Reset global client
+      client = initialize_github_client(force=True)
 
   # Verify
   assert client is not None
-  mock_github.assert_called_once_with(
-    auth=mock_github.call_args[1]["auth"],
-    timeout=60,
-    per_page=10,
-    base_url="https://api.github.com",
-  )
+  mock_github.assert_called_once()
+  # Check that the call was made with the expected parameters
+  call_args = mock_github.call_args
+  assert call_args is not None
+  assert call_args[1]["timeout"] == 60
+  assert call_args[1]["per_page"] == 10
+  assert call_args[1]["base_url"] == "https://api.github.com"
+  assert "auth" in call_args[1]
   mock_logger.info.assert_called_once()
-  mock_logger.info.assert_called()
 
 
 def test_initialize_github_client_without_token(mock_github, mock_logger):
@@ -1494,9 +1501,12 @@ def test_gh_search_code_unexpected_error(mock_github_api):
   assert "unexpected error occurred" in result["error"]
 
 
-def test_gh_search_code_no_client():
+@patch("devops_mcps.utils.github.github_search_api.cache")
+def test_gh_search_code_no_client(mock_cache_patch):
   """Test gh_search_code when GitHub client is not initialized."""
-  with patch("devops_mcps.utils.github.github_client.initialize_github_client") as mock_init:
+  mock_cache_patch.get.return_value = None  # No cached result
+  
+  with patch("devops_mcps.utils.github.github_search_api.initialize_github_client") as mock_init:
     mock_init.return_value = None
 
     result = gh_search_code("test query")
@@ -1596,10 +1606,12 @@ def test_gh_search_code_cache_miss(mock_cache_patch, mock_github_api):
   )
 
 
-def test_gh_search_code_forbidden_error(mock_github_api):
+@patch("devops_mcps.utils.github.github_search_api.cache")
+def test_gh_search_code_forbidden_error(mock_cache_patch, mock_github_api):
   """Test gh_search_code with 403 Forbidden error."""
   from github import GithubException
 
+  mock_cache_patch.get.return_value = None  # No cached result
   mock_github_api.search_code.side_effect = GithubException(
     403, {"message": "API rate limit exceeded"}
   )
@@ -1610,10 +1622,12 @@ def test_gh_search_code_forbidden_error(mock_github_api):
   assert "Authentication required or insufficient permissions" in result["error"]
 
 
-def test_gh_search_code_github_exception_other_status(mock_github_api):
+@patch("devops_mcps.utils.github.github_search_api.cache")
+def test_gh_search_code_github_exception_other_status(mock_cache_patch, mock_github_api):
   """Test gh_search_code with other GitHub exception status codes."""
   from github import GithubException
 
+  mock_cache_patch.get.return_value = None  # No cached result
   mock_github_api.search_code.side_effect = GithubException(
     500, {"message": "Internal server error"}
   )
@@ -1625,10 +1639,12 @@ def test_gh_search_code_github_exception_other_status(mock_github_api):
   assert "Internal server error" in result["error"]
 
 
-def test_gh_search_code_github_exception_no_message(mock_github_api):
+@patch("devops_mcps.utils.github.github_search_api.cache")
+def test_gh_search_code_github_exception_no_message(mock_cache_patch, mock_github_api):
   """Test gh_search_code with GitHub exception that has no message."""
   from github import GithubException
 
+  mock_cache_patch.get.return_value = None  # No cached result
   mock_github_api.search_code.side_effect = GithubException(
     404,
     {},  # No message in data
@@ -1944,7 +1960,7 @@ def test_handle_paginated_list_error_handling():
 
 def test_gh_search_repositories_no_client():
   """Test repository search when GitHub client is not initialized."""
-  with patch("devops_mcps.utils.github.github_client.initialize_github_client") as mock_init:
+  with patch("devops_mcps.utils.github.github_search_api.initialize_github_client") as mock_init:
     mock_init.return_value = None
 
     result = gh_search_repositories("test query")
@@ -1955,7 +1971,7 @@ def test_gh_search_repositories_no_client():
 
 def test_gh_get_file_contents_no_client():
   """Test file content retrieval when GitHub client is not initialized."""
-  with patch("devops_mcps.utils.github.github_client.initialize_github_client") as mock_init:
+  with patch("devops_mcps.utils.github.github_repository_api.initialize_github_client") as mock_init:
     mock_init.return_value = None
 
     result = gh_get_file_contents("owner", "repo", "path")
@@ -1966,7 +1982,7 @@ def test_gh_get_file_contents_no_client():
 
 def test_gh_list_commits_no_client():
   """Test commit listing when GitHub client is not initialized."""
-  with patch("devops_mcps.utils.github.github_client.initialize_github_client") as mock_init:
+  with patch("devops_mcps.utils.github.github_commit_api.initialize_github_client") as mock_init:
     mock_init.return_value = None
 
     result = gh_list_commits("owner", "repo")
@@ -1977,7 +1993,7 @@ def test_gh_list_commits_no_client():
 
 def test_gh_list_issues_no_client():
   """Test issue listing when GitHub client is not initialized."""
-  with patch("devops_mcps.utils.github.github_client.initialize_github_client") as mock_init:
+  with patch("devops_mcps.utils.github.github_issue_api.initialize_github_client") as mock_init:
     mock_init.return_value = None
 
     result = gh_list_issues("owner", "repo")
@@ -1988,7 +2004,7 @@ def test_gh_list_issues_no_client():
 
 def test_gh_get_repository_no_client():
   """Test repository retrieval when GitHub client is not initialized."""
-  with patch("devops_mcps.utils.github.github_client.initialize_github_client") as mock_init:
+  with patch("devops_mcps.utils.github.github_repository_api.initialize_github_client") as mock_init:
     mock_init.return_value = None
 
     result = gh_get_repository("owner", "repo")
@@ -2153,8 +2169,10 @@ def test_initialize_github_client_exception_during_auth(mock_github, mock_logger
   mock_logger.error.assert_called()
 
 
-def test_gh_search_code_rate_limit_exceeded(mock_github_api, mock_env_vars):
+@patch("devops_mcps.utils.github.github_search_api.cache")
+def test_gh_search_code_rate_limit_exceeded(mock_cache_patch, mock_github_api, mock_env_vars):
   """Test code search when rate limit is exceeded."""
+  mock_cache_patch.get.return_value = None  # No cached result
   mock_github_api.search_code.side_effect = RateLimitExceededException(
     403, {"message": "API rate limit exceeded"}, {}
   )

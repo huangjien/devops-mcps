@@ -12,10 +12,12 @@ from requests.exceptions import ConnectionError
 logger = logging.getLogger(__name__)
 
 # --- Jenkins Client Configuration ---
-JENKINS_URL = os.environ.get("JENKINS_URL")
-JENKINS_USER = os.environ.get("JENKINS_USER")
-JENKINS_TOKEN = os.environ.get("JENKINS_TOKEN")
-LOG_LENGTH = os.environ.get("LOG_LENGTH", 10240)  # Default to 10KB if not set
+# Note: Environment variables are read in initialize_jenkins_client() to ensure
+# load_dotenv() is called first in server_setup.py
+JENKINS_URL = None
+JENKINS_USER = None
+JENKINS_TOKEN = None
+LOG_LENGTH = None
 j: Optional[Jenkins] = None
 
 # Export constants and functions
@@ -32,9 +34,15 @@ __all__ = [
 
 def initialize_jenkins_client():
   """Initializes the global Jenkins client 'j'."""
-  global j
+  global j, JENKINS_URL, JENKINS_USER, JENKINS_TOKEN, LOG_LENGTH
   if j:  # Already initialized
     return j
+
+  # Read environment variables (after load_dotenv() has been called)
+  JENKINS_URL = os.environ.get("JENKINS_URL")
+  JENKINS_USER = os.environ.get("JENKINS_USER")
+  JENKINS_TOKEN = os.environ.get("JENKINS_TOKEN")
+  LOG_LENGTH = os.environ.get("LOG_LENGTH", 10240)  # Default to 10KB if not set
 
   if JENKINS_URL and JENKINS_USER and JENKINS_TOKEN:
     try:

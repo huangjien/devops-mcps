@@ -676,6 +676,7 @@ def test_main_jenkins_init_failure(mock_init_github, mock_mcp_run):
     core.jenkins.JENKINS_TOKEN = original_jenkins_token
 
 
+@patch.dict(os.environ, {}, clear=True)
 @patch("devops_mcps.main_entry.create_mcp_server")
 @patch("devops_mcps.core.github.initialize_github_client")
 @patch("devops_mcps.core.sys.argv", ["test"])

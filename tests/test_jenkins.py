@@ -37,54 +37,57 @@ class TestInitializeJenkinsClient:
     import devops_mcps.utils.jenkins.jenkins_client
     assert devops_mcps.utils.jenkins.jenkins_client.j == mock_jenkins_instance
 
-  @patch("jenkinsapi.jenkins.Jenkins")
-  @patch("devops_mcps.utils.jenkins.jenkins_api.JENKINS_URL", "http://test-jenkins.com")
-  @patch("devops_mcps.utils.jenkins.jenkins_api.JENKINS_USER", "testuser")
-  @patch("devops_mcps.utils.jenkins.jenkins_api.JENKINS_TOKEN", "testtoken")
+  @patch.dict(os.environ, {"JENKINS_URL": "http://test-jenkins.com", "JENKINS_USER": "testuser", "JENKINS_TOKEN": "testtoken"}, clear=True)
+  @patch("devops_mcps.utils.jenkins.jenkins_client.Jenkins")
   def test_initialize_jenkins_client_unexpected_error(self, mock_jenkins_class):
     """Test Jenkins client initialization with unexpected error."""
     mock_jenkins_class.side_effect = ValueError("Unexpected error")
 
-    # Reset global j
+    # Reset global j and environment variables
     import devops_mcps.utils.jenkins.jenkins_client
 
     devops_mcps.utils.jenkins.jenkins_client.j = None
+    devops_mcps.utils.jenkins.jenkins_client.JENKINS_URL = None
+    devops_mcps.utils.jenkins.jenkins_client.JENKINS_USER = None
+    devops_mcps.utils.jenkins.jenkins_client.JENKINS_TOKEN = None
 
     result = initialize_jenkins_client()
 
     assert result is None
     assert devops_mcps.utils.jenkins.jenkins_client.j is None
 
-  @patch("jenkinsapi.jenkins.Jenkins")
-  @patch("devops_mcps.utils.jenkins.jenkins_api.JENKINS_URL", "http://test-jenkins.com")
-  @patch("devops_mcps.utils.jenkins.jenkins_api.JENKINS_USER", "testuser")
-  @patch("devops_mcps.utils.jenkins.jenkins_api.JENKINS_TOKEN", "testtoken")
+  @patch.dict(os.environ, {"JENKINS_URL": "http://test-jenkins.com", "JENKINS_USER": "testuser", "JENKINS_TOKEN": "testtoken"}, clear=True)
+  @patch("devops_mcps.utils.jenkins.jenkins_client.Jenkins")
   def test_initialize_jenkins_client_jenkins_api_exception(self, mock_jenkins_class):
     """Test Jenkins client initialization with JenkinsAPIException."""
     mock_jenkins_class.side_effect = JenkinsAPIException("API error")
 
-    # Reset global j
+    # Reset global j and environment variables
     import devops_mcps.utils.jenkins.jenkins_client
 
     devops_mcps.utils.jenkins.jenkins_client.j = None
+    devops_mcps.utils.jenkins.jenkins_client.JENKINS_URL = None
+    devops_mcps.utils.jenkins.jenkins_client.JENKINS_USER = None
+    devops_mcps.utils.jenkins.jenkins_client.JENKINS_TOKEN = None
 
     result = initialize_jenkins_client()
 
     assert result is None
     assert devops_mcps.utils.jenkins.jenkins_client.j is None
 
+  @patch.dict(os.environ, {"JENKINS_URL": "http://test-jenkins.com", "JENKINS_USER": "testuser", "JENKINS_TOKEN": "testtoken"}, clear=True)
   @patch("devops_mcps.utils.jenkins.jenkins_client.Jenkins")
-  @patch("devops_mcps.utils.jenkins.jenkins_client.JENKINS_URL", "http://test-jenkins.com")
-  @patch("devops_mcps.utils.jenkins.jenkins_client.JENKINS_USER", "testuser")
-  @patch("devops_mcps.utils.jenkins.jenkins_client.JENKINS_TOKEN", "testtoken")
   def test_initialize_jenkins_client_connection_error(self, mock_jenkins_class):
     """Test Jenkins client initialization with ConnectionError."""
     mock_jenkins_class.side_effect = ConnectionError("Connection failed")
 
-    # Reset global j
+    # Reset global j and environment variables
     import devops_mcps.utils.jenkins.jenkins_client
 
     devops_mcps.utils.jenkins.jenkins_client.j = None
+    devops_mcps.utils.jenkins.jenkins_client.JENKINS_URL = None
+    devops_mcps.utils.jenkins.jenkins_client.JENKINS_USER = None
+    devops_mcps.utils.jenkins.jenkins_client.JENKINS_TOKEN = None
 
     result = initialize_jenkins_client()
 
@@ -584,9 +587,10 @@ class TestJenkinsModuleInitialization:
     )
     assert result_normal is False
 
+  @patch.dict(os.environ, {}, clear=True)
   def test_module_initialization_call_coverage(self):
     """Test that module initialization calls initialize_jenkins_client."""
-    # This test specifically covers line 73 where initialize_jenkins_client() is called
+    # This test specifically covers line 81 where initialize_jenkins_client() is called
     import sys
     import importlib
     
@@ -599,29 +603,27 @@ class TestJenkinsModuleInitialization:
     try:
       # Simulate non-testing environment by patching sys.argv
       with patch('sys.argv', ['normal_script.py']):
-        # Patch the function before importing the module
-        with patch.object(sys.modules.get('devops_mcps.utils.jenkins.jenkins_client', type('MockModule', (), {})()), 'initialize_jenkins_client', create=True) as mock_init:
-          # Import the module
-          module = importlib.import_module(module_name)
-          
-          # Since the function is called during import, we need to verify it was called
-          # by checking if the module initialization logic was executed
-          # The actual call happens at module level, so let's verify the module was imported successfully
-          assert module is not None
-          
-          # To properly test line 73, let's create a simple test that exercises that path
-          # by temporarily removing pytest from sys.argv and calling the initialization logic
-          original_argv = sys.argv[:]
-          try:
-            sys.argv = ['normal_script.py']
-            # Reset the global j to None to trigger initialization
-            module.j = None
-            # Call the initialization function directly to cover the line
-            result = module.initialize_jenkins_client()
-            # The function should return None due to missing credentials but the line is covered
-            assert result is None
-          finally:
-            sys.argv = original_argv
+        # Import the module
+        module = importlib.import_module(module_name)
+        
+        # Since the function is called during import, we need to verify it was called
+        # by checking if the module initialization logic was executed
+        # The actual call happens at module level, so let's verify the module was imported successfully
+        assert module is not None
+        
+        # To properly test line 81, let's create a simple test that exercises that path
+        # by temporarily removing pytest from sys.argv and calling the initialization logic
+        original_argv = sys.argv[:]
+        try:
+          sys.argv = ['normal_script.py']
+          # Reset the global j to None to trigger initialization
+          module.j = None
+          # Call the initialization function directly to cover the line
+          result = module.initialize_jenkins_client()
+          # The function should return None due to missing credentials but the line is covered
+          assert result is None
+        finally:
+          sys.argv = original_argv
     finally:
       # Clean up and restore original module if it existed
       if module_name in sys.modules:

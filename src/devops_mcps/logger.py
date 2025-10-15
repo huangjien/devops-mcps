@@ -5,12 +5,15 @@ import sys
 import os  # Import the os module
 
 # --- Configuration ---
-LOG_FILENAME = "mcp_server.log"
+# Default to writing the log into the current working directory.
+# This ensures the log file is created relative to where the server is run from.
+LOG_FILENAME = os.environ.get("LOG_FILENAME", "mcp_server.log")
 MAX_LOG_SIZE_MB = 5
 MAX_BYTES = MAX_LOG_SIZE_MB * 1024 * 1024
 BACKUP_COUNT = 0  # Set to 0 to overwrite (delete the old log on rotation)
 
 # --- Determine Log Level from Environment Variable ---
+# Default to INFO for production use. The LOG_LEVEL env var can override this at runtime.
 DEFAULT_LOG_LEVEL = "INFO"
 LOG_LEVEL_STR = os.environ.get("LOG_LEVEL", DEFAULT_LOG_LEVEL).upper()
 
@@ -59,6 +62,8 @@ def setup_logging() -> bool:
       backupCount=BACKUP_COUNT,
       encoding="utf-8",
     )
+    # Ensure the handler uses the configured logging level
+    rotating_handler.setLevel(LOG_LEVEL)
     rotating_handler.setFormatter(log_formatter)
     root_logger.addHandler(rotating_handler)
     file_logging_enabled = True
@@ -75,6 +80,18 @@ def setup_logging() -> bool:
 
   # Initialize logger for this module AFTER handlers are added
   logger = logging.getLogger(__name__)
+
+  # Install a global excepthook so uncaught exceptions are captured in the
+  # log file. This is important when the process exits with code 1 due to an
+  # unhandled error.
+  def _handle_uncaught_exception(exc_type, exc_value, exc_traceback):
+    # Don't log KeyboardInterrupt as an error to avoid noisy logs on Ctrl-C
+    if issubclass(exc_type, KeyboardInterrupt):
+      sys.__excepthook__(exc_type, exc_value, exc_traceback)
+      return
+    logger.error("Uncaught exception", exc_info=(exc_type, exc_value, exc_traceback))
+
+  sys.excepthook = _handle_uncaught_exception
 
   # Log a warning if the provided LOG_LEVEL env var was invalid
   if LOG_LEVEL_STR not in log_level_map:
