@@ -821,8 +821,10 @@ def test_gh_get_file_contents_directory(mock_cache_patch, mock_github_api):
 
 
 @patch("devops_mcps.utils.github.github_repository_api.logger")
-def test_gh_get_file_contents_not_found(mock_logger, mock_github):
-  mock_instance = mock_github.return_value
+@patch("devops_mcps.utils.github.github_repository_api.initialize_github_client")
+def test_gh_get_file_contents_not_found(mock_init_client, mock_logger):
+  mock_instance = Mock()
+  mock_init_client.return_value = mock_instance
   mock_repo = Mock()
   mock_instance.get_repo.return_value = mock_repo
   mock_repo.get_contents.side_effect = UnknownObjectException(
@@ -875,9 +877,11 @@ def test_gh_list_commits_success(mock_cache_patch, mock_github_api):
   mock_cache_patch.set.assert_called_once()
 
 
+@patch("devops_mcps.utils.github.github_commit_api.initialize_github_client")
 @patch("devops_mcps.utils.github.github_commit_api.logger")
-def test_gh_list_commits_empty_repo(mock_logger, mock_github):
+def test_gh_list_commits_empty_repo(mock_logger, mock_init_client, mock_github):
   mock_instance = mock_github.return_value
+  mock_init_client.return_value = mock_instance
   mock_repo = Mock()
   mock_instance.get_repo.return_value = mock_repo
   mock_repo.get_commits.side_effect = GithubException(
@@ -946,11 +950,13 @@ def test_gh_list_issues_success(mock_cache_patch, mock_github_api):
 # --- Test gh_get_repository ---
 
 
+@patch("devops_mcps.utils.github.github_repository_api.initialize_github_client")
 @patch("devops_mcps.utils.github.github_repository_api.cache")
-def test_gh_get_repository_success(mock_cache_patch, mock_github):
+def test_gh_get_repository_success(mock_cache_patch, mock_init_client, mock_github):
   mock_cache_patch.get.return_value = None
   mock_cache_patch.set.return_value = None
   mock_instance = mock_github.return_value
+  mock_init_client.return_value = mock_instance
   mock_repo = Mock(spec=Repository)
   mock_repo._rawData = {
     "name": "test-repo",
@@ -1661,21 +1667,20 @@ def test_gh_search_code_github_exception_no_message(mock_cache_patch, mock_githu
   assert "Unknown GitHub error" in result["error"]
 
 
+@patch("devops_mcps.utils.github.github_search_api.initialize_github_client")
 @patch("devops_mcps.utils.github.github_search_api.cache")
-def test_gh_search_code_empty_results(mock_cache_patch, mock_github):
+def test_gh_search_code_empty_results(mock_cache_patch, mock_init_client, mock_github):
   mock_cache_patch.get.return_value = None
   mock_cache_patch.set.return_value = None
   """Test gh_search_code with empty search results."""
   mock_instance = mock_github.return_value
+  mock_init_client.return_value = mock_instance
   mock_code_results = Mock(spec=PaginatedList)
   mock_code_results.totalCount = 0
   mock_code_results.get_page.return_value = []
   mock_instance.search_code.return_value = mock_code_results
 
-  with patch("devops_mcps.utils.github.github_client.initialize_github_client") as mock_init:
-    mock_init.return_value = mock_instance
-
-    result = gh_search_code("nonexistent code")
+  result = gh_search_code("nonexistent code")
 
   assert isinstance(result, list)
   assert len(result) == 0
