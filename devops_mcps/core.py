@@ -405,24 +405,21 @@ async def get_all_jenkins_views() -> Union[List[Dict[str, Any]], Dict[str, str]]
 
 
 @mcp.tool()
-# --- ADD hours_ago parameter here ---
 async def get_recent_failed_jenkins_builds(
-  hours_ago: int = 8,
+  hours: int = 8,
 ) -> Union[List[Dict[str, Any]], Dict[str, str]]:
   """Get a list of Jenkins builds that failed within the specified recent period.
 
-  Args: # Add Args section
-      hours_ago (int, optional): How many hours back to check for failed builds. Defaults to 8.
+  Args:
+      hours (int, optional): How many hours back to check for failed builds. Defaults to 8.
 
   Returns:
       A list of dictionaries, each containing details ('job_name', 'build_number',
       'status', 'timestamp_utc', 'url') for builds that failed recently,
       or an error dictionary.
   """
-  # --- Use the hours_ago variable in the log ---
-  logger.debug(f"Executing get_recent_failed_jenkins_builds for last {hours_ago} hours")
-  # --- Pass the hours_ago parameter ---
-  return jenkins.jenkins_get_recent_failed_builds(hours_ago=hours_ago)
+  logger.debug(f"Executing get_recent_failed_jenkins_builds for last {hours} hours")
+  return jenkins.jenkins_get_recent_failed_builds(hours=hours)
 
 
 # --- End new MCP tool ---

@@ -249,24 +249,24 @@ def jenkins_get_queue() -> Union[Dict[str, Any], Dict[str, str]]:
 
 
 def jenkins_get_recent_failed_builds(
-  hours_ago: int = 8,
+  hours: int = 8,
 ) -> Union[List[Dict[str, Any]], Dict[str, str]]:
   """
   Internal logic for getting jobs whose LAST build failed within the specified recent period.
   Uses a single optimized API call for performance.
 
   Args:
-      hours_ago: How many hours back to check for failed builds.
+      hours: How many hours back to check for failed builds.
 
   Returns:
       A list of dictionaries for jobs whose last build failed recently, or an error dictionary.
   """
   logger.debug(
-    f"jenkins_get_recent_failed_builds (OPTIMIZED) called for the last {hours_ago} hours"
+    f"jenkins_get_recent_failed_builds (OPTIMIZED) called for the last {hours} hours"
   )
 
   # Check cache first
-  cache_key = f"jenkins:recent_failed_builds:{hours_ago}"
+  cache_key = f"jenkins:recent_failed_builds:{hours}"
   cached = cache.get(cache_key)
   if cached:
     logger.debug(f"Returning cached result for {cache_key}")
@@ -287,7 +287,7 @@ def jenkins_get_recent_failed_builds(
   try:
     # Calculate the cutoff time in UTC
     now_utc = datetime.now(timezone.utc)
-    cutoff_utc = now_utc - timedelta(hours=hours_ago)
+    cutoff_utc = now_utc - timedelta(hours=hours)
     logger.debug(f"Checking for LAST builds failed since {cutoff_utc.isoformat()}")
 
     # --- Optimized API Call ---
@@ -377,7 +377,7 @@ def jenkins_get_recent_failed_builds(
         )
 
     logger.debug(
-      f"Finished processing optimized response. Found {len(recent_failed_builds)} jobs whose last build failed in the last {hours_ago} hours."
+      f"Finished processing optimized response. Found {len(recent_failed_builds)} jobs whose last build failed in the last {hours} hours."
     )
     cache.set(cache_key, recent_failed_builds, ttl=300)  # Cache for 5 minutes
     return recent_failed_builds
