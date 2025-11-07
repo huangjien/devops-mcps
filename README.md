@@ -89,6 +89,40 @@ uvx run devops-mcps
 uvx run devops-mcps-stream-http
 ```
 
+### Using Make
+
+Use the provided `Makefile` to streamline common tasks:
+
+```bash
+# Discover available targets
+make help
+
+# Install dev dependencies (auto-detects uv, falls back to pip)
+make install
+
+# One-shot dev setup: install, format, and lint
+make dev
+
+# Run MCP server (stdio)
+make run
+
+# Run MCP server (stream_http) with optional mount path
+make run-http MOUNT_PATH=/mcp
+
+# Test and coverage
+make test
+make coverage
+
+# Build and publish the package
+make build
+make publish
+
+# Docker workflows
+make docker-build
+make docker-run
+make docker-push REGISTRY=your.registry.example
+```
+
 ## Configuration
 
 Configure the server using environment variables:
@@ -501,7 +535,7 @@ The project includes a comprehensive `test.sh` script that:
 - Runs all tests with pytest
 - Generates both HTML and XML coverage reports
 - Automatically opens the HTML coverage report in your browser
-- Requires minimum 80% test coverage (currently achieving 93.77%)
+- Requires minimum 80% test coverage (the project maintains high coverage)
 
 **Coverage Reports:**
 - HTML report: `coverage/html/index.html` (opens automatically)

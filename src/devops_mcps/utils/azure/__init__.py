@@ -11,23 +11,23 @@ This package contains utility modules for Azure operations:
 from .azure_auth import get_azure_credential
 from .azure_compute import list_virtual_machines
 from .azure_containers import (
-    list_aks_clusters,
+  list_aks_clusters,
 )
 from .azure_app_service import (
-    list_app_services,
-    get_app_service_details,
-    get_app_service_metrics,
-    list_app_service_plans,
+  list_app_services,
+  get_app_service_details,
+  get_app_service_metrics,
+  list_app_service_plans,
 )
 from .azure_subscriptions import get_subscriptions
 
 __all__ = [
-    "get_azure_credential",
-    "list_virtual_machines",
-    "list_aks_clusters",
-    "list_app_services",
-    "get_app_service_details",
-    "get_app_service_metrics",
-    "list_app_service_plans",
-    "get_subscriptions",
+  "get_azure_credential",
+  "list_virtual_machines",
+  "list_aks_clusters",
+  "list_app_services",
+  "get_app_service_details",
+  "get_app_service_metrics",
+  "list_app_service_plans",
+  "get_subscriptions",
 ]

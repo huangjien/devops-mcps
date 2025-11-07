@@ -58,6 +58,7 @@ package_version = "0.8.8"
 
 # imports moved to top to satisfy Ruff E402
 
+
 # Wrapper function for backward compatibility
 def load_and_register_prompts():
   """Load and register prompts using the global mcp instance."""

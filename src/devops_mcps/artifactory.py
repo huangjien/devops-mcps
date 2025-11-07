@@ -5,7 +5,6 @@ This module serves as the main interface for Artifactory operations,
 importing functionality from utility modules.
 """
 
-
 # Import from utility modules
 from .utils.artifactory import (
   artifactory_list_items,

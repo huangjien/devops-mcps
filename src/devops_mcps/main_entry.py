@@ -137,7 +137,12 @@ def main_stream_http():
   main()
 
 
-def setup_and_run(transport: str = "stdio", host: str = "127.0.0.1", port: int = 3721, mount_path: str = "/mcp"):
+def setup_and_run(
+  transport: str = "stdio",
+  host: str = "127.0.0.1",
+  port: int = 3721,
+  mount_path: str = "/mcp",
+):
   """Programmatic interface to set up and run the MCP server.
 
   Args:

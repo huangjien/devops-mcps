@@ -1,10 +1,9 @@
 import os
 from unittest.mock import Mock, patch
-from datetime import datetime, timezone, timedelta
 from jenkinsapi.jenkins import JenkinsAPIException
 from jenkinsapi.job import Job
 from jenkinsapi.view import View
-from requests.exceptions import ConnectionError, Timeout, HTTPError, RequestException
+from requests.exceptions import ConnectionError
 
 from devops_mcps.jenkins import (
   initialize_jenkins_client,
@@ -12,10 +11,8 @@ from devops_mcps.jenkins import (
   set_jenkins_client_for_testing,
   jenkins_get_jobs,
   jenkins_get_build_log,
-  jenkins_get_build_parameters,
   jenkins_get_all_views,
   jenkins_get_queue,
-  jenkins_get_recent_failed_builds,
 )
 
 
@@ -26,7 +23,7 @@ class TestInitializeJenkinsClient:
     """Test successful Jenkins client initialization."""
     mock_jenkins_instance = Mock()
     mock_jenkins_instance.get_master_data.return_value = {"test": "data"}
-    
+
     # Use the testing helper to set up a mocked Jenkins client
     set_jenkins_client_for_testing(mock_jenkins_instance)
 
@@ -35,9 +32,18 @@ class TestInitializeJenkinsClient:
     assert result == mock_jenkins_instance
     # Check the actual location where the client is stored
     import devops_mcps.utils.jenkins.jenkins_client
+
     assert devops_mcps.utils.jenkins.jenkins_client.j == mock_jenkins_instance
 
-  @patch.dict(os.environ, {"JENKINS_URL": "http://test-jenkins.com", "JENKINS_USER": "testuser", "JENKINS_TOKEN": "testtoken"}, clear=True)
+  @patch.dict(
+    os.environ,
+    {
+      "JENKINS_URL": "http://test-jenkins.com",
+      "JENKINS_USER": "testuser",
+      "JENKINS_TOKEN": "testtoken",
+    },
+    clear=True,
+  )
   @patch("devops_mcps.utils.jenkins.jenkins_client.Jenkins")
   def test_initialize_jenkins_client_unexpected_error(self, mock_jenkins_class):
     """Test Jenkins client initialization with unexpected error."""
@@ -56,7 +62,15 @@ class TestInitializeJenkinsClient:
     assert result is None
     assert devops_mcps.utils.jenkins.jenkins_client.j is None
 
-  @patch.dict(os.environ, {"JENKINS_URL": "http://test-jenkins.com", "JENKINS_USER": "testuser", "JENKINS_TOKEN": "testtoken"}, clear=True)
+  @patch.dict(
+    os.environ,
+    {
+      "JENKINS_URL": "http://test-jenkins.com",
+      "JENKINS_USER": "testuser",
+      "JENKINS_TOKEN": "testtoken",
+    },
+    clear=True,
+  )
   @patch("devops_mcps.utils.jenkins.jenkins_client.Jenkins")
   def test_initialize_jenkins_client_jenkins_api_exception(self, mock_jenkins_class):
     """Test Jenkins client initialization with JenkinsAPIException."""
@@ -75,7 +89,15 @@ class TestInitializeJenkinsClient:
     assert result is None
     assert devops_mcps.utils.jenkins.jenkins_client.j is None
 
-  @patch.dict(os.environ, {"JENKINS_URL": "http://test-jenkins.com", "JENKINS_USER": "testuser", "JENKINS_TOKEN": "testtoken"}, clear=True)
+  @patch.dict(
+    os.environ,
+    {
+      "JENKINS_URL": "http://test-jenkins.com",
+      "JENKINS_USER": "testuser",
+      "JENKINS_TOKEN": "testtoken",
+    },
+    clear=True,
+  )
   @patch("devops_mcps.utils.jenkins.jenkins_client.Jenkins")
   def test_initialize_jenkins_client_connection_error(self, mock_jenkins_class):
     """Test Jenkins client initialization with ConnectionError."""
@@ -98,7 +120,9 @@ class TestInitializeJenkinsClient:
     )
 
   @patch("jenkinsapi.jenkins.Jenkins")
-  @patch("devops_mcps.utils.jenkins.jenkins_client.JENKINS_URL", "http://test-jenkins.com")
+  @patch(
+    "devops_mcps.utils.jenkins.jenkins_client.JENKINS_URL", "http://test-jenkins.com"
+  )
   @patch("devops_mcps.utils.jenkins.jenkins_client.JENKINS_USER", "testuser")
   @patch("devops_mcps.utils.jenkins.jenkins_client.JENKINS_TOKEN", "testtoken")
   def test_initialize_jenkins_client_already_initialized(self, mock_jenkins_class):
@@ -120,12 +144,22 @@ class TestInitializeJenkinsClient:
 
     devops_mcps.utils.jenkins.jenkins_client.j = None
 
-    result = initialize_jenkins_client()
+    initialize_jenkins_client()
 
-  @patch.dict(os.environ, {"JENKINS_URL": "http://test-jenkins.com", "JENKINS_USER": "testuser", "JENKINS_TOKEN": "testtoken"}, clear=True)
+  @patch.dict(
+    os.environ,
+    {
+      "JENKINS_URL": "http://test-jenkins.com",
+      "JENKINS_USER": "testuser",
+      "JENKINS_TOKEN": "testtoken",
+    },
+    clear=True,
+  )
   @patch("devops_mcps.utils.jenkins.jenkins_client.Jenkins")
   @patch("devops_mcps.utils.jenkins.jenkins_client.logger")
-  def test_initialize_jenkins_client_basic_connection_test(self, mock_logger, mock_jenkins_class):
+  def test_initialize_jenkins_client_basic_connection_test(
+    self, mock_logger, mock_jenkins_class
+  ):
     """Test basic connection test in initialize_jenkins_client."""
     mock_jenkins_instance = Mock()
     mock_jenkins_instance.get_master_data.return_value = {"test": "data"}
@@ -133,6 +167,7 @@ class TestInitializeJenkinsClient:
 
     # Reset global j
     import devops_mcps.utils.jenkins.jenkins_client
+
     devops_mcps.utils.jenkins.jenkins_client.j = None
 
     result = initialize_jenkins_client()
@@ -140,37 +175,63 @@ class TestInitializeJenkinsClient:
     assert result == mock_jenkins_instance
     mock_jenkins_instance.get_master_data.assert_called_once()
 
-  @patch.dict(os.environ, {"JENKINS_URL": "http://test-jenkins.com", "JENKINS_USER": "testuser", "JENKINS_TOKEN": "testtoken"}, clear=True)
+  @patch.dict(
+    os.environ,
+    {
+      "JENKINS_URL": "http://test-jenkins.com",
+      "JENKINS_USER": "testuser",
+      "JENKINS_TOKEN": "testtoken",
+    },
+    clear=True,
+  )
   @patch("devops_mcps.utils.jenkins.jenkins_client.Jenkins")
   @patch("devops_mcps.utils.jenkins.jenkins_client.logger")
-  def test_initialize_jenkins_client_jenkins_api_exception_logging(self, mock_logger, mock_jenkins_class):
+  def test_initialize_jenkins_client_jenkins_api_exception_logging(
+    self, mock_logger, mock_jenkins_class
+  ):
     """Test JenkinsAPIException error logging in initialize_jenkins_client."""
     mock_jenkins_class.side_effect = JenkinsAPIException("API error")
 
     # Reset global j
     import devops_mcps.utils.jenkins.jenkins_client
+
     devops_mcps.utils.jenkins.jenkins_client.j = None
 
     result = initialize_jenkins_client()
 
     assert result is None
-    mock_logger.error.assert_called_with("Failed to initialize authenticated Jenkins client: API error")
+    mock_logger.error.assert_called_with(
+      "Failed to initialize authenticated Jenkins client: API error"
+    )
 
-  @patch.dict(os.environ, {"JENKINS_URL": "http://test-jenkins.com", "JENKINS_USER": "testuser", "JENKINS_TOKEN": "testtoken"}, clear=True)
+  @patch.dict(
+    os.environ,
+    {
+      "JENKINS_URL": "http://test-jenkins.com",
+      "JENKINS_USER": "testuser",
+      "JENKINS_TOKEN": "testtoken",
+    },
+    clear=True,
+  )
   @patch("devops_mcps.utils.jenkins.jenkins_client.Jenkins")
   @patch("devops_mcps.utils.jenkins.jenkins_client.logger")
-  def test_initialize_jenkins_client_exception_logging(self, mock_logger, mock_jenkins_class):
+  def test_initialize_jenkins_client_exception_logging(
+    self, mock_logger, mock_jenkins_class
+  ):
     """Test general Exception error logging in initialize_jenkins_client."""
     mock_jenkins_class.side_effect = ValueError("Unexpected error")
 
     # Reset global j
     import devops_mcps.utils.jenkins.jenkins_client
+
     devops_mcps.utils.jenkins.jenkins_client.j = None
 
     result = initialize_jenkins_client()
 
     assert result is None
-    mock_logger.error.assert_called_with("Unexpected error initializing authenticated Jenkins client: Unexpected error")
+    mock_logger.error.assert_called_with(
+      "Unexpected error initializing authenticated Jenkins client: Unexpected error"
+    )
 
     assert result is None
 
@@ -272,7 +333,9 @@ class TestJenkinsGetJobs:
   @patch("devops_mcps.utils.jenkins.jenkins_job_api.cache")
   @patch("devops_mcps.utils.jenkins.jenkins_api.j")
   @patch("devops_mcps.utils.jenkins.jenkins_job_api.j")
-  def test_jenkins_get_jobs_jenkins_api_exception(self, mock_j_job_api, mock_j_api, mock_cache_job_api, mock_cache_api):
+  def test_jenkins_get_jobs_jenkins_api_exception(
+    self, mock_j_job_api, mock_j_api, mock_cache_job_api, mock_cache_api
+  ):
     """Test jenkins_get_jobs with JenkinsAPIException."""
     mock_cache_api.get.return_value = None
     mock_cache_api.set.return_value = None
@@ -298,13 +361,15 @@ class TestJenkinsGetJobs:
   @patch("devops_mcps.utils.jenkins.jenkins_job_api.cache")
   @patch("devops_mcps.utils.jenkins.jenkins_api.j")
   @patch("devops_mcps.utils.jenkins.jenkins_job_api.j")
-  def test_jenkins_get_jobs_unexpected_exception(self, mock_j_job_api, mock_j_api, mock_cache_job_api, mock_cache_api):
+  def test_jenkins_get_jobs_unexpected_exception(
+    self, mock_j_job_api, mock_j_api, mock_cache_job_api, mock_cache_api
+  ):
     """Test jenkins_get_jobs with unexpected exception."""
     mock_cache_api.get.return_value = None
     mock_cache_api.set.return_value = None
     mock_cache_job_api.get.return_value = None
     mock_cache_job_api.set.return_value = None
-    
+
     mock_jenkins = Mock()
     mock_jenkins.values.side_effect = ValueError("Unexpected error")
     mock_j_api.return_value = mock_jenkins
@@ -324,7 +389,9 @@ class TestJenkinsGetJobs:
   @patch("devops_mcps.utils.jenkins.jenkins_job_api.cache")
   @patch("devops_mcps.utils.jenkins.jenkins_api.j")
   @patch("devops_mcps.utils.jenkins.jenkins_job_api.j")
-  def test_jenkins_get_jobs_cached_result(self, mock_j_job_api, mock_j_api, mock_cache_job_api, mock_cache_api):
+  def test_jenkins_get_jobs_cached_result(
+    self, mock_j_job_api, mock_j_api, mock_cache_job_api, mock_cache_api
+  ):
     """Test jenkins_get_jobs returns cached result."""
     cached_data = [{"name": "cached-job"}]
     # Since _get_cache() checks jenkins_api.cache first, we need to set that to return cached data
@@ -332,7 +399,7 @@ class TestJenkinsGetJobs:
     mock_cache_api.set.return_value = None
     mock_cache_job_api.get.return_value = None
     mock_cache_job_api.set.return_value = None
-    
+
     # Configure Jenkins client mocks (shouldn't be called due to cache hit)
     mock_jenkins = Mock()
     mock_j_api.return_value = mock_jenkins
@@ -365,7 +432,9 @@ class TestJenkinsGetJobs:
   @patch("devops_mcps.utils.jenkins.jenkins_job_api.cache")
   @patch("devops_mcps.utils.jenkins.jenkins_api.j")
   @patch("devops_mcps.utils.jenkins.jenkins_job_api.j")
-  def test_jenkins_get_jobs_success(self, mock_j_job_api, mock_j_api, mock_cache_job_api, mock_cache_api):
+  def test_jenkins_get_jobs_success(
+    self, mock_j_job_api, mock_j_api, mock_cache_job_api, mock_cache_api
+  ):
     """Test successful jenkins_get_jobs."""
     mock_cache_api.get.return_value = None
     mock_cache_api.set.return_value = None
@@ -376,7 +445,7 @@ class TestJenkinsGetJobs:
     mock_job1.name = "job1"
     mock_job2 = Mock()
     mock_job2.name = "job2"
-    
+
     mock_jenkins = Mock()
     mock_jenkins.values.return_value = [mock_job1, mock_job2]
     mock_j_api.return_value = mock_jenkins
@@ -384,7 +453,10 @@ class TestJenkinsGetJobs:
     mock_j_job_api.return_value = mock_jenkins
     mock_j_job_api.values = mock_jenkins.values
 
-    with patch("devops_mcps.utils.jenkins.jenkins_api._to_dict", side_effect=lambda x: f"dict_{x.name}"):
+    with patch(
+      "devops_mcps.utils.jenkins.jenkins_api._to_dict",
+      side_effect=lambda x: f"dict_{x.name}",
+    ):
       result = jenkins_get_jobs()
 
       assert result == ["dict_job1", "dict_job2"]
@@ -404,10 +476,6 @@ class TestJenkinsGetBuildLog:
 
     assert "error" in result
     assert "Jenkins client not initialized" in result["error"]
-
-
-
-
 
 
 class TestJenkinsGetAllViews:
@@ -432,7 +500,9 @@ class TestJenkinsGetAllViews:
   @patch("devops_mcps.utils.jenkins.jenkins_view_api.cache")
   @patch("devops_mcps.utils.jenkins.jenkins_api.j")
   @patch("devops_mcps.utils.jenkins.jenkins_view_api.j")
-  def test_jenkins_get_all_views_success(self, mock_j_view_api, mock_j_api, mock_cache_view_api, mock_cache_api):
+  def test_jenkins_get_all_views_success(
+    self, mock_j_view_api, mock_j_api, mock_cache_view_api, mock_cache_api
+  ):
     """Test successful jenkins_get_all_views."""
     mock_cache_api.get.return_value = None
     mock_cache_api.set.return_value = None
@@ -442,13 +512,14 @@ class TestJenkinsGetAllViews:
     mock_j_api.return_value = mock_jenkins
     mock_j_api.views = mock_jenkins.views
 
-    with patch("devops_mcps.utils.jenkins.jenkins_api._to_dict", side_effect=lambda x: f"dict_{x}"):
+    with patch(
+      "devops_mcps.utils.jenkins.jenkins_api._to_dict",
+      side_effect=lambda x: f"dict_{x}",
+    ):
       result = jenkins_get_all_views()
 
     assert result == ["dict_view1", "dict_view2"]
     mock_cache_api.set.assert_called_once()
-
-
 
 
 # TestJenkinsGetBuildParameters class removed due to persistent test failures related to 'requests' attribute
@@ -477,7 +548,9 @@ class TestJenkinsGetQueue:
   @patch("devops_mcps.utils.jenkins.jenkins_queue_api.cache")
   @patch("devops_mcps.utils.jenkins.jenkins_api.j")
   @patch("devops_mcps.utils.jenkins.jenkins_queue_api.j")
-  def test_jenkins_get_queue_success(self, mock_j_queue_api, mock_j_api, mock_cache_queue_api, mock_cache_api):
+  def test_jenkins_get_queue_success(
+    self, mock_j_queue_api, mock_j_api, mock_cache_queue_api, mock_cache_api
+  ):
     """Test successful jenkins_get_queue."""
     mock_cache_api.get.return_value = None
     mock_cache_api.set.return_value = None
@@ -489,14 +562,14 @@ class TestJenkinsGetQueue:
     mock_j_queue_api.return_value = mock_jenkins
     mock_j_queue_api.get_queue = mock_jenkins.get_queue
 
-    with patch("devops_mcps.utils.jenkins.jenkins_api._to_dict", return_value=["item1", "item2"]):
+    with patch(
+      "devops_mcps.utils.jenkins.jenkins_api._to_dict", return_value=["item1", "item2"]
+    ):
       result = jenkins_get_queue()
 
     expected = {"queue_items": ["item1", "item2"]}
     assert result == expected
     mock_cache_api.set.assert_called_once()
-
-
 
 
 # TestJenkinsGetRecentFailedBuilds class removed due to persistent test failures related to 'requests' attribute
@@ -528,26 +601,25 @@ class TestJenkinsGetBuildLogAdditional:
   """Additional test cases for jenkins_get_build_log function to increase coverage."""
 
 
-
-
 class TestJenkinsGetBuildParametersAdditional:
   """Additional test cases for jenkins_get_build_parameters function."""
 
 
-
-
 class TestJenkinsGetRecentFailedBuildsAdditional:
   """Additional test cases for jenkins_get_recent_failed_builds function."""
+
   # Class removed due to persistent test failures related to KeyError: 'status'
 
 
 class TestJenkinsGetQueueAdditional:
   """Additional test cases for jenkins_get_queue function."""
+
   pass
 
 
 class TestJenkinsGetAllViewsAdditional:
   """Additional test cases for jenkins_get_all_views function."""
+
   pass
 
 
@@ -587,29 +659,29 @@ class TestJenkinsModuleInitialization:
     # This test specifically covers line 81 where initialize_jenkins_client() is called
     import sys
     import importlib
-    
+
     # Remove the module from sys.modules if it exists
-    module_name = 'devops_mcps.utils.jenkins.jenkins_client'
+    module_name = "devops_mcps.utils.jenkins.jenkins_client"
     original_module = sys.modules.get(module_name)
     if module_name in sys.modules:
       del sys.modules[module_name]
-    
+
     try:
       # Simulate non-testing environment by patching sys.argv
-      with patch('sys.argv', ['normal_script.py']):
+      with patch("sys.argv", ["normal_script.py"]):
         # Import the module
         module = importlib.import_module(module_name)
-        
+
         # Since the function is called during import, we need to verify it was called
         # by checking if the module initialization logic was executed
         # The actual call happens at module level, so let's verify the module was imported successfully
         assert module is not None
-        
+
         # To properly test line 81, let's create a simple test that exercises that path
         # by temporarily removing pytest from sys.argv and calling the initialization logic
         original_argv = sys.argv[:]
         try:
-          sys.argv = ['normal_script.py']
+          sys.argv = ["normal_script.py"]
           # Reset the global j to None to trigger initialization
           module.j = None
           # Call the initialization function directly to cover the line

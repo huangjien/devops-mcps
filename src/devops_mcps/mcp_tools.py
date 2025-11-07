@@ -76,7 +76,9 @@ async def list_azure_app_services(
   if not subscription_id:
     logger.error("Parameter 'subscription_id' cannot be empty")
     return {"error": "Parameter 'subscription_id' cannot be empty"}
-  return azure.list_app_services(subscription_id=subscription_id, resource_group=resource_group)
+  return azure.list_app_services(
+    subscription_id=subscription_id, resource_group=resource_group
+  )
 
 
 async def get_azure_app_service_details(
@@ -104,7 +106,9 @@ async def get_azure_app_service_details(
   if not app_name:
     logger.error("Parameter 'app_name' cannot be empty")
     return {"error": "Parameter 'app_name' cannot be empty"}
-  return azure.get_app_service_details(subscription_id=subscription_id, resource_group=resource_group, app_name=app_name)
+  return azure.get_app_service_details(
+    subscription_id=subscription_id, resource_group=resource_group, app_name=app_name
+  )
 
 
 async def get_azure_app_service_metrics(
@@ -134,7 +138,12 @@ async def get_azure_app_service_metrics(
   if not app_name:
     logger.error("Parameter 'app_name' cannot be empty")
     return {"error": "Parameter 'app_name' cannot be empty"}
-  return azure.get_app_service_metrics(subscription_id=subscription_id, resource_group=resource_group, app_name=app_name, time_range=time_range)
+  return azure.get_app_service_metrics(
+    subscription_id=subscription_id,
+    resource_group=resource_group,
+    app_name=app_name,
+    time_range=time_range,
+  )
 
 
 async def list_azure_app_service_plans(
@@ -150,11 +159,15 @@ async def list_azure_app_service_plans(
   Returns:
       List of App Service Plan dictionaries or an error dictionary.
   """
-  logger.debug(f"Executing list_azure_app_service_plans for subscription: {subscription_id}")
+  logger.debug(
+    f"Executing list_azure_app_service_plans for subscription: {subscription_id}"
+  )
   if not subscription_id:
     logger.error("Parameter 'subscription_id' cannot be empty")
     return {"error": "Parameter 'subscription_id' cannot be empty"}
-  return azure.list_app_service_plans(subscription_id=subscription_id, resource_group=resource_group)
+  return azure.list_app_service_plans(
+    subscription_id=subscription_id, resource_group=resource_group
+  )
 
 
 # --- GitHub Tools ---
