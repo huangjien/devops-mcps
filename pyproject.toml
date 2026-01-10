@@ -29,7 +29,7 @@ dependencies = [
     "toml",
     "dotenv>=0.9.9",
     "pygithub>=2.6.1",
-    "jenkinsapi==0.3.14",
+    "jenkinsapi>=0.3.14",
     "fastapi>=0.115.12",
     "azure-identity>=1.15.0",
     "azure-mgmt-compute>=30.6.0",
@@ -51,6 +51,8 @@ dev = [
     "pytest-cov>=6.1.1",
     "pytest-mock>=3.14.0",
     "pytest-asyncio",
+    "pre-commit>=3.8.0",
+    "mypy>=1.9.0",
 ]
 
 [project.scripts]

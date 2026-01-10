@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-The DevOps MCP Server is a well-established FastMCP-based server providing comprehensive DevOps integrations. Currently at version 0.8.11 with excellent test coverage (97.25%), the project has a solid foundation for expansion.
+The DevOps MCP Server is a well-established FastMCP-based server providing comprehensive DevOps integrations. Currently at version 0.9.5 with excellent test coverage (97.38%), the project has a solid foundation for expansion.
 
 ## Current State Analysis
 

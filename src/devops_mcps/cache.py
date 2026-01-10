@@ -1,6 +1,7 @@
 """In-memory cache module for DevOps MCP Server."""
 
 import logging
+import os
 from typing import Any, Optional, Dict
 from datetime import datetime, timedelta
 import threading
@@ -11,12 +12,17 @@ logger = logging.getLogger(__name__)
 class CacheManager:
   """In-memory cache manager for MCP server."""
 
-  def __init__(self):
-    """Initialize in-memory cache."""
+  def __init__(self, default_ttl: Optional[int] = None):
+    """Initialize in-memory cache.
+
+    Args:
+        default_ttl: Default time-to-live in seconds. If None, reads from CACHE_TTL env var.
+    """
     self._cache: Dict[str, Dict[str, Any]] = {}
     self._lock = threading.Lock()
-    self.default_ttl = 600  # 1 hour default
-    logger.info("Initialized in-memory cache")
+    # Read TTL from parameter, environment variable, or use default
+    self.default_ttl = default_ttl or int(os.environ.get("CACHE_TTL", "600"))
+    logger.info(f"Initialized in-memory cache with TTL: {self.default_ttl}s")
 
   def get(self, key: str) -> Optional[Any]:
     """Get cached value by key."""

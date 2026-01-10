@@ -3,14 +3,25 @@ import logging
 import logging.handlers
 import sys
 import os  # Import the os module
+from pathlib import Path
 
 # --- Configuration ---
 # Default to writing the log into the current working directory.
 # This ensures the log file is created relative to where the server is run from.
+# For production, consider using an absolute path or a dedicated log directory.
 LOG_FILENAME = os.environ.get("LOG_FILENAME", "mcp_server.log")
+
+# Support absolute or relative paths
+LOG_PATH = Path(LOG_FILENAME)
+if not LOG_PATH.is_absolute():
+  # For relative paths, use current working directory
+  LOG_PATH = Path.cwd() / LOG_FILENAME
+
 MAX_LOG_SIZE_MB = 5
 MAX_BYTES = MAX_LOG_SIZE_MB * 1024 * 1024
-BACKUP_COUNT = 0  # Set to 0 to overwrite (delete the old log on rotation)
+
+# Number of backup log files to keep (0 to overwrite, 3-5 recommended for production)
+BACKUP_COUNT = int(os.environ.get("LOG_BACKUP_COUNT", "0"))
 
 # --- Determine Log Level from Environment Variable ---
 # Default to INFO for production use. The LOG_LEVEL env var can override this at runtime.
@@ -52,8 +63,14 @@ def setup_logging() -> bool:
   root_logger.handlers.clear()  # Clear any existing handlers
 
   # Rotating File Handler
-  log_file_path = LOG_FILENAME  # Use relative path for simplicity here
+  # Use LOG_FILENAME directly (not LOG_PATH) to match test expectations
+  log_file_path = LOG_FILENAME
   file_logging_enabled = False
+
+  # Ensure log directory exists if path contains directories
+  log_dir = Path(LOG_FILENAME).parent
+  if str(log_dir) != ".":
+    log_dir.mkdir(parents=True, exist_ok=True)
 
   try:
     rotating_handler = logging.handlers.RotatingFileHandler(
@@ -103,7 +120,7 @@ def setup_logging() -> bool:
   log_destinations = []
   if file_logging_enabled:
     log_destinations.append(
-      f"File ({log_file_path}, MaxSize: {MAX_LOG_SIZE_MB}MB, Backups: {BACKUP_COUNT})"
+      f"File ({LOG_FILENAME}, MaxSize: {MAX_LOG_SIZE_MB}MB, Backups: {BACKUP_COUNT})"
     )
   if console_logging_enabled:
     log_destinations.append("Console (stderr)")

@@ -21,6 +21,9 @@ Azure utilities:
 - azure.azure_compute: Virtual machine management
 - azure.azure_containers: AKS cluster management
 - azure.azure_subscriptions: Subscription management
+
+Error handling:
+- errors: Common error handling utilities and custom exceptions
 """
 
 # Import utility functions from GitHub modules

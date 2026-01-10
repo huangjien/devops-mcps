@@ -19,8 +19,8 @@ help:
 	@echo "  dev           - Install, format, and lint"
 	@echo "  lint          - Run ruff checks"
 	@echo "  format        - Run ruff formatter"
-	@echo "  test          - Run unit tests"
-	@echo "  coverage      - Run tests with coverage"
+	@echo "  test          - Run unit tests with coverage report"
+	@echo "  coverage      - Run tests with coverage (detailed)"
 	@echo "  run           - Start MCP server (stdio)"
 	@echo "  run-http      - Start MCP server (streamable-http)"
 	@echo "  build         - Build sdist and wheel"
@@ -49,7 +49,7 @@ format:
 	$(PYTHON) -m ruff format .
 
 test:
-	PYTHONPATH=src $(PYTHON) -m pytest -q
+	PYTHONPATH=src $(PYTHON) -m pytest -q --cov=src/devops_mcps --cov-report=term-missing
 
 coverage:
 	PYTHONPATH=src $(PYTHON) -m pytest --cov=src/devops_mcps --cov-report=term-missing

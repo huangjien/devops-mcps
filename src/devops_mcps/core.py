@@ -15,6 +15,7 @@ This module now serves as a compatibility layer, delegating to the new modular s
 import os
 import sys
 import logging
+from importlib.metadata import version, PackageNotFoundError
 
 # Import main entry points from the new modular structure
 from .main_entry import main, main_stream_http, setup_and_run
@@ -53,8 +54,11 @@ from . import github, jenkins, azure, artifactory
 logger = logging.getLogger(__name__)
 mcp = create_mcp_server()
 
-# Package version
-package_version = "0.8.8"
+# Package version - read from pyproject.toml for single source of truth
+try:
+  package_version = version("devops-mcps")
+except PackageNotFoundError:
+  package_version = "0.0.0"
 
 # imports moved to top to satisfy Ruff E402
 
