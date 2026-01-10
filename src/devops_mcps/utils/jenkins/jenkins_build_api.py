@@ -17,7 +17,7 @@ from .jenkins_builds import jenkins_get_recent_failed_builds
 logger = logging.getLogger(__name__)
 
 __all__ = [
-    "jenkins_get_build_log",
-    "jenkins_get_build_parameters",
-    "jenkins_get_recent_failed_builds",
+  "jenkins_get_build_log",
+  "jenkins_get_build_parameters",
+  "jenkins_get_recent_failed_builds",
 ]
