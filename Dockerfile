@@ -5,8 +5,9 @@ FROM python:3.12-slim AS builder
 # Set working directory
 WORKDIR /app
 
-# Copy dependency files
-COPY pyproject.toml uv.lock ./
+# Copy dependency files and source code
+COPY pyproject.toml uv.lock README.md LICENSE ./
+COPY src/ ./src/
 
 # Install uv for faster dependency management
 RUN pip install --no-cache-dir uv
