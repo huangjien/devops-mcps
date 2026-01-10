@@ -116,16 +116,16 @@ repos:
         types: [python]
 
 # Local hooks
-- repo: local
-  hooks:
-    - id: check-docstring-first
-      name: Check docstring is first
-      entry: python scripts/check_docstring_first.py
-      language: system
-      types: [python]
+  - repo: local
+    hooks:
+      - id: check-docstring-first
+        name: Check docstring is first
+        entry: python scripts/check_docstring_first.py
+        language: system
+        types: [python]
 
-    - id: check-ast
-      name: Check Python AST
-      entry: python scripts/check_ast.py
-      language: system
-      types: [python]
+      - id: check-ast
+        name: Check Python AST
+        entry: python scripts/check_ast.py
+        language: system
+        types: [python]
