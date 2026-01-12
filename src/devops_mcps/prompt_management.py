@@ -9,7 +9,7 @@ import logging
 import os
 import re
 from pathlib import Path
-from typing import Dict, Any, Optional, Tuple, Iterable
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 
 # Get logger for this module
@@ -107,6 +107,37 @@ def _render_template(
   return rendered, None
 
 
+def _as_prompt_messages(text: str) -> List[Dict[str, Any]]:
+  return [{"role": "user", "content": [{"type": "text", "text": text}]}]
+
+
+def _make_dynamic_prompt(
+  *,
+  prompt_name: str,
+  description: str,
+  template: str,
+  variable_specs: Dict[str, Dict[str, Any]],
+):
+  async def dynamic_prompt(**kwargs) -> List[Dict[str, Any]]:
+    try:
+      processed_template, error = _render_template(
+        template=template,
+        variable_specs=variable_specs,
+        kwargs=kwargs,
+      )
+      if error:
+        return _as_prompt_messages(error)
+
+      return _as_prompt_messages(processed_template or "")
+    except Exception as e:
+      logger.error(f"Error processing prompt '{prompt_name}': {e}")
+      return _as_prompt_messages(f"Error processing prompt: {e}")
+
+  dynamic_prompt.__name__ = prompt_name
+  dynamic_prompt.__doc__ = str(description)
+  return dynamic_prompt
+
+
 def load_and_register_prompts(mcp, prompts_file: Optional[Path] = None) -> None:
   """Load and register dynamic prompts from JSON file.
 
@@ -134,30 +165,12 @@ def load_and_register_prompts(mcp, prompts_file: Optional[Path] = None) -> None:
         template = prompt_config.get("template", "")
         variable_specs = _build_variable_specs(prompt_config)
 
-        async def dynamic_prompt(**kwargs) -> Dict[str, Any]:
-          """Dynamically generated prompt function."""
-          try:
-            processed_template, error = _render_template(
-              template=str(template),
-              variable_specs=variable_specs,
-              kwargs=kwargs,
-            )
-            if error:
-              return {"error": error}
-
-            return {
-              "name": prompt_name,
-              "description": description,
-              "content": processed_template,
-              "variables": variable_specs,
-            }
-
-          except Exception as e:
-            logger.error(f"Error processing prompt '{prompt_name}': {e}")
-            return {"error": f"Error processing prompt: {e}"}
-
-        dynamic_prompt.__name__ = prompt_name
-        dynamic_prompt.__doc__ = str(description)
+        dynamic_prompt = _make_dynamic_prompt(
+          prompt_name=str(prompt_name),
+          description=str(description),
+          template=str(template),
+          variable_specs=variable_specs,
+        )
 
         mcp.prompt(name=prompt_name, description=str(description))(dynamic_prompt)
         logger.debug(f"Registered prompt: {prompt_name}")
