@@ -54,7 +54,7 @@ class TestPromptLoader:
         os.unlink(f.name)
 
   def test_load_prompts_missing_prompts_key(self):
-    """Test loading prompts with missing 'prompts' key."""
+    """Test loading prompts with missing 'prompts' key (should be treated as dict format)."""
     data = {"other_key": "value"}
 
     with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
@@ -64,7 +64,7 @@ class TestPromptLoader:
       try:
         loader = PromptLoader(f.name)
         result = loader.load_prompts()
-        assert result == {}
+        assert result == data
       finally:
         os.unlink(f.name)
 
@@ -218,3 +218,45 @@ class TestPromptLoader:
         assert "invalid_prompt" not in result
       finally:
         os.unlink(f.name)
+
+  def test_load_prompts_dict_format(self):
+    """Test loading prompts with new dict format."""
+    data = {"prompt1": {"name": "prompt1", "description": "d1", "template": "t1"}}
+
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+      json.dump(data, f)
+      f.flush()
+
+      try:
+        loader = PromptLoader(f.name)
+        result = loader.load_prompts()
+        assert len(result) == 1
+        assert "prompt1" in result
+      finally:
+        os.unlink(f.name)
+
+  def test_load_prompts_dict_format_missing_prompts_key_success(self):
+    """Test dict format (new format) is accepted."""
+    data = {"prompt1": {"name": "prompt1", "description": "d1", "template": "t1"}}
+
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+      json.dump(data, f)
+      f.flush()
+
+      try:
+        loader = PromptLoader(f.name)
+        result = loader.load_prompts()
+        assert len(result) == 1
+        assert "prompt1" in result
+      finally:
+        os.unlink(f.name)
+
+  @patch("devops_mcps.prompts.open")
+  def test_load_prompts_exception(self, mock_open):
+    """Test general exception during load_prompts."""
+    mock_open.side_effect = Exception("General error")
+    loader = PromptLoader("dummy.json")
+    # Mock exists to return True
+    with patch("pathlib.Path.exists", return_value=True):
+      result = loader.load_prompts()
+      assert result == {}

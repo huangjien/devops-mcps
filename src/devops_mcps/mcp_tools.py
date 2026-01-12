@@ -388,13 +388,13 @@ async def get_jenkins_jobs() -> Union[List[Dict[str, Any]], Dict[str, str]]:
 
 
 async def get_jenkins_build_log(
-  job_name: str, build_number: int
+  job_name: str, build_number: int = 0
 ) -> Union[str, Dict[str, str]]:
   """Get the build log for a specific Jenkins job and build number.
 
   Args:
       job_name: Name of the Jenkins job.
-      build_number: Build number.
+      build_number: Build number. Use 0 for the latest build. Defaults to 0.
 
   Returns:
       Build log as string or an error dictionary.
@@ -404,6 +404,7 @@ async def get_jenkins_build_log(
     logger.error("Parameter 'job_name' cannot be empty")
     return {"error": "Parameter 'job_name' cannot be empty"}
   if build_number is None:
+    # This check might be redundant if type checking enforces int, but safe to keep
     logger.error("Parameter 'build_number' cannot be None")
     return {"error": "Parameter 'build_number' cannot be None"}
   return jenkins.jenkins_get_build_log(job_name=job_name, build_number=build_number)

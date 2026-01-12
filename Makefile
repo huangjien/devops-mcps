@@ -16,9 +16,8 @@ USE_UV := $(if $(UV),yes,no)
 help:
 	@echo "Available targets:"
 	@echo "  install       - Install project and dev dependencies (uv or pip)"
-	@echo "  dev           - Install, format, and lint"
-	@echo "  lint          - Run ruff checks"
-	@echo "  format        - Run ruff formatter"
+	@echo "  dev           - Install and lint (format + fix)"
+	@echo "  lint          - Format code and fix lint issues (ruff)"
 	@echo "  test          - Run unit tests with coverage report"
 	@echo "  coverage      - Run tests with coverage (detailed)"
 	@echo "  run           - Start MCP server (stdio)"
@@ -40,13 +39,11 @@ else
 	$(PYTHON) -m pip install -e .[dev]
 endif
 
-dev: install format lint
+dev: install lint
 
 lint:
-	$(PYTHON) -m ruff check .
-
-format:
 	$(PYTHON) -m ruff format .
+	$(PYTHON) -m ruff check --fix .
 
 test:
 	PYTHONPATH=src $(PYTHON) -m pytest -q --cov=src/devops_mcps --cov-report=term-missing

@@ -7,6 +7,7 @@ including main(), main_stream_http(), and setup_and_run().
 import sys
 import os
 import unittest
+import logging
 from unittest.mock import patch, MagicMock
 
 # Add src to sys.path for import
@@ -505,6 +506,121 @@ class TestMainEntryModuleExecution(unittest.TestCase):
       mock_main.assert_called_once()
     finally:
       main_entry.__name__ = original_name
+
+
+class TestConfigureLogging(unittest.TestCase):
+  """Test cases for _configure_logging function."""
+
+  @patch("logging.getLogger")
+  def test_configure_logging_valid_levels(self, mock_get_logger):
+    """Test configuration with valid logging levels."""
+    levels = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
+    for level in levels:
+      main_entry._configure_logging(level)
+      mock_get_logger.return_value.setLevel.assert_called_with(getattr(logging, level))
+
+  @patch("logging.getLogger")
+  def test_configure_logging_case_insensitive(self, mock_get_logger):
+    """Test configuration with lowercase logging levels."""
+    main_entry._configure_logging("debug")
+    mock_get_logger.return_value.setLevel.assert_called_with(logging.DEBUG)
+
+  @patch("logging.getLogger")
+  def test_configure_logging_invalid_level(self, mock_get_logger):
+    """Test configuration with invalid logging level (defaults to INFO)."""
+    main_entry._configure_logging("INVALID")
+    mock_get_logger.return_value.setLevel.assert_called_with(logging.INFO)
+
+  @patch("logging.getLogger")
+  def test_configure_logging_none(self, mock_get_logger):
+    """Test configuration with None (no action)."""
+    main_entry._configure_logging(None)
+    mock_get_logger.assert_not_called()
+
+  @patch("logging.getLogger")
+  def test_configure_logging_not_string(self, mock_get_logger):
+    """Test configuration with non-string input (no action)."""
+    main_entry._configure_logging(123)
+    mock_get_logger.assert_not_called()
+
+
+class TestParseArgs(unittest.TestCase):
+  """Test cases for _parse_args function."""
+
+  def test_parse_args_defaults(self):
+    """Test parsing with default arguments."""
+    args = main_entry._parse_args([])
+    self.assertEqual(args.transport, "stdio")
+    self.assertEqual(args.mount_path, "/mcp")
+    self.assertIsNone(args.log_level)
+    self.assertFalse(args.version)
+
+  def test_parse_args_custom(self):
+    """Test parsing with custom arguments."""
+    args = main_entry._parse_args(
+      [
+        "--transport",
+        "stream_http",
+        "--mount-path",
+        "/custom",
+        "--log-level",
+        "DEBUG",
+        "--version",
+      ]
+    )
+    self.assertEqual(args.transport, "stream_http")
+    self.assertEqual(args.mount_path, "/custom")
+    self.assertEqual(args.log_level, "DEBUG")
+    self.assertTrue(args.version)
+
+  @patch("argparse.ArgumentParser.parse_args")
+  @patch("argparse.ArgumentParser.parse_known_args")
+  def test_parse_args_system_exit(self, mock_parse_known_args, mock_parse_args):
+    """Test fallback to parse_known_args on SystemExit."""
+    mock_parse_args.side_effect = SystemExit(2)
+    mock_known_args = MagicMock()
+    mock_parse_known_args.return_value = (mock_known_args, [])
+
+    result = main_entry._parse_args(["--unknown-arg"])
+
+    self.assertEqual(result, mock_known_args)
+    mock_parse_args.assert_called_once()
+    mock_parse_known_args.assert_called_once()
+
+
+class TestMainVersion(unittest.TestCase):
+  """Test cases for version printing in main()."""
+
+  @patch("devops_mcps.main_entry._parse_args")
+  @patch("devops_mcps.main_entry.version")
+  @patch("builtins.print")
+  def test_main_version_success(self, mock_print, mock_version, mock_parse_args):
+    """Test version printing when package is found."""
+    mock_args = MagicMock()
+    mock_args.version = True
+    mock_parse_args.return_value = mock_args
+    mock_version.return_value = "1.2.3"
+
+    main_entry.main()
+
+    mock_version.assert_called_with("devops-mcps")
+    mock_print.assert_called_with("1.2.3")
+
+  @patch("devops_mcps.main_entry._parse_args")
+  @patch("devops_mcps.main_entry.version")
+  @patch("builtins.print")
+  def test_main_version_not_found(self, mock_print, mock_version, mock_parse_args):
+    """Test version printing when package is not found."""
+    from importlib.metadata import PackageNotFoundError
+
+    mock_args = MagicMock()
+    mock_args.version = True
+    mock_parse_args.return_value = mock_args
+    mock_version.side_effect = PackageNotFoundError
+
+    main_entry.main()
+
+    mock_print.assert_called_with("unknown")
 
 
 if __name__ == "__main__":

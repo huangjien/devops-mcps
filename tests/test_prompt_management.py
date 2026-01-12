@@ -647,3 +647,106 @@ class TestEdgeCasesAndIntegration:
     # This should be tested in an async context, but we can verify the structure
     assert hasattr(captured_function, "__name__")
     assert captured_function.__name__ == "prompt_with_exception"
+
+
+class TestInternalHelpers:
+  """Test suite for internal helper functions."""
+
+  def test_iter_prompt_entries_nested_list(self):
+    """Test _iter_prompt_entries with nested 'prompts' list."""
+    from devops_mcps.prompt_management import _iter_prompt_entries
+
+    data = {
+      "prompts": [
+        {"name": "p1", "description": "d1"},
+        {"name": "p2", "description": "d2"},
+        {"invalid": "item"},  # Should be skipped
+      ]
+    }
+
+    entries = list(_iter_prompt_entries(data))
+    assert len(entries) == 2
+    assert entries[0][0] == "p1"
+    assert entries[1][0] == "p2"
+
+  def test_iter_prompt_entries_list(self):
+    """Test _iter_prompt_entries with direct list."""
+    from devops_mcps.prompt_management import _iter_prompt_entries
+
+    data = [
+      {"name": "p1", "description": "d1"},
+      {"name": "p2", "description": "d2"},
+      {"invalid": "item"},  # Should be skipped
+    ]
+
+    entries = list(_iter_prompt_entries(data))
+    assert len(entries) == 2
+    assert entries[0][0] == "p1"
+    assert entries[1][0] == "p2"
+
+  def test_build_variable_specs_arguments(self):
+    """Test _build_variable_specs with 'arguments' list."""
+    from devops_mcps.prompt_management import _build_variable_specs
+
+    config = {
+      "arguments": [
+        {"name": "arg1", "required": True},
+        {"name": "arg2", "default": "val2"},
+        {"invalid": "arg"},  # Should be skipped
+        "not a dict",  # Should be skipped
+      ]
+    }
+
+    specs = _build_variable_specs(config)
+    assert len(specs) == 2
+    assert specs["arg1"]["required"] is True
+    assert specs["arg2"]["default"] == "val2"
+
+  def test_normalize_prompt_kwargs_nested(self):
+    """Test _normalize_prompt_kwargs with nested arguments."""
+    from devops_mcps.prompt_management import _normalize_prompt_kwargs
+
+    # Case 1: nested 'arguments' dict
+    kwargs1 = {"arguments": {"arg1": "val1"}}
+    result1 = _normalize_prompt_kwargs(kwargs1)
+    assert result1 == {"arg1": "val1"}
+
+    # Case 2: value dict
+    kwargs2 = {"arg1": {"value": "val1"}, "arg2": "val2"}
+    result2 = _normalize_prompt_kwargs(kwargs2)
+    assert result2 == {"arg1": "val1", "arg2": "val2"}
+
+  @pytest.mark.asyncio
+  async def test_dynamic_prompt_rendering_error(self):
+    """Test dynamic prompt with rendering error."""
+    from devops_mcps.prompt_management import _make_dynamic_prompt
+
+    # Create a prompt that will fail rendering (e.g. by mocking _render_template to return error)
+    with patch("devops_mcps.prompt_management._render_template") as mock_render:
+      mock_render.return_value = (None, "Rendering error")
+
+      prompt_func = _make_dynamic_prompt(
+        prompt_name="test", description="test", template="test", variable_specs={}
+      )
+
+      result = await prompt_func()
+      assert result.content.text == "Rendering error"
+
+  @patch("devops_mcps.prompt_management.logger")
+  def test_register_prompt_exception(self, mock_logger):
+    """Test exception during prompt registration."""
+    mock_mcp = MagicMock()
+    mock_mcp.prompt.side_effect = Exception("Registration error")
+
+    with patch(
+      "devops_mcps.prompt_management.open",
+      new_callable=mock_open,
+      read_data='{"p1": {"description": "d1", "template": "t1"}}',
+    ):
+      with patch("devops_mcps.prompt_management.Path") as mock_path:
+        mock_path.return_value.exists.return_value = True
+
+        load_and_register_prompts(mock_mcp)
+
+        mock_logger.error.assert_called()
+        assert "Failed to register prompt 'p1'" in mock_logger.error.call_args[0][0]

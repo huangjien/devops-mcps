@@ -88,10 +88,6 @@ class PromptLoader:
       # Support new format (dict of prompts)
       # Only return data if it appears to be a valid prompts dict (has prompts key or looks like prompts)
       elif isinstance(data, dict):
-        # If no "prompts" key, treat as invalid format and return empty dict
-        if "prompts" not in data:
-          logger.error("Invalid prompts file format. Missing 'prompts' key.")
-          return {}
         self.prompts = data
         logger.info(f"Loaded {len(data)} prompts from {self.prompts_file}")
         return data

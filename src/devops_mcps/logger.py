@@ -93,7 +93,10 @@ def setup_logging() -> bool:
     )
 
   # Disable console logging to avoid interfering with MCP protocol
-  console_logging_enabled = False
+  # unless explicitly enabled via environment variable for debugging
+  console_logging_enabled = (
+    os.environ.get("MCP_CONSOLE_LOGGING", "false").lower() == "true"
+  )
 
   # Initialize logger for this module AFTER handlers are added
   logger = logging.getLogger(__name__)

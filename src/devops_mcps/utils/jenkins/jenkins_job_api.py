@@ -1,10 +1,10 @@
 """Jenkins Job API functions."""
 
 import logging
+import requests
 from typing import List, Dict, Any, Union
 
 # Third-party imports
-from jenkinsapi.jenkins import JenkinsAPIException
 
 # Internal imports
 from ...cache import cache as _cache
@@ -121,32 +121,53 @@ def jenkins_get_jobs() -> Union[List[Dict[str, Any]], Dict[str, str]]:
     logger.debug(f"Returning cached result for {cache_key}")
     return cached
 
-  j = _get_jenkins_client()
   constants = _get_jenkins_constants()
 
-  if not j:
-    logger.error("jenkins_get_jobs: Jenkins client not initialized.")
-    if (
-      not constants["JENKINS_URL"]
-      or not constants["JENKINS_USER"]
-      or not constants["JENKINS_TOKEN"]
-    ):
-      logger.error("Jenkins credentials not configured.")
-      return {
-        "error": "Jenkins client not initialized. Please set the JENKINS_URL, JENKINS_USER, and JENKINS_TOKEN environment variables."
-      }
+  # Ensure configuration is present
+  if (
+    not constants["JENKINS_URL"]
+    or not constants["JENKINS_USER"]
+    or not constants["JENKINS_TOKEN"]
+  ):
+    logger.error("Jenkins credentials not configured.")
     return {
       "error": "Jenkins client not initialized. Please set the JENKINS_URL, JENKINS_USER, and JENKINS_TOKEN environment variables."
     }
+
   try:
-    jobs = _extract_jobs_from_client(j)
-    logger.debug(f"Found {len(jobs)} jobs.")
-    to_dict_func = _get_to_dict()
-    result = [to_dict_func(job) for job in jobs]
+    # Optimized implementation using direct API call with tree parameter
+    # to avoid N+1 requests problem when iterating over jobs
+    url = f"{constants['JENKINS_URL']}/api/json?tree=jobs[name,url,color,inQueue,lastBuild[number,url]]"
+
+    response = requests.get(
+      url, auth=(constants["JENKINS_USER"], constants["JENKINS_TOKEN"]), timeout=30
+    )
+    response.raise_for_status()
+    data = response.json()
+
+    jobs_data = data.get("jobs", [])
+    result = []
+
+    for job in jobs_data:
+      last_build = job.get("lastBuild") or {}
+      job_dict = {
+        "name": job.get("name"),
+        "url": job.get("url"),
+        # 'color' field usually indicates status. 'disabled' or 'aborted' or 'blue' (success), 'red' (fail)
+        "is_enabled": "disabled" not in str(job.get("color", "")),
+        "is_queued": job.get("inQueue", False),
+        "in_queue": job.get("inQueue", False),
+        "last_build_number": last_build.get("number"),
+        "last_build_url": last_build.get("url"),
+      }
+      result.append(job_dict)
+
+    logger.debug(f"Found {len(result)} jobs.")
     cache.set(cache_key, result, ttl=300)  # Cache for 5 minutes
     return result
-  except JenkinsAPIException as e:
-    logger.error(f"jenkins_get_jobs Jenkins Error: {e}", exc_info=True)
+
+  except requests.exceptions.RequestException as e:
+    logger.error(f"jenkins_get_jobs Request Error: {e}", exc_info=True)
     return {"error": f"Jenkins API Error: {e}"}
   except Exception as e:
     logger.error(f"Unexpected error in jenkins_get_jobs: {e}", exc_info=True)

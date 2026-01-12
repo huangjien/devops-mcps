@@ -1,7 +1,6 @@
 """Tests for jenkins_job_api module."""
 
 from unittest.mock import Mock, MagicMock, patch
-from jenkinsapi.jenkins import JenkinsAPIException
 
 from devops_mcps.utils.jenkins.jenkins_job_api import (
   _get_jenkins_client,
@@ -192,11 +191,10 @@ class TestJenkinsGetJobs:
   """Test cases for jenkins_get_jobs function."""
 
   @patch("devops_mcps.utils.jenkins.jenkins_job_api._get_cache")
-  @patch("devops_mcps.utils.jenkins.jenkins_job_api._get_jenkins_client")
+  @patch("devops_mcps.utils.jenkins.jenkins_job_api.requests.get")
   @patch("devops_mcps.utils.jenkins.jenkins_job_api._get_jenkins_constants")
-  @patch("devops_mcps.utils.jenkins.jenkins_job_api._get_to_dict")
   def test_jenkins_get_jobs_success(
-    self, mock_get_to_dict, mock_get_constants, mock_get_client, mock_get_cache
+    self, mock_get_constants, mock_requests_get, mock_get_cache
   ):
     """Test successful jenkins_get_jobs."""
     # Setup mocks
@@ -204,13 +202,26 @@ class TestJenkinsGetJobs:
     mock_cache.get.return_value = None
     mock_get_cache.return_value = mock_cache
 
-    mock_client = Mock(spec_set=["get_jobs"])
-    mock_job1 = Mock()
-    mock_job1.name = "job1"
-    mock_job2 = Mock()
-    mock_job2.name = "job2"
-    mock_client.get_jobs.return_value = {"job1": mock_job1, "job2": mock_job2}
-    mock_get_client.return_value = mock_client
+    mock_response = Mock()
+    mock_response.json.return_value = {
+      "jobs": [
+        {
+          "name": "job1",
+          "url": "http://jenkins/job/job1/",
+          "color": "blue",
+          "inQueue": False,
+          "lastBuild": {"number": 10, "url": "http://jenkins/job/job1/10/"},
+        },
+        {
+          "name": "job2",
+          "url": "http://jenkins/job/job2/",
+          "color": "disabled",
+          "inQueue": True,
+          "lastBuild": None,
+        },
+      ]
+    }
+    mock_requests_get.return_value = mock_response
 
     mock_get_constants.return_value = {
       "JENKINS_URL": "http://test-jenkins.com",
@@ -218,92 +229,70 @@ class TestJenkinsGetJobs:
       "JENKINS_TOKEN": "test_token",
     }
 
-    mock_to_dict = Mock(side_effect=lambda x: f"dict_{x.name}")
-    mock_get_to_dict.return_value = mock_to_dict
-
     # Execute
     result = jenkins_get_jobs()
 
     # Verify
-    assert result == ["dict_job1", "dict_job2"]
-    mock_cache.set.assert_called_once_with(
-      "jenkins:jobs:all", ["dict_job1", "dict_job2"], ttl=300
-    )
+    assert len(result) == 2
+    assert result[0]["name"] == "job1"
+    assert result[0]["is_enabled"] is True
+    assert result[0]["last_build_number"] == 10
+
+    assert result[1]["name"] == "job2"
+    assert result[1]["is_enabled"] is False
+    assert result[1]["is_queued"] is True
+    assert result[1]["last_build_number"] is None
+
+    mock_cache.set.assert_called_once()
+    args, _ = mock_cache.set.call_args
+    assert args[0] == "jenkins:jobs:all"
+    assert args[1] == result
 
   @patch("devops_mcps.utils.jenkins.jenkins_job_api._get_cache")
-  @patch("devops_mcps.utils.jenkins.jenkins_job_api._get_jenkins_client")
-  def test_jenkins_get_jobs_client_none(self, mock_get_client, mock_get_cache):
-    """Test jenkins_get_jobs when Jenkins client is None."""
+  @patch("devops_mcps.utils.jenkins.jenkins_job_api._get_jenkins_constants")
+  def test_jenkins_get_jobs_config_missing(self, mock_get_constants, mock_get_cache):
+    """Test jenkins_get_jobs when configuration is missing."""
     # Setup mocks
     mock_cache = Mock()
     mock_cache.get.return_value = None
     mock_get_cache.return_value = mock_cache
 
-    mock_get_client.return_value = None
+    mock_get_constants.return_value = {
+      "JENKINS_URL": None,
+      "JENKINS_USER": None,
+      "JENKINS_TOKEN": None,
+    }
 
     # Execute
     result = jenkins_get_jobs()
 
     # Verify
     assert "error" in result
-    assert "Jenkins client not initialized" in result["error"]
+    assert "Jenkins credentials not configured" in str(
+      result
+    ) or "Jenkins client not initialized" in str(result)
 
-  @patch("devops_mcps.utils.jenkins.jenkins_job_api._get_jenkins_constants")
   @patch("devops_mcps.utils.jenkins.jenkins_job_api._get_cache")
-  @patch("devops_mcps.utils.jenkins.jenkins_job_api._get_jenkins_client")
-  def test_jenkins_get_jobs_client_none_with_valid_constants(
-    self, mock_get_client, mock_get_cache, mock_get_constants
+  @patch("devops_mcps.utils.jenkins.jenkins_job_api.requests.get")
+  @patch("devops_mcps.utils.jenkins.jenkins_job_api._get_jenkins_constants")
+  def test_jenkins_get_jobs_request_exception(
+    self, mock_get_constants, mock_requests_get, mock_get_cache
   ):
-    """Test jenkins_get_jobs when client is None but constants are valid (hits line 92)."""
+    """Test jenkins_get_jobs with RequestException."""
     # Setup mocks
     mock_cache = Mock()
     mock_cache.get.return_value = None
     mock_get_cache.return_value = mock_cache
 
-    # Mock constants to be valid (not None/empty) to bypass line 88-91 and hit line 92
-    mock_get_constants.return_value = {
-      "JENKINS_URL": "http://jenkins.example.com",
-      "JENKINS_USER": "valid_user",
-      "JENKINS_TOKEN": "valid_token",
-    }
+    import requests
 
-    # Simulate the client being None to hit the second return statement (line 92)
-    mock_get_client.return_value = None
-
-    # Execute
-    result = jenkins_get_jobs()
-
-    # Verify
-    expected = {
-      "error": "Jenkins client not initialized. Please set the JENKINS_URL, JENKINS_USER, and JENKINS_TOKEN environment variables."
-    }
-    assert result == expected
-
-  @patch("devops_mcps.utils.jenkins.jenkins_job_api._get_cache")
-  @patch("devops_mcps.utils.jenkins.jenkins_job_api._get_jenkins_client")
-  @patch("devops_mcps.utils.jenkins.jenkins_job_api._get_jenkins_constants")
-  @patch("devops_mcps.utils.jenkins.jenkins_job_api._get_to_dict")
-  def test_jenkins_get_jobs_jenkins_api_exception(
-    self, mock_get_to_dict, mock_get_constants, mock_get_client, mock_get_cache
-  ):
-    """Test jenkins_get_jobs with JenkinsAPIException."""
-    # Setup mocks
-    mock_cache = Mock()
-    mock_cache.get.return_value = None
-    mock_get_cache.return_value = mock_cache
-
-    mock_client = Mock(spec_set=["get_jobs"])
-    mock_client.get_jobs.side_effect = JenkinsAPIException("API error")
-    mock_get_client.return_value = mock_client
+    mock_requests_get.side_effect = requests.exceptions.RequestException("API error")
 
     mock_get_constants.return_value = {
       "JENKINS_URL": "http://test-jenkins.com",
       "JENKINS_USER": "test_user",
       "JENKINS_TOKEN": "test_token",
     }
-
-    mock_to_dict = Mock()
-    mock_get_to_dict.return_value = mock_to_dict
 
     # Execute
     result = jenkins_get_jobs()
@@ -313,11 +302,10 @@ class TestJenkinsGetJobs:
     assert "Jenkins API Error" in result["error"]
 
   @patch("devops_mcps.utils.jenkins.jenkins_job_api._get_cache")
-  @patch("devops_mcps.utils.jenkins.jenkins_job_api._get_jenkins_client")
+  @patch("devops_mcps.utils.jenkins.jenkins_job_api.requests.get")
   @patch("devops_mcps.utils.jenkins.jenkins_job_api._get_jenkins_constants")
-  @patch("devops_mcps.utils.jenkins.jenkins_job_api._get_to_dict")
   def test_jenkins_get_jobs_general_exception(
-    self, mock_get_to_dict, mock_get_constants, mock_get_client, mock_get_cache
+    self, mock_get_constants, mock_requests_get, mock_get_cache
   ):
     """Test jenkins_get_jobs with general exception."""
     # Setup mocks
@@ -325,18 +313,13 @@ class TestJenkinsGetJobs:
     mock_cache.get.return_value = None
     mock_get_cache.return_value = mock_cache
 
-    mock_client = Mock(spec_set=["get_jobs"])
-    mock_client.get_jobs.side_effect = ValueError("Unexpected error")
-    mock_get_client.return_value = mock_client
+    mock_requests_get.side_effect = ValueError("Unexpected error")
 
     mock_get_constants.return_value = {
       "JENKINS_URL": "http://test-jenkins.com",
       "JENKINS_USER": "test_user",
       "JENKINS_TOKEN": "test_token",
     }
-
-    mock_to_dict = Mock()
-    mock_get_to_dict.return_value = mock_to_dict
 
     # Execute
     result = jenkins_get_jobs()
