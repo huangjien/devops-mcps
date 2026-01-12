@@ -342,12 +342,8 @@ class TestJenkinsGetJobs:
     mock_cache_job_api.get.return_value = None
     mock_cache_job_api.set.return_value = None
 
-    mock_jenkins = Mock()
-    mock_jenkins.values.side_effect = JenkinsAPIException("API error")
-    mock_j_api.return_value = mock_jenkins
-    mock_j_api.values = mock_jenkins.values
-    mock_j_job_api.return_value = mock_jenkins
-    mock_j_job_api.values = mock_jenkins.values
+    mock_j_api.get_jobs.side_effect = JenkinsAPIException("API error")
+    mock_j_job_api.get_jobs.side_effect = JenkinsAPIException("API error")
 
     result = jenkins_get_jobs()
 
@@ -370,12 +366,8 @@ class TestJenkinsGetJobs:
     mock_cache_job_api.get.return_value = None
     mock_cache_job_api.set.return_value = None
 
-    mock_jenkins = Mock()
-    mock_jenkins.values.side_effect = ValueError("Unexpected error")
-    mock_j_api.return_value = mock_jenkins
-    mock_j_api.values = mock_jenkins.values
-    mock_j_job_api.return_value = mock_jenkins
-    mock_j_job_api.values = mock_jenkins.values
+    mock_j_api.get_jobs.side_effect = ValueError("Unexpected error")
+    mock_j_job_api.get_jobs.side_effect = ValueError("Unexpected error")
 
     result = jenkins_get_jobs()
 
@@ -401,11 +393,8 @@ class TestJenkinsGetJobs:
     mock_cache_job_api.set.return_value = None
 
     # Configure Jenkins client mocks (shouldn't be called due to cache hit)
-    mock_jenkins = Mock()
-    mock_j_api.return_value = mock_jenkins
-    mock_j_api.values = mock_jenkins.values
-    mock_j_job_api.return_value = mock_jenkins
-    mock_j_job_api.values = mock_jenkins.values
+    mock_j_api.get_jobs = Mock()
+    mock_j_job_api.get_jobs = Mock()
 
     result = jenkins_get_jobs()
 
@@ -446,12 +435,8 @@ class TestJenkinsGetJobs:
     mock_job2 = Mock()
     mock_job2.name = "job2"
 
-    mock_jenkins = Mock()
-    mock_jenkins.values.return_value = [mock_job1, mock_job2]
-    mock_j_api.return_value = mock_jenkins
-    mock_j_api.values = mock_jenkins.values
-    mock_j_job_api.return_value = mock_jenkins
-    mock_j_job_api.values = mock_jenkins.values
+    mock_j_api.get_jobs.return_value = {"job1": mock_job1, "job2": mock_job2}
+    mock_j_job_api.get_jobs.return_value = {"job1": mock_job1, "job2": mock_job2}
 
     with patch(
       "devops_mcps.utils.jenkins.jenkins_api._to_dict",

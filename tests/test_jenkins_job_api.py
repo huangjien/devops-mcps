@@ -204,12 +204,12 @@ class TestJenkinsGetJobs:
     mock_cache.get.return_value = None
     mock_get_cache.return_value = mock_cache
 
-    mock_client = Mock()
+    mock_client = Mock(spec_set=["get_jobs"])
     mock_job1 = Mock()
     mock_job1.name = "job1"
     mock_job2 = Mock()
     mock_job2.name = "job2"
-    mock_client.values.return_value = [mock_job1, mock_job2]
+    mock_client.get_jobs.return_value = {"job1": mock_job1, "job2": mock_job2}
     mock_get_client.return_value = mock_client
 
     mock_get_constants.return_value = {
@@ -292,8 +292,8 @@ class TestJenkinsGetJobs:
     mock_cache.get.return_value = None
     mock_get_cache.return_value = mock_cache
 
-    mock_client = Mock()
-    mock_client.values.side_effect = JenkinsAPIException("API error")
+    mock_client = Mock(spec_set=["get_jobs"])
+    mock_client.get_jobs.side_effect = JenkinsAPIException("API error")
     mock_get_client.return_value = mock_client
 
     mock_get_constants.return_value = {
@@ -325,8 +325,8 @@ class TestJenkinsGetJobs:
     mock_cache.get.return_value = None
     mock_get_cache.return_value = mock_cache
 
-    mock_client = Mock()
-    mock_client.values.side_effect = ValueError("Unexpected error")
+    mock_client = Mock(spec_set=["get_jobs"])
+    mock_client.get_jobs.side_effect = ValueError("Unexpected error")
     mock_get_client.return_value = mock_client
 
     mock_get_constants.return_value = {

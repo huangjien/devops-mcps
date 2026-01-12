@@ -16,12 +16,18 @@ from devops_mcps.prompt_management import (
 )
 
 
+@pytest.fixture(autouse=True)
+def _clear_prompts_file_env(monkeypatch):
+  monkeypatch.delenv("PROMPTS_FILE", raising=False)
+
+
 class TestLoadAndRegisterPrompts:
   """Test suite for load_and_register_prompts function."""
 
+  @patch("devops_mcps.prompt_management.os.getenv", return_value=None)
   @patch("devops_mcps.prompt_management.Path")
   @patch("devops_mcps.prompt_management.logger")
-  def test_prompts_file_not_found(self, mock_logger, mock_path):
+  def test_prompts_file_not_found(self, mock_logger, mock_path, mock_getenv):
     """Test behavior when prompts.json file does not exist."""
     # Setup
     mock_mcp = MagicMock()
@@ -33,6 +39,21 @@ class TestLoadAndRegisterPrompts:
     load_and_register_prompts(mock_mcp)
 
     # Verify
+    mock_logger.warning.assert_not_called()
+    mock_mcp.prompt.assert_not_called()
+
+  @patch("devops_mcps.prompt_management.os.getenv", return_value="/tmp/missing.json")
+  @patch("devops_mcps.prompt_management.Path")
+  @patch("devops_mcps.prompt_management.logger")
+  def test_prompts_file_not_found_configured(self, mock_logger, mock_path, mock_getenv):
+    """Test warning when prompts file is explicitly configured but missing."""
+    mock_mcp = MagicMock()
+    mock_path_instance = MagicMock()
+    mock_path_instance.exists.return_value = False
+    mock_path.return_value = mock_path_instance
+
+    load_and_register_prompts(mock_mcp)
+
     mock_logger.warning.assert_called_once()
     assert "Prompts file not found" in mock_logger.warning.call_args[0][0]
     mock_mcp.prompt.assert_not_called()
@@ -44,7 +65,10 @@ class TestLoadAndRegisterPrompts:
     read_data='{"test_prompt": {"description": "Test", "template": "Hello {name}", "variables": {"name": {"required": false, "default": "World"}}}}',
   )
   @patch("devops_mcps.prompt_management.logger")
-  def test_successful_prompt_loading(self, mock_logger, mock_file, mock_path):
+  @patch("devops_mcps.prompt_management.os.getenv", return_value=None)
+  def test_successful_prompt_loading(
+    self, mock_getenv, mock_logger, mock_file, mock_path
+  ):
     """Test successful loading and registration of prompts."""
     # Setup
     mock_mcp = MagicMock()
@@ -435,6 +459,17 @@ class TestGetAvailablePrompts:
     result = get_available_prompts()
 
     # Verify
+    assert result == {}
+    mock_logger.warning.assert_not_called()
+
+  @patch("devops_mcps.prompt_management.logger")
+  def test_get_available_prompts_custom_path_missing(self, mock_logger):
+    """Test get_available_prompts warns when custom file path is missing."""
+    custom_path = MagicMock(spec=Path)
+    custom_path.exists.return_value = False
+
+    result = get_available_prompts(custom_path)
+
     assert result == {}
     mock_logger.warning.assert_called_once()
     assert "Prompts file not found" in mock_logger.warning.call_args[0][0]

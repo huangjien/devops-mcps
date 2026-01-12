@@ -76,6 +76,32 @@ def _get_cache():
 logger = logging.getLogger(__name__)
 
 
+def _extract_jobs_from_client(jenkins_client) -> List[Any]:
+  if hasattr(jenkins_client, "get_jobs"):
+    jobs_obj = jenkins_client.get_jobs()
+    if isinstance(jobs_obj, dict):
+      return list(jobs_obj.values())
+    if isinstance(jobs_obj, list):
+      if jobs_obj and isinstance(jobs_obj[0], tuple) and len(jobs_obj[0]) == 2:
+        return [job for _, job in jobs_obj]
+      return jobs_obj
+    if hasattr(jobs_obj, "values"):
+      return list(jobs_obj.values())
+    return list(jobs_obj)
+
+  if hasattr(jenkins_client, "jobs"):
+    jobs_obj = jenkins_client.jobs
+    if isinstance(jobs_obj, dict):
+      return list(jobs_obj.values())
+    if hasattr(jobs_obj, "values"):
+      return list(jobs_obj.values())
+
+  if hasattr(jenkins_client, "values"):
+    return list(jenkins_client.values())
+
+  raise AttributeError("Jenkins client does not expose jobs list")
+
+
 def jenkins_get_jobs() -> Union[List[Dict[str, Any]], Dict[str, str]]:
   """Internal logic for getting all jobs."""
   logger.debug("jenkins_get_jobs called")
@@ -84,7 +110,7 @@ def jenkins_get_jobs() -> Union[List[Dict[str, Any]], Dict[str, str]]:
   cache_key = "jenkins:jobs:all"
   cache = _get_cache()
   cached = cache.get(cache_key)
-  if cached:
+  if cached is not None:
     logger.debug(f"Returning cached result for {cache_key}")
     return cached
 
@@ -106,7 +132,7 @@ def jenkins_get_jobs() -> Union[List[Dict[str, Any]], Dict[str, str]]:
       "error": "Jenkins client not initialized. Please set the JENKINS_URL, JENKINS_USER, and JENKINS_TOKEN environment variables."
     }
   try:
-    jobs = j.values()
+    jobs = _extract_jobs_from_client(j)
     logger.debug(f"Found {len(jobs)} jobs.")
     to_dict_func = _get_to_dict()
     result = [to_dict_func(job) for job in jobs]

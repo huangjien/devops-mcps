@@ -6,26 +6,39 @@ registration with the FastMCP server instance.
 
 import json
 import logging
+import os
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Tuple
 
 
 # Get logger for this module
 logger = logging.getLogger(__name__)
 
 
-def load_and_register_prompts(mcp) -> None:
+def _resolve_prompts_file(prompts_file: Optional[Path] = None) -> Tuple[Path, bool]:
+  if prompts_file is not None:
+    return prompts_file, True
+
+  env_path = os.getenv("PROMPTS_FILE")
+  if env_path:
+    return Path(env_path), True
+
+  current_dir = Path(__file__).parent
+  return current_dir / "prompts.json", False
+
+
+def load_and_register_prompts(mcp, prompts_file: Optional[Path] = None) -> None:
   """Load and register dynamic prompts from JSON file.
 
   Args:
       mcp: FastMCP server instance to register prompts with
+      prompts_file: Optional explicit path to prompts JSON
   """
-  # Get the directory where this module is located
-  current_dir = Path(__file__).parent
-  prompts_file = current_dir / "prompts.json"
+  prompts_file, configured = _resolve_prompts_file(prompts_file)
 
   if not prompts_file.exists():
-    logger.warning(f"Prompts file not found: {prompts_file}")
+    if configured:
+      logger.warning(f"Prompts file not found: {prompts_file}")
     return
 
   try:
@@ -150,12 +163,11 @@ def get_available_prompts(
   Returns:
       Dict containing available prompts and their configurations
   """
-  if prompts_file is None:
-    current_dir = Path(__file__).parent
-    prompts_file = current_dir / "prompts.json"
+  prompts_file, configured = _resolve_prompts_file(prompts_file)
 
   if not prompts_file.exists():
-    logger.warning(f"Prompts file not found: {prompts_file}")
+    if configured:
+      logger.warning(f"Prompts file not found: {prompts_file}")
     return {}
 
   try:
