@@ -204,7 +204,7 @@ async def get_file_contents(
   repo: str,
   path: str,
   branch: Optional[str] = None,
-) -> Union[str, Dict[str, str]]:
+) -> Union[str, List[Dict[str, Any]], Dict[str, Any]]:
   """Get the contents of a file from a GitHub repository.
 
   Args:
@@ -358,7 +358,7 @@ async def search_code(query: str) -> Union[List[Dict[str, Any]], Dict[str, str]]
   if not query:
     logger.error("Parameter 'query' cannot be empty")
     return {"error": "Parameter 'query' cannot be empty"}
-  return github.gh_search_code(query=query)
+  return github.gh_search_code(query)
 
 
 async def get_github_issue_content(owner: str, repo: str, issue_number: int) -> dict:

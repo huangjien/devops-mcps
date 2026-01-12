@@ -30,8 +30,13 @@ def _get_jenkins_client():
   """Get the current Jenkins client, checking for patches in jenkins_api."""
   jenkins_api_module = sys.modules.get("devops_mcps.utils.jenkins.jenkins_api")
   if jenkins_api_module and hasattr(jenkins_api_module, "j"):
-    return jenkins_api_module.j
-  return _j
+    client = jenkins_api_module.j
+  else:
+    client = _j
+
+  if getattr(client, "_is_placeholder", False) is True:
+    return None
+  return client
 
 
 def _get_jenkins_constants():

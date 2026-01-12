@@ -21,7 +21,7 @@ MAX_LOG_SIZE_MB = 5
 MAX_BYTES = MAX_LOG_SIZE_MB * 1024 * 1024
 
 # Number of backup log files to keep (0 to overwrite, 3-5 recommended for production)
-BACKUP_COUNT = int(os.environ.get("LOG_BACKUP_COUNT", "0"))
+BACKUP_COUNT = int(os.environ.get("LOG_BACKUP_COUNT") or "0")
 
 # --- Determine Log Level from Environment Variable ---
 # Default to INFO for production use. The LOG_LEVEL env var can override this at runtime.
@@ -87,7 +87,11 @@ def setup_logging() -> bool:
   except Exception as file_log_error:
     # Log error to stderr if file handler setup fails
     # Use basicConfig only if file handler fails, ensuring some logging output
-    logging.basicConfig(level=LOG_LEVEL, format=log_formatter._fmt, stream=sys.stderr)
+    logging.basicConfig(
+      level=LOG_LEVEL,
+      format=log_formatter._fmt or "%(levelname)s:%(name)s:%(message)s",
+      stream=sys.stderr,
+    )
     logging.error(
       f"Failed to configure file logging to {log_file_path}: {file_log_error}"
     )

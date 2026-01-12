@@ -11,6 +11,7 @@ from importlib.metadata import version, PackageNotFoundError
 from mcp.server.fastmcp import FastMCP
 
 from .logger import setup_logging
+from .config import validate_all_config, validate_server_config, print_validation_report
 
 # Initialize logging
 setup_logging()
@@ -60,6 +61,15 @@ def initialize_clients():
   from .utils.github import github_client
   import sys
 
+  server_valid, server_error = validate_server_config()
+  if not server_valid:
+    print_validation_report([server_error.get("error", "Server configuration error")])
+    sys.exit(1)
+
+  is_valid, errors = validate_all_config(strict=False)
+  if not is_valid and errors:
+    print_validation_report(errors)
+
   # Initialize GitHub client
   github.initialize_github_client(force=True)
 
@@ -79,7 +89,7 @@ def initialize_clients():
       )
 
   # Check if the Jenkins client initialized successfully
-  if jenkins.j is None:
+  if jenkins.j is None or getattr(jenkins.j, "_is_placeholder", False) is True:
     if jenkins.JENKINS_URL and jenkins.JENKINS_USER and jenkins.JENKINS_TOKEN:
       logger.error(
         "Jenkins client failed to initialize despite credentials being present. Check logs. Exiting."

@@ -59,9 +59,9 @@ ENV TRANSPORT_TYPE=stdio
 # Switch to non-root user
 USER devops
 
-# Health check
+# Health check with actual service verification
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD python -c "import sys; sys.exit(0)" || exit 1
+    CMD python -c "from devops_mcps.health import get_overall_health; import json; health = get_overall_health(); print(json.dumps(health)); sys.exit(0 if health['status'] == 'healthy' else 1)"
 
 # Command to run the MCP server using uv with transport type selection
 ENTRYPOINT ["/bin/sh", "-c", "if [ \"$TRANSPORT_TYPE\" = \"stream_http\" ]; then python -m devops_mcps.main_entry --transport stream_http; else python -m devops_mcps.main_entry; fi"]

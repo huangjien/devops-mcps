@@ -57,7 +57,10 @@ def list_app_services(
 
       # Add runtime information if available
       try:
-        config = web_client.web_apps.get_configuration(site.resource_group, site.name)
+        if site.resource_group and site.name:
+          config = web_client.web_apps.get_configuration(site.resource_group, site.name)
+        else:
+          raise ValueError("Missing resource group or site name")
         app_service_info["runtime"] = {
           "net_framework_version": config.net_framework_version,
           "php_version": config.php_version,
@@ -106,7 +109,7 @@ def get_app_service_details(
     # Get basic App Service information
     site = web_client.web_apps.get(resource_group, app_name)
 
-    app_details = {
+    app_details: Dict[str, Any] = {
       "name": site.name,
       "id": site.id,
       "location": site.location,
@@ -148,8 +151,9 @@ def get_app_service_details(
         resource_group, app_name
       )
       # Only include non-sensitive setting names
-      safe_settings = {}
-      for key, value in app_settings.properties.items():
+      safe_settings: Dict[str, Any] = {}
+      properties = app_settings.properties or {}
+      for key, value in properties.items():
         if any(
           sensitive in key.lower()
           for sensitive in ["password", "secret", "key", "token", "connection"]
@@ -214,7 +218,7 @@ def get_app_service_metrics(
     # Get basic metrics from the App Service
     site = web_client.web_apps.get(resource_group, app_name)
 
-    metrics_info = {
+    metrics_info: Dict[str, Any] = {
       "app_name": app_name,
       "resource_group": resource_group,
       "time_range": time_range,

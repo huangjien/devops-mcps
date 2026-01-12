@@ -6,6 +6,7 @@ including listing commits from repositories.
 
 import logging
 from typing import List, Optional, Dict, Any, Union
+from datetime import datetime
 
 from github import (
   GithubException,
@@ -16,20 +17,28 @@ from github.PaginatedList import PaginatedList
 from ...cache import cache
 from ...inputs import ListCommitsInput
 from .github_client import initialize_github_client
-from .github_converters import _handle_paginated_list
+from .github_converters import _to_dict
 
 logger = logging.getLogger(__name__)
 
 
 def gh_list_commits(
-  owner: str, repo: str, branch: Optional[str] = None
+  owner: str,
+  repo: str,
+  branch: Optional[str] = None,
+  since: Optional[str] = None,
+  until: Optional[str] = None,
+  author: Optional[str] = None,
+  path: Optional[str] = None,
+  per_page: int = 30,
+  page: int = 1,
 ) -> Union[List[Dict[str, Any]], Dict[str, str]]:
   """Internal logic for listing commits."""
   logger.debug(f"gh_list_commits called for {owner}/{repo}, branch: {branch}")
 
   # Check cache first
   branch_str = branch if branch else "default"
-  cache_key = f"github:list_commits:{owner}/{repo}:{branch_str}"
+  cache_key = f"github:list_commits:{owner}/{repo}:{branch_str}:{since}:{until}:{author}:{path}:{per_page}:{page}"
   cached = cache.get(cache_key)
   if cached:
     logger.debug(f"Returning cached result for {cache_key}")
@@ -42,17 +51,47 @@ def gh_list_commits(
       "error": "GitHub client not initialized. Please set the GITHUB_PERSONAL_ACCESS_TOKEN environment variable."
     }
   try:
-    input_data = ListCommitsInput(owner=owner, repo=repo, branch=branch)
+    input_data = ListCommitsInput(
+      owner=owner,
+      repo=repo,
+      branch=branch,
+      since=since,
+      until=until,
+      author=author,
+      path=path,
+      per_page=per_page,
+      page=page,
+    )
     repo_obj = github_client.get_repo(f"{input_data.owner}/{input_data.repo}")
-    commit_kwargs = {}
+    commit_kwargs: Dict[str, Any] = {}
     if input_data.branch:
       commit_kwargs["sha"] = input_data.branch
       logger.debug(f"Fetching commits for branch/sha: {input_data.branch}")
     else:
       logger.debug("Fetching commits for default branch.")
 
+    def _parse_iso_datetime(value: Optional[str]) -> Optional[datetime]:
+      if not value:
+        return None
+      try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+      except ValueError:
+        return None
+
+    since_dt = _parse_iso_datetime(input_data.since)
+    until_dt = _parse_iso_datetime(input_data.until)
+    if since_dt:
+      commit_kwargs["since"] = since_dt
+    if until_dt:
+      commit_kwargs["until"] = until_dt
+    if input_data.author:
+      commit_kwargs["author"] = input_data.author
+    if input_data.path:
+      commit_kwargs["path"] = input_data.path
+
     commits_paginated: PaginatedList = repo_obj.get_commits(**commit_kwargs)
-    result = _handle_paginated_list(commits_paginated)
+    page_index = max(input_data.page - 1, 0)
+    result = [_to_dict(item) for item in commits_paginated.get_page(page_index)]
     cache.set(cache_key, result, ttl=3600)  # Cache for 1 hour
     return result
   except UnknownObjectException:

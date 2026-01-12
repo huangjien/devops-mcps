@@ -42,7 +42,7 @@ class PromptLoader:
     import os
 
     self.prompts_file = prompts_file or os.getenv("PROMPTS_FILE")
-    self.prompts = {}
+    self.prompts: Dict[str, Any] = {}
 
   def load_prompts(self) -> Dict[str, Any]:
     """

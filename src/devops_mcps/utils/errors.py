@@ -10,6 +10,8 @@ from enum import Enum
 
 logger = logging.getLogger(__name__)
 
+ErrorResponse = Dict[str, Any]
+
 
 class ErrorCode(Enum):
   """Enumeration of common error codes."""
@@ -71,7 +73,7 @@ class DevOpsMCPError(Exception):
     Returns:
         Dictionary representation of the error.
     """
-    result = {
+    result: ErrorResponse = {
       "error": self.message,
       "error_code": self.code.value,
     }
@@ -87,7 +89,7 @@ def create_error_response(
   message: str,
   code: ErrorCode = ErrorCode.UNKNOWN_ERROR,
   details: Optional[Dict[str, Any]] = None,
-) -> Dict[str, str]:
+) -> ErrorResponse:
   """Create a standardized error response dictionary.
 
   Args:
@@ -98,7 +100,7 @@ def create_error_response(
   Returns:
       Dictionary with error information
   """
-  result = {
+  result: ErrorResponse = {
     "error": message,
     "error_code": code.value,
   }
@@ -108,7 +110,7 @@ def create_error_response(
   return result
 
 
-def create_parameter_missing_error(param_name: str) -> Dict[str, str]:
+def create_parameter_missing_error(param_name: str) -> ErrorResponse:
   """Create an error response for missing parameter.
 
   Args:
@@ -127,7 +129,7 @@ def create_parameter_missing_error(param_name: str) -> Dict[str, str]:
 def create_authentication_error(
   service: str,
   reason: str = "Authentication failed",
-) -> Dict[str, str]:
+) -> ErrorResponse:
   """Create an error response for authentication failure.
 
   Args:
@@ -147,7 +149,7 @@ def create_authentication_error(
 def create_configuration_error(
   config_key: str,
   reason: str = "not configured",
-) -> Dict[str, str]:
+) -> ErrorResponse:
   """Create an error response for missing configuration.
 
   Args:
@@ -168,7 +170,7 @@ def create_api_error(
   service: str,
   reason: str,
   status_code: Optional[int] = None,
-) -> Dict[str, str]:
+) -> ErrorResponse:
   """Create an error response for API errors.
 
   Args:
@@ -179,7 +181,7 @@ def create_api_error(
   Returns:
       Dictionary with error information
   """
-  details = {"service": service, "reason": reason}
+  details: Dict[str, Any] = {"service": service, "reason": reason}
   if status_code:
     details["status_code"] = status_code
   return create_error_response(
@@ -192,7 +194,7 @@ def create_api_error(
 def wrap_exception(
   exception: Exception,
   context: str = "Unknown",
-) -> Dict[str, str]:
+) -> ErrorResponse:
   """Wrap an exception in a standardized error response.
 
   Args:

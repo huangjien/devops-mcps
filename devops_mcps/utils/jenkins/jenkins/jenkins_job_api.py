@@ -1,0 +1,174 @@
+"""Jenkins Job API functions."""
+
+import logging
+import requests
+from typing import List, Dict, Any, Union
+
+# Third-party imports
+
+# Internal imports
+from ...cache import cache as _cache
+from .jenkins_client import (
+  j as _j,
+  JENKINS_URL as _JENKINS_URL,
+  JENKINS_USER as _JENKINS_USER,
+  JENKINS_TOKEN as _JENKINS_TOKEN,
+)
+from .jenkins_converters import _to_dict as _original_to_dict
+
+# Expose constants at module level for testing
+JENKINS_URL = _JENKINS_URL
+JENKINS_USER = _JENKINS_USER
+JENKINS_TOKEN = _JENKINS_TOKEN
+j = _j
+cache = _cache
+
+
+# Function to get current values (allows for test patching)
+def _get_jenkins_client():
+  """Get the current Jenkins client, checking for patches in jenkins_api."""
+  import sys
+
+  jenkins_api_module = sys.modules.get("devops_mcps.utils.jenkins.jenkins_api")
+  if jenkins_api_module and hasattr(jenkins_api_module, "j"):
+    return jenkins_api_module.j
+  return _j
+
+
+def _get_jenkins_constants():
+  """Get current Jenkins constants, checking for patches in jenkins_api."""
+  import sys
+
+  jenkins_api_module = sys.modules.get("devops_mcps.utils.jenkins.jenkins_api")
+  if jenkins_api_module:
+    return {
+      "JENKINS_URL": getattr(jenkins_api_module, "JENKINS_URL", _JENKINS_URL),
+      "JENKINS_USER": getattr(jenkins_api_module, "JENKINS_USER", _JENKINS_USER),
+      "JENKINS_TOKEN": getattr(jenkins_api_module, "JENKINS_TOKEN", _JENKINS_TOKEN),
+    }
+  return {
+    "JENKINS_URL": _JENKINS_URL,
+    "JENKINS_USER": _JENKINS_USER,
+    "JENKINS_TOKEN": _JENKINS_TOKEN,
+  }
+
+
+def _get_to_dict():
+  """Get the current _to_dict function, checking for patches in jenkins_api."""
+  import sys
+
+  jenkins_api_module = sys.modules.get("devops_mcps.utils.jenkins.jenkins_api")
+  if jenkins_api_module and hasattr(jenkins_api_module, "_to_dict"):
+    return jenkins_api_module._to_dict
+  return _original_to_dict
+
+
+def _get_cache():
+  """Get the current cache object, checking for patches in jenkins_api."""
+  import sys
+
+  jenkins_api_module = sys.modules.get("devops_mcps.utils.jenkins.jenkins_api")
+  if jenkins_api_module and hasattr(jenkins_api_module, "cache"):
+    return jenkins_api_module.cache
+  return _cache
+
+
+logger = logging.getLogger(__name__)
+
+
+def _extract_jobs_from_client(jenkins_client) -> List[Any]:
+  if hasattr(jenkins_client, "get_jobs"):
+    jobs_obj = jenkins_client.get_jobs()
+    if isinstance(jobs_obj, dict):
+      return list(jobs_obj.values())
+    if isinstance(jobs_obj, list):
+      if jobs_obj and isinstance(jobs_obj[0], tuple) and len(jobs_obj[0]) == 2:
+        return [job for _, job in jobs_obj]
+      return jobs_obj
+    if hasattr(jobs_obj, "values"):
+      return list(jobs_obj.values())
+    jobs_list = list(jobs_obj)
+    if jobs_list and isinstance(jobs_list[0], tuple) and len(jobs_list[0]) == 2:
+      return [job for _, job in jobs_list]
+    return jobs_list
+
+  if hasattr(jenkins_client, "jobs"):
+    jobs_obj = jenkins_client.jobs
+    if isinstance(jobs_obj, dict):
+      return list(jobs_obj.values())
+    if hasattr(jobs_obj, "values"):
+      return list(jobs_obj.values())
+    jobs_list = list(jobs_obj)
+    if jobs_list and isinstance(jobs_list[0], tuple) and len(jobs_list[0]) == 2:
+      return [job for _, job in jobs_list]
+    return jobs_list
+
+  if hasattr(jenkins_client, "values"):
+    return list(jenkins_client.values())
+
+  raise AttributeError("Jenkins client does not expose jobs list")
+
+
+def jenkins_get_jobs() -> Union[List[Dict[str, Any]], Dict[str, str]]:
+  """Internal logic for getting all jobs."""
+  logger.debug("jenkins_get_jobs called")
+
+  # Check cache first
+  cache_key = "jenkins:jobs:all"
+  cache = _get_cache()
+  cached = cache.get(cache_key)
+  if cached is not None:
+    logger.debug(f"Returning cached result for {cache_key}")
+    return cached
+
+  constants = _get_jenkins_constants()
+
+  # Ensure configuration is present
+  if (
+    not constants["JENKINS_URL"]
+    or not constants["JENKINS_USER"]
+    or not constants["JENKINS_TOKEN"]
+  ):
+    logger.error("Jenkins credentials not configured.")
+    return {
+      "error": "Jenkins client not initialized. Please set the JENKINS_URL, JENKINS_USER, and JENKINS_TOKEN environment variables."
+    }
+
+  try:
+    # Optimized implementation using direct API call with tree parameter
+    # to avoid N+1 requests problem when iterating over jobs
+    url = f"{constants['JENKINS_URL']}/api/json?tree=jobs[name,url,color,inQueue,lastBuild[number,url]]"
+
+    response = requests.get(
+      url, auth=(constants["JENKINS_USER"], constants["JENKINS_TOKEN"]), timeout=30
+    )
+    response.raise_for_status()
+    data = response.json()
+
+    jobs_data = data.get("jobs", [])
+    result = []
+
+    for job in jobs_data:
+      last_build = job.get("lastBuild") or {}
+      job_dict = {
+        "name": job.get("name"),
+        "url": job.get("url"),
+        # 'color' field usually indicates status. 'disabled' or 'aborted' or 'blue' (success), 'red' (fail)
+        "is_enabled": "disabled" not in str(job.get("color", "")),
+        "is_queued": job.get("inQueue", False),
+        "in_queue": job.get("inQueue", False),
+        "last_build_number": last_build.get("number"),
+        "last_build_url": last_build.get("url"),
+      }
+      result.append(job_dict)
+
+    logger.debug(f"Found {len(result)} jobs.")
+    cache.set(cache_key, result, ttl=300)  # Cache for 5 minutes
+    return result
+
+  except requests.exceptions.RequestException as e:
+    logger.error(f"jenkins_get_jobs Request Error: {e}", exc_info=True)
+    return {"error": f"Jenkins API Error: {e}"}
+  except Exception as e:
+    logger.error(f"Unexpected error in jenkins_get_jobs: {e}", exc_info=True)
+    return {"error": f"An unexpected error occurred: {e}"}

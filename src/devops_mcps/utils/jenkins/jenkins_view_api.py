@@ -29,9 +29,13 @@ def _get_jenkins_client():
   try:
     from . import jenkins_api
 
-    return getattr(jenkins_api, "j", _j)
+    client = getattr(jenkins_api, "j", _j)
   except (ImportError, AttributeError):
-    return _j
+    client = _j
+
+  if getattr(client, "_is_placeholder", False) is True:
+    return None
+  return client
 
 
 def _get_jenkins_constants():

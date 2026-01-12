@@ -6,6 +6,7 @@ including listing issues and getting issue details.
 
 import logging
 from typing import List, Optional, Dict, Any, Union
+from datetime import datetime
 
 from github import (
   GithubException,
@@ -16,7 +17,7 @@ from github.PaginatedList import PaginatedList
 from ...cache import cache
 from ...inputs import ListIssuesInput
 from .github_client import initialize_github_client
-from .github_converters import _handle_paginated_list
+from .github_converters import _to_dict
 
 logger = logging.getLogger(__name__)
 
@@ -25,9 +26,12 @@ def gh_list_issues(
   owner: str,
   repo: str,
   state: str = "open",
-  labels: Optional[List[str]] = None,
+  labels: Optional[Union[str, List[str]]] = None,
   sort: str = "created",
   direction: str = "desc",
+  since: Optional[str] = None,
+  per_page: int = 30,
+  page: int = 1,
 ) -> Union[List[Dict[str, Any]], Dict[str, str]]:
   """Internal logic for listing issues."""
   logger.debug(
@@ -35,10 +39,13 @@ def gh_list_issues(
   )
 
   # Check cache first
-  labels_str = ",".join(sorted(labels)) if labels else "none"
-  cache_key = (
-    f"github:list_issues:{owner}/{repo}:{state}:{labels_str}:{sort}:{direction}"
-  )
+  normalized_labels: Optional[List[str]]
+  if isinstance(labels, str):
+    normalized_labels = [x.strip() for x in labels.split(",") if x.strip()]
+  else:
+    normalized_labels = labels
+  labels_str = ",".join(sorted(normalized_labels)) if normalized_labels else "none"
+  cache_key = f"github:list_issues:{owner}/{repo}:{state}:{labels_str}:{sort}:{direction}:{since}:{per_page}:{page}"
   cached = cache.get(cache_key)
   if cached:
     logger.debug(f"Returning cached result for {cache_key}")
@@ -52,10 +59,18 @@ def gh_list_issues(
     }
   try:
     input_data = ListIssuesInput(
-      owner=owner, repo=repo, state=state, labels=labels, sort=sort, direction=direction
+      owner=owner,
+      repo=repo,
+      state=state,
+      labels=normalized_labels,
+      sort=sort,
+      direction=direction,
+      since=since,
+      per_page=per_page,
+      page=page,
     )
     repo_obj = github_client.get_repo(f"{input_data.owner}/{input_data.repo}")
-    issue_kwargs = {
+    issue_kwargs: Dict[str, Any] = {
       "state": input_data.state,
       "sort": input_data.sort,
       "direction": input_data.direction,
@@ -64,9 +79,22 @@ def gh_list_issues(
       issue_kwargs["labels"] = input_data.labels
       logger.debug(f"Filtering issues by labels: {input_data.labels}")
 
+    def _parse_iso_datetime(value: Optional[str]) -> Optional[datetime]:
+      if not value:
+        return None
+      try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+      except ValueError:
+        return None
+
+    since_dt = _parse_iso_datetime(input_data.since)
+    if since_dt:
+      issue_kwargs["since"] = since_dt
+
     issues_paginated: PaginatedList = repo_obj.get_issues(**issue_kwargs)
     logger.debug(f"Found {issues_paginated.totalCount} issues matching criteria.")
-    result = _handle_paginated_list(issues_paginated)
+    page_index = max(input_data.page - 1, 0)
+    result = [_to_dict(item) for item in issues_paginated.get_page(page_index)]
     cache.set(cache_key, result, ttl=1800)  # Cache for 30 minutes
     return result
   except UnknownObjectException:
@@ -111,7 +139,12 @@ def gh_get_issue_details(owner: str, repo: str, issue_number: int) -> Dict[str, 
     }
 
   try:
-    issue = github_client.get_issue(owner, repo, issue_number)
+    issue_getter = getattr(github_client, "get_issue", None)
+    if callable(issue_getter):
+      issue = issue_getter(owner, repo, issue_number)
+    else:
+      repo_obj = github_client.get_repo(f"{owner}/{repo}")
+      issue = repo_obj.get_issue(issue_number)
     comments = issue.get_comments()
     issue_details = {
       "title": issue.title,

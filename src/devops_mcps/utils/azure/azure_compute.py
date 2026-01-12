@@ -24,15 +24,19 @@ def list_virtual_machines(
     compute_client = ComputeManagementClient(credential, subscription_id)
     vms = []
     for vm in compute_client.virtual_machines.list_all():
+      vm_id = vm.id or ""
+      hardware_profile = getattr(vm, "hardware_profile", None)
+      storage_profile = getattr(vm, "storage_profile", None)
+      os_disk = getattr(storage_profile, "os_disk", None) if storage_profile else None
       vms.append(
         {
           "name": vm.name,
           "id": vm.id,
           "location": vm.location,
-          "vm_size": vm.hardware_profile.vm_size,
-          "os_type": vm.storage_profile.os_disk.os_type,
+          "vm_size": getattr(hardware_profile, "vm_size", None),
+          "os_type": getattr(os_disk, "os_type", None),
           "provisioning_state": vm.provisioning_state,
-          "resource_group": vm.id.split("/")[4],
+          "resource_group": vm_id.split("/")[4] if vm_id else "",
         }
       )
     return vms

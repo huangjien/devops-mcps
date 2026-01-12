@@ -64,18 +64,18 @@ def _build_variable_specs(prompt_config: Dict[str, Any]) -> Dict[str, Dict[str, 
 
   arguments = prompt_config.get("arguments")
   if isinstance(arguments, list):
-    specs: Dict[str, Dict[str, Any]] = {}
+    arg_specs: Dict[str, Dict[str, Any]] = {}
     for arg in arguments:
       if not isinstance(arg, dict):
         continue
       name = arg.get("name")
       if not name:
         continue
-      specs[str(name)] = {
+      arg_specs[str(name)] = {
         "required": bool(arg.get("required", False)),
         "default": arg.get("default", ""),
       }
-    return specs
+    return arg_specs
 
   return {}
 

@@ -21,7 +21,7 @@ class CacheManager:
     self._cache: Dict[str, Dict[str, Any]] = {}
     self._lock = threading.Lock()
     # Read TTL from parameter, environment variable, or use default
-    self.default_ttl = default_ttl or int(os.environ.get("CACHE_TTL", "600"))
+    self.default_ttl = default_ttl or int(os.environ.get("CACHE_TTL") or "600")
     logger.info(f"Initialized in-memory cache with TTL: {self.default_ttl}s")
 
   def get(self, key: str) -> Optional[Any]:

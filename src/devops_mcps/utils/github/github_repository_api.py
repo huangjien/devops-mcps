@@ -53,9 +53,9 @@ def gh_get_file_contents(
 
     if isinstance(contents, list):  # Directory
       logger.debug(f"Path '{path}' is a directory with {len(contents)} items.")
-      result = [_to_dict(item) for item in contents]
-      cache.set(cache_key, result, ttl=1800)
-      return result
+      dir_result = [_to_dict(item) for item in contents]
+      cache.set(cache_key, dir_result, ttl=1800)
+      return dir_result
     else:  # File
       logger.debug(
         f"Path '{path}' is a file (size: {contents.size}, encoding: {contents.encoding})."
@@ -84,17 +84,17 @@ def gh_get_file_contents(
           }
       elif contents.content is not None:
         logger.debug(f"Returning raw (non-base64) content for '{path}'.")
-        result = contents.content  # Return raw if not base64
-        cache.set(cache_key, result, ttl=1800)  # Cache for 30 minutes
-        return result
+        file_result = contents.content  # Return raw if not base64
+        cache.set(cache_key, file_result, ttl=1800)  # Cache for 30 minutes
+        return file_result
       else:
         logger.debug(f"Content for '{path}' is None or empty.")
-        result = {
+        empty_result = {
           "message": "File appears to be empty or content is inaccessible.",
           **_to_dict(contents),  # Include metadata
         }
-        cache.set(cache_key, result, ttl=1800)  # Cache for 30 minutes
-        return result
+        cache.set(cache_key, empty_result, ttl=1800)  # Cache for 30 minutes
+        return empty_result
   except UnknownObjectException:
     logger.warning(
       f"gh_get_file_contents: Repository '{owner}/{repo}' or path '{path}' not found."

@@ -6,7 +6,7 @@ for Artifactory API operations.
 
 import os
 import logging
-from typing import Dict, Union, Tuple, Optional
+from typing import Dict, Union, Tuple, Optional, Literal
 
 # Initialize logger
 logger = logging.getLogger(__name__)
@@ -30,7 +30,7 @@ def get_auth() -> Optional[Union[Dict[str, str], Tuple[str, str]]]:
   return None
 
 
-def validate_artifactory_config() -> Union[bool, Dict[str, str]]:
+def validate_artifactory_config() -> Union[Literal[True], Dict[str, str]]:
   """Validates that the required Artifactory configuration is available.
 
   Returns:

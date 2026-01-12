@@ -24,7 +24,7 @@ def get_subscriptions() -> Union[List[Dict[str, Any]], Dict[str, str]]:
           "subscription_id": sub.subscription_id,
           "display_name": sub.display_name,
           "state": sub.state,
-          "tenant_id": sub.tenant_id,
+          "tenant_id": getattr(sub, "tenant_id", None),
         }
       )
     return subscriptions

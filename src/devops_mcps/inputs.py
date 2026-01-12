@@ -18,6 +18,12 @@ class ListCommitsInput(BaseModel):
   owner: str
   repo: str
   branch: Optional[str] = None
+  since: Optional[str] = None
+  until: Optional[str] = None
+  author: Optional[str] = None
+  path: Optional[str] = None
+  per_page: int = 30
+  page: int = 1
 
 
 class ListIssuesInput(BaseModel):
@@ -27,6 +33,9 @@ class ListIssuesInput(BaseModel):
   labels: Optional[List[str]] = None
   sort: str = "created"
   direction: str = "desc"
+  since: Optional[str] = None
+  per_page: int = 30
+  page: int = 1
 
   @field_validator("state")
   @classmethod

@@ -24,6 +24,7 @@ def list_aks_clusters(
     container_client = ContainerServiceClient(credential, subscription_id)
     clusters = []
     for cluster in container_client.managed_clusters.list():
+      cluster_id = cluster.id or ""
       clusters.append(
         {
           "name": cluster.name,
@@ -32,7 +33,7 @@ def list_aks_clusters(
           "kubernetes_version": cluster.kubernetes_version,
           "provisioning_state": cluster.provisioning_state,
           "fqdn": cluster.fqdn,
-          "resource_group": cluster.id.split("/")[4],
+          "resource_group": cluster_id.split("/")[4] if cluster_id else "",
           "node_resource_group": cluster.node_resource_group,
         }
       )

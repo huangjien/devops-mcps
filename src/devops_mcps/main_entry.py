@@ -8,6 +8,7 @@ import argparse
 import logging
 import sys
 from importlib.metadata import version, PackageNotFoundError
+from typing import Literal, cast
 
 from .server_setup import create_mcp_server, initialize_clients
 from .prompt_management import load_and_register_prompts
@@ -172,7 +173,7 @@ def setup_and_run(
       mount_path = "/mcp"
     mcp.run(transport="streamable-http", mount_path=mount_path)
   else:
-    mcp.run(transport=transport)
+    mcp.run(transport=cast(Literal["stdio", "sse", "streamable-http"], transport))
 
 
 if __name__ == "__main__":

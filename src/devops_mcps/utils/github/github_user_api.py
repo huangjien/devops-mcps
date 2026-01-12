@@ -4,11 +4,8 @@ import logging
 import os
 from typing import Dict, Any
 
-from github import (
-  GithubException,
-  RateLimitExceededException,
-  BadCredentialsException,
-)
+from github import GithubException
+from github.GithubException import BadCredentialsException, RateLimitExceededException
 
 from ...cache import cache
 from .github_client import initialize_github_client

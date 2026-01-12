@@ -76,6 +76,19 @@ def set_jenkins_client_for_testing(client):
   j = client
 
 
+class _JenkinsClientPlaceholder:
+  def __init__(self):
+    self._is_placeholder = True
+
+  def __bool__(self):
+    return False
+
+  def get_master_data(self):
+    raise RuntimeError("Jenkins client not initialized")
+
+
 # Call initialization when the module is loaded
 if not any("pytest" in arg or "unittest" in arg for arg in sys.argv):
   initialize_jenkins_client()
+elif j is None:
+  j = _JenkinsClientPlaceholder()

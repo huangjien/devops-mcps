@@ -81,9 +81,8 @@ def gh_search_code(
     }
   try:
     input_data = SearchCodeInput(q=q, sort=sort, order=order)
-    search_kwargs = {"sort": input_data.sort, "order": input_data.order}
     code_results: PaginatedList = github_client.search_code(
-      query=input_data.q, **search_kwargs
+      query=input_data.q, sort=input_data.sort, order=input_data.order
     )
     logger.debug(f"Found {code_results.totalCount} code results matching query.")
     result = _handle_paginated_list(code_results)
