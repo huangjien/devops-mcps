@@ -269,7 +269,10 @@ class TestToDict:
     mock_job.is_enabled.return_value = True
     mock_job.is_queued.return_value = False
     mock_job.get_last_buildnumber.return_value = 42
-    mock_job.get_last_buildurl.return_value = "http://jenkins.com/job/test-job/42"
+    # Mock get_last_build().baseurl
+    mock_build = Mock()
+    mock_build.baseurl = "http://jenkins.com/job/test-job/42"
+    mock_job.get_last_build.return_value = mock_build
 
     result = _to_dict(mock_job)
 

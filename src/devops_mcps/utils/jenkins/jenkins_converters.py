@@ -25,7 +25,7 @@ def _to_dict(obj: Any) -> Any:
     last_build_url = None
     try:
       last_build_number = obj.get_last_buildnumber()
-      last_build_url = obj.get_last_buildurl()
+      last_build_url = obj.get_last_build().baseurl
     except NoBuildData:
       # This happens when a job has no builds yet
       pass
