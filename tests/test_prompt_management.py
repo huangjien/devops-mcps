@@ -7,7 +7,7 @@ error handling, and expected behavior under various scenarios.
 import pytest
 from pathlib import Path
 from unittest.mock import patch, MagicMock, mock_open
-from mcp.types import PromptMessage, TextContent
+from mcp.types import PromptMessage
 
 # Import the module under test
 from devops_mcps.prompt_management import (
