@@ -487,7 +487,7 @@ wheels = [
 
 [[package]]
 name = "devops-mcps"
-version = "0.9.16"
+version = "0.9.19"
 source = { editable = "." }
 dependencies = [
     { name = "azure-identity" },
@@ -495,7 +495,6 @@ dependencies = [
     { name = "azure-mgmt-containerservice" },
     { name = "azure-mgmt-subscription" },
     { name = "azure-mgmt-web" },
-    { name = "dotenv" },
     { name = "fastapi" },
     { name = "fastmcp" },
     { name = "jenkinsapi" },
@@ -519,44 +518,51 @@ dev = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "mypy" },
+    { name = "pre-commit" },
+    { name = "pyright" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
     { name = "pytest-cov" },
     { name = "pytest-mock" },
+    { name = "ruff" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "azure-identity", specifier = ">=1.15.0" },
-    { name = "azure-mgmt-compute", specifier = ">=30.6.0" },
-    { name = "azure-mgmt-containerservice", specifier = ">=28.1.0" },
+    { name = "azure-identity", specifier = ">=1.25.1" },
+    { name = "azure-mgmt-compute", specifier = ">=37.1.0" },
+    { name = "azure-mgmt-containerservice", specifier = ">=40.2.0" },
     { name = "azure-mgmt-subscription", specifier = ">=3.1.1" },
-    { name = "azure-mgmt-web", specifier = ">=7.0.0" },
-    { name = "dotenv", specifier = ">=0.9.9" },
-    { name = "fastapi", specifier = ">=0.115.12" },
-    { name = "fastmcp", specifier = ">=2.11.0" },
-    { name = "jenkinsapi", specifier = ">=0.3.14" },
-    { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.9.0" },
-    { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=3.8.0" },
-    { name = "pydantic" },
-    { name = "pygithub", specifier = ">=2.6.1" },
-    { name = "pyright", marker = "extra == 'dev'", specifier = ">=1.1.389" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.3.5" },
-    { name = "pytest-asyncio", marker = "extra == 'dev'" },
-    { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=6.1.1" },
-    { name = "pytest-mock", marker = "extra == 'dev'", specifier = ">=3.14.0" },
-    { name = "python-dotenv" },
-    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.7.4" },
-    { name = "toml" },
+    { name = "azure-mgmt-web", specifier = ">=10.1.0" },
+    { name = "fastapi", specifier = ">=0.128.0" },
+    { name = "fastmcp", specifier = ">=2.14.2" },
+    { name = "jenkinsapi", specifier = ">=0.3.17" },
+    { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.19.1" },
+    { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=4.5.1" },
+    { name = "pydantic", specifier = ">=2.12.5" },
+    { name = "pygithub", specifier = ">=2.8.1" },
+    { name = "pyright", marker = "extra == 'dev'", specifier = ">=1.1.408" },
+    { name = "pytest", marker = "extra == 'dev'", specifier = ">=9.0.2" },
+    { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=1.3.0" },
+    { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=7.0.0" },
+    { name = "pytest-mock", marker = "extra == 'dev'", specifier = ">=3.15.1" },
+    { name = "python-dotenv", specifier = ">=1.2.1" },
+    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.14.11" },
+    { name = "toml", specifier = ">=0.10.2" },
 ]
 provides-extras = ["dev"]
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "pytest", specifier = ">=8.4.1" },
-    { name = "pytest-asyncio", specifier = ">=1.0.0" },
-    { name = "pytest-cov", specifier = ">=6.2.1" },
-    { name = "pytest-mock", specifier = ">=3.14.1" },
+    { name = "mypy", specifier = ">=1.19.1" },
+    { name = "pre-commit", specifier = ">=4.5.1" },
+    { name = "pyright", specifier = ">=1.1.408" },
+    { name = "pytest", specifier = ">=9.0.2" },
+    { name = "pytest-asyncio", specifier = ">=1.3.0" },
+    { name = "pytest-cov", specifier = ">=7.0.0" },
+    { name = "pytest-mock", specifier = ">=3.15.1" },
+    { name = "ruff", specifier = ">=0.14.11" },
 ]
 
 [[package]]
@@ -602,17 +608,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/ae/b6/03bb70946330e88ffec97aefd3ea75ba575cb2e762061e0e62a213befee8/docutils-0.22.4.tar.gz", hash = "sha256:4db53b1fde9abecbb74d91230d32ab626d94f6badfc575d6db9194a49df29968", size = 2291750, upload-time = "2025-12-18T19:00:26.443Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/02/10/5da547df7a391dcde17f59520a231527b8571e6f46fc8efb02ccb370ab12/docutils-0.22.4-py3-none-any.whl", hash = "sha256:d0013f540772d1420576855455d050a2180186c91c15779301ac2ccb3eeb68de", size = 633196, upload-time = "2025-12-18T19:00:18.077Z" },
-]
-
-[[package]]
-name = "dotenv"
-version = "0.9.9"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "python-dotenv" },
-]
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/b2/b7/545d2c10c1fc15e48653c91efde329a790f2eecfbbf2bd16003b5db2bab0/dotenv-0.9.9-py2.py3-none-any.whl", hash = "sha256:29cf74a087b31dafdb5a446b6d7e11cbce8ed2741540e2339c69fbef92c94ce9", size = 1892, upload-time = "2025-02-19T22:15:01.647Z" },
 ]
 
 [[package]]
