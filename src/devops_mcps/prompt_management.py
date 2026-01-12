@@ -7,8 +7,9 @@ registration with the FastMCP server instance.
 import json
 import logging
 import os
+import re
 from pathlib import Path
-from typing import Dict, Any, Optional, Tuple
+from typing import Dict, Any, Optional, Tuple, Iterable
 
 
 # Get logger for this module
@@ -25,6 +26,85 @@ def _resolve_prompts_file(prompts_file: Optional[Path] = None) -> Tuple[Path, bo
 
   current_dir = Path(__file__).parent
   return current_dir / "prompts.json", False
+
+
+def _iter_prompt_entries(prompts_data: Any) -> Iterable[Tuple[str, Dict[str, Any]]]:
+  if isinstance(prompts_data, dict) and "prompts" in prompts_data:
+    prompts_list = prompts_data.get("prompts", [])
+    if isinstance(prompts_list, list):
+      for prompt in prompts_list:
+        if isinstance(prompt, dict) and "name" in prompt:
+          yield str(prompt["name"]), prompt
+      return
+
+  if isinstance(prompts_data, list):
+    for prompt in prompts_data:
+      if isinstance(prompt, dict) and "name" in prompt:
+        yield str(prompt["name"]), prompt
+    return
+
+  if isinstance(prompts_data, dict):
+    for prompt_name, prompt_config in prompts_data.items():
+      if isinstance(prompt_config, dict):
+        yield str(prompt_name), prompt_config
+
+
+def _build_variable_specs(prompt_config: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
+  variables = prompt_config.get("variables")
+  if isinstance(variables, dict):
+    return variables
+
+  arguments = prompt_config.get("arguments")
+  if isinstance(arguments, list):
+    specs: Dict[str, Dict[str, Any]] = {}
+    for arg in arguments:
+      if not isinstance(arg, dict):
+        continue
+      name = arg.get("name")
+      if not name:
+        continue
+      specs[str(name)] = {
+        "required": bool(arg.get("required", False)),
+        "default": arg.get("default", ""),
+      }
+    return specs
+
+  return {}
+
+
+def _render_template(
+  template: str, variable_specs: Dict[str, Dict[str, Any]], kwargs: Dict[str, Any]
+) -> Tuple[Optional[str], Optional[str]]:
+  for var_name, var_spec in variable_specs.items():
+    if var_spec.get("required", False) and var_name not in kwargs:
+      return None, f"Required variable '{var_name}' not provided"
+
+  rendered = template
+
+  for var_name in variable_specs.keys():
+    section_pattern = re.compile(
+      r"{{#\s*"
+      + re.escape(var_name)
+      + r"\s*}}([\s\S]*?){{/\s*"
+      + re.escape(var_name)
+      + r"\s*}}"
+    )
+    if kwargs.get(var_name):
+      rendered = section_pattern.sub(r"\1", rendered)
+    else:
+      rendered = section_pattern.sub("", rendered)
+
+  for var_name, var_spec in variable_specs.items():
+    if var_name in kwargs:
+      value = kwargs[var_name]
+    else:
+      value = var_spec.get("default", "")
+
+    rendered = rendered.replace(f"{{{var_name}}}", str(value))
+    rendered = re.sub(r"{{\s*" + re.escape(var_name) + r"\s*}}", str(value), rendered)
+
+  rendered = re.sub(r"{{#\s*[^}]+\s*}}[\s\S]*?{{/\s*[^}]+\s*}}", "", rendered)
+  return rendered, None
 
 
 def load_and_register_prompts(mcp, prompts_file: Optional[Path] = None) -> None:
@@ -47,73 +127,46 @@ def load_and_register_prompts(mcp, prompts_file: Optional[Path] = None) -> None:
 
     logger.info(f"Loading prompts from {prompts_file}")
 
-    for prompt_name, prompt_config in prompts_data.items():
+    prompt_entries = list(_iter_prompt_entries(prompts_data))
+    for prompt_name, prompt_config in prompt_entries:
       try:
-        # Create a simple data container for this prompt
-        class PromptData:
-          def __init__(self, name, description, template, variables):
-            self.name = name
-            self.description = description
-            self.template = template
-            self.variables = variables
+        description = prompt_config.get("description", "")
+        template = prompt_config.get("template", "")
+        variable_specs = _build_variable_specs(prompt_config)
 
-        prompt_data = PromptData(
-          name=prompt_name,
-          description=prompt_config.get("description", ""),
-          template=prompt_config.get("template", ""),
-          variables=prompt_config.get("variables", {}),
-        )
-
-        # Register the prompt with the MCP server
-        @mcp.prompt()
-        async def dynamic_prompt(data=prompt_data, **kwargs) -> Dict[str, Any]:
+        async def dynamic_prompt(**kwargs) -> Dict[str, Any]:
           """Dynamically generated prompt function."""
           try:
-            # Process template variables
-            processed_template = data.template
-
-            # Handle conditional blocks (if any)
-            # This is a simplified implementation - you might want to extend this
-            # based on your specific conditional logic requirements
-
-            # Replace variables in the template
-            for var_name, var_config in data.variables.items():
-              if var_name in kwargs:
-                value = kwargs[var_name]
-                processed_template = processed_template.replace(
-                  f"{{{var_name}}}", str(value)
-                )
-              elif var_config.get("required", False):
-                return {"error": f"Required variable '{var_name}' not provided"}
-              else:
-                # Use default value if available
-                default_value = var_config.get("default", "")
-                processed_template = processed_template.replace(
-                  f"{{{var_name}}}", str(default_value)
-                )
+            processed_template, error = _render_template(
+              template=str(template),
+              variable_specs=variable_specs,
+              kwargs=kwargs,
+            )
+            if error:
+              return {"error": error}
 
             return {
-              "name": data.name,
-              "description": data.description,
+              "name": prompt_name,
+              "description": description,
               "content": processed_template,
-              "variables": data.variables,
+              "variables": variable_specs,
             }
 
           except Exception as e:
-            logger.error(f"Error processing prompt '{data.name}': {e}")
+            logger.error(f"Error processing prompt '{prompt_name}': {e}")
             return {"error": f"Error processing prompt: {e}"}
 
-        # Set the function name dynamically
         dynamic_prompt.__name__ = prompt_name
-        dynamic_prompt.__doc__ = prompt_config.get("description", "")
+        dynamic_prompt.__doc__ = str(description)
 
+        mcp.prompt(name=prompt_name, description=str(description))(dynamic_prompt)
         logger.debug(f"Registered prompt: {prompt_name}")
 
       except Exception as e:
         logger.error(f"Failed to register prompt '{prompt_name}': {e}")
         continue
 
-    logger.info(f"Successfully loaded {len(prompts_data)} prompts")
+    logger.info(f"Successfully loaded {len(prompt_entries)} prompts")
 
   except json.JSONDecodeError as e:
     logger.error(f"Invalid JSON in prompts file {prompts_file}: {e}")

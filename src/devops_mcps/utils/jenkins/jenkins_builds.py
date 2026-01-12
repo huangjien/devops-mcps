@@ -16,20 +16,25 @@ logger = logging.getLogger(__name__)
 
 
 def jenkins_get_recent_failed_builds(
-  hours_ago: int = 24,
+  hours: int = 24,
+  hours_ago: Union[int, None] = None,
 ) -> Union[List[Dict[str, Any]], Dict[str, str]]:
   """Get recent failed builds from Jenkins.
 
   Args:
-      hours_ago: Number of hours to look back for failed builds
+      hours: Number of hours to look back for failed builds
+      hours_ago: Backward-compatible alias for hours
 
   Returns:
       List of failed build dictionaries or error dictionary
   """
-  logger.debug(f"jenkins_get_recent_failed_builds called with hours_ago: {hours_ago}")
+  if hours_ago is not None:
+    hours = hours_ago
+
+  logger.debug(f"jenkins_get_recent_failed_builds called with hours: {hours}")
 
   # Check cache first
-  cache_key = f"jenkins:recent_failed_builds:{hours_ago}"
+  cache_key = f"jenkins:recent_failed_builds:{hours}"
   cache = _get_cache()
   cached_builds = cache.get(cache_key)
   if cached_builds:
@@ -45,9 +50,7 @@ def jenkins_get_recent_failed_builds(
 
   try:
     # Calculate time threshold
-    time_threshold = int(
-      (datetime.now() - timedelta(hours=hours_ago)).timestamp() * 1000
-    )
+    time_threshold = int((datetime.now() - timedelta(hours=hours)).timestamp() * 1000)
 
     # Get all jobs
     jobs_url = f"{constants['JENKINS_URL']}/api/json?tree=jobs[name,url,lastBuild[number,timestamp,result,url]]"

@@ -87,7 +87,10 @@ def _extract_jobs_from_client(jenkins_client) -> List[Any]:
       return jobs_obj
     if hasattr(jobs_obj, "values"):
       return list(jobs_obj.values())
-    return list(jobs_obj)
+    jobs_list = list(jobs_obj)
+    if jobs_list and isinstance(jobs_list[0], tuple) and len(jobs_list[0]) == 2:
+      return [job for _, job in jobs_list]
+    return jobs_list
 
   if hasattr(jenkins_client, "jobs"):
     jobs_obj = jenkins_client.jobs
@@ -95,6 +98,10 @@ def _extract_jobs_from_client(jenkins_client) -> List[Any]:
       return list(jobs_obj.values())
     if hasattr(jobs_obj, "values"):
       return list(jobs_obj.values())
+    jobs_list = list(jobs_obj)
+    if jobs_list and isinstance(jobs_list[0], tuple) and len(jobs_list[0]) == 2:
+      return [job for _, job in jobs_list]
+    return jobs_list
 
   if hasattr(jenkins_client, "values"):
     return list(jenkins_client.values())
