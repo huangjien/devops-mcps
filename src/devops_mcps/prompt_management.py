@@ -153,7 +153,8 @@ def _make_dynamic_prompt(
     except Exception as e:
       logger.error(f"Error processing prompt '{prompt_name}': {e}")
       return PromptMessage(
-        role="user", content=TextContent(type="text", text=f"Error processing prompt: {e}")
+        role="user",
+        content=TextContent(type="text", text=f"Error processing prompt: {e}"),
       )
 
   dynamic_prompt.__name__ = prompt_name
