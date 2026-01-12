@@ -11,6 +11,8 @@ import re
 from pathlib import Path
 from typing import Any, Dict, Iterable, Optional, Tuple
 
+from mcp.types import PromptMessage, TextContent
+
 
 # Get logger for this module
 logger = logging.getLogger(__name__)
@@ -134,7 +136,7 @@ def _make_dynamic_prompt(
   template: str,
   variable_specs: Dict[str, Dict[str, Any]],
 ):
-  async def dynamic_prompt(**kwargs) -> str:
+  async def dynamic_prompt(**kwargs) -> PromptMessage:
     try:
       normalized_kwargs = _normalize_prompt_kwargs(kwargs)
       processed_template, error = _render_template(
@@ -143,12 +145,16 @@ def _make_dynamic_prompt(
         kwargs=normalized_kwargs,
       )
       if error:
-        return error
+        return PromptMessage(role="user", content=TextContent(type="text", text=error))
 
-      return processed_template or ""
+      return PromptMessage(
+        role="user", content=TextContent(type="text", text=processed_template or "")
+      )
     except Exception as e:
       logger.error(f"Error processing prompt '{prompt_name}': {e}")
-      return f"Error processing prompt: {e}"
+      return PromptMessage(
+        role="user", content=TextContent(type="text", text=f"Error processing prompt: {e}")
+      )
 
   dynamic_prompt.__name__ = prompt_name
   dynamic_prompt.__doc__ = str(description)

@@ -7,6 +7,7 @@ error handling, and expected behavior under various scenarios.
 import pytest
 from pathlib import Path
 from unittest.mock import patch, MagicMock, mock_open
+from mcp.types import PromptMessage, TextContent
 
 # Import the module under test
 from devops_mcps.prompt_management import (
@@ -215,7 +216,8 @@ class TestLoadAndRegisterPrompts:
     result = await captured_function()
 
     # Verify
-    assert result == "Hello "
+    assert isinstance(result, PromptMessage)
+    assert result.content.text == "Hello "
 
   @pytest.mark.asyncio
   @patch("devops_mcps.prompt_management.Path")
@@ -252,7 +254,8 @@ class TestLoadAndRegisterPrompts:
     result = await captured_function()
 
     # Verify
-    assert result == "Hello World"
+    assert isinstance(result, PromptMessage)
+    assert result.content.text == "Hello World"
 
   @pytest.mark.asyncio
   @patch("devops_mcps.prompt_management.Path")
@@ -289,7 +292,8 @@ class TestLoadAndRegisterPrompts:
     result = await captured_function(name="Alice")
 
     # Verify
-    assert result == "Hello Alice"
+    assert isinstance(result, PromptMessage)
+    assert result.content.text == "Hello Alice"
 
 
 class TestValidatePromptConfig:
