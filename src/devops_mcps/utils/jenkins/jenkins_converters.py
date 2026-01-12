@@ -6,6 +6,7 @@ from typing import Any
 # Third-party imports
 from jenkinsapi.job import Job
 from jenkinsapi.view import View
+from jenkinsapi.custom_exceptions import NoBuildData
 
 logger = logging.getLogger(__name__)
 
@@ -20,14 +21,23 @@ def _to_dict(obj: Any) -> Any:
     return {k: _to_dict(v) for k, v in obj.items()}
 
   if isinstance(obj, Job):
+    last_build_number = None
+    last_build_url = None
+    try:
+      last_build_number = obj.get_last_buildnumber()
+      last_build_url = obj.get_last_buildurl()
+    except NoBuildData:
+      # This happens when a job has no builds yet
+      pass
+
     return {
       "name": obj.name,
       "url": obj.baseurl,
       "is_enabled": obj.is_enabled(),
       "is_queued": obj.is_queued(),
       "in_queue": obj.is_queued(),  # corrected typo: in_queue
-      "last_build_number": obj.get_last_buildnumber(),
-      "last_build_url": obj.get_last_buildurl(),
+      "last_build_number": last_build_number,
+      "last_build_url": last_build_url,
     }
   if isinstance(obj, View):
     return {"name": obj.name, "url": obj.baseurl, "description": obj.get_description()}

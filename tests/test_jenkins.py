@@ -3,6 +3,7 @@ from unittest.mock import Mock, patch
 from jenkinsapi.jenkins import JenkinsAPIException
 from jenkinsapi.job import Job
 from jenkinsapi.view import View
+from jenkinsapi.custom_exceptions import NoBuildData
 from requests.exceptions import ConnectionError
 
 from devops_mcps.jenkins import (
@@ -280,6 +281,31 @@ class TestToDict:
       "in_queue": False,
       "last_build_number": 42,
       "last_build_url": "http://jenkins.com/job/test-job/42",
+    }
+    assert result == expected
+
+  def test_to_dict_job_object_no_builds(self):
+    """Test _to_dict with Job object that has no builds."""
+    mock_job = Mock()
+    mock_job.__class__ = Job
+    mock_job.name = "test-job"
+    mock_job.baseurl = "http://jenkins.com/job/test-job"
+    mock_job.is_enabled.return_value = True
+    mock_job.is_queued.return_value = False
+
+    # Configure get_last_buildnumber to raise NoBuildData
+    mock_job.get_last_buildnumber.side_effect = NoBuildData("lastBuild")
+
+    result = _to_dict(mock_job)
+
+    expected = {
+      "name": "test-job",
+      "url": "http://jenkins.com/job/test-job",
+      "is_enabled": True,
+      "is_queued": False,
+      "in_queue": False,
+      "last_build_number": None,
+      "last_build_url": None,
     }
     assert result == expected
 
