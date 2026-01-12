@@ -9,7 +9,7 @@ import logging
 import os
 import re
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from typing import Any, Dict, Iterable, Optional, Tuple
 
 
 # Get logger for this module
@@ -52,7 +52,13 @@ def _iter_prompt_entries(prompts_data: Any) -> Iterable[Tuple[str, Dict[str, Any
 def _build_variable_specs(prompt_config: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
   variables = prompt_config.get("variables")
   if isinstance(variables, dict):
-    return variables
+    specs: Dict[str, Dict[str, Any]] = {}
+    for name, var_spec in variables.items():
+      if isinstance(var_spec, dict):
+        specs[str(name)] = var_spec
+      else:
+        specs[str(name)] = {"required": False, "default": ""}
+    return specs
 
   arguments = prompt_config.get("arguments")
   if isinstance(arguments, list):
@@ -77,7 +83,7 @@ def _render_template(
 ) -> Tuple[Optional[str], Optional[str]]:
   for var_name, var_spec in variable_specs.items():
     if var_spec.get("required", False) and var_name not in kwargs:
-      return None, f"Required variable '{var_name}' not provided"
+      kwargs[var_name] = var_spec.get("default", "")
 
   rendered = template
 
@@ -107,8 +113,18 @@ def _render_template(
   return rendered, None
 
 
-def _as_prompt_messages(text: str) -> List[Dict[str, Any]]:
-  return [{"role": "user", "content": [{"type": "text", "text": text}]}]
+def _normalize_prompt_kwargs(kwargs: Dict[str, Any]) -> Dict[str, Any]:
+  nested_args = kwargs.get("arguments")
+  if isinstance(nested_args, dict) and len(kwargs) == 1:
+    return dict(nested_args)
+
+  normalized: Dict[str, Any] = {}
+  for key, value in kwargs.items():
+    if isinstance(value, dict) and "value" in value:
+      normalized[key] = value.get("value")
+    else:
+      normalized[key] = value
+  return normalized
 
 
 def _make_dynamic_prompt(
@@ -118,20 +134,21 @@ def _make_dynamic_prompt(
   template: str,
   variable_specs: Dict[str, Dict[str, Any]],
 ):
-  async def dynamic_prompt(**kwargs) -> List[Dict[str, Any]]:
+  async def dynamic_prompt(**kwargs) -> str:
     try:
+      normalized_kwargs = _normalize_prompt_kwargs(kwargs)
       processed_template, error = _render_template(
         template=template,
         variable_specs=variable_specs,
-        kwargs=kwargs,
+        kwargs=normalized_kwargs,
       )
       if error:
-        return _as_prompt_messages(error)
+        return error
 
-      return _as_prompt_messages(processed_template or "")
+      return processed_template or ""
     except Exception as e:
       logger.error(f"Error processing prompt '{prompt_name}': {e}")
-      return _as_prompt_messages(f"Error processing prompt: {e}")
+      return f"Error processing prompt: {e}"
 
   dynamic_prompt.__name__ = prompt_name
   dynamic_prompt.__doc__ = str(description)

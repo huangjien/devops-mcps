@@ -215,9 +215,7 @@ class TestLoadAndRegisterPrompts:
     result = await captured_function()
 
     # Verify
-    assert isinstance(result, list)
-    assert result[0]["role"] == "user"
-    assert "Required variable 'name' not provided" in result[0]["content"][0]["text"]
+    assert result == "Hello "
 
   @pytest.mark.asyncio
   @patch("devops_mcps.prompt_management.Path")
@@ -254,9 +252,7 @@ class TestLoadAndRegisterPrompts:
     result = await captured_function()
 
     # Verify
-    assert isinstance(result, list)
-    assert result[0]["role"] == "user"
-    assert result[0]["content"][0]["text"] == "Hello World"
+    assert result == "Hello World"
 
   @pytest.mark.asyncio
   @patch("devops_mcps.prompt_management.Path")
@@ -293,9 +289,7 @@ class TestLoadAndRegisterPrompts:
     result = await captured_function(name="Alice")
 
     # Verify
-    assert isinstance(result, list)
-    assert result[0]["role"] == "user"
-    assert result[0]["content"][0]["text"] == "Hello Alice"
+    assert result == "Hello Alice"
 
 
 class TestValidatePromptConfig:
