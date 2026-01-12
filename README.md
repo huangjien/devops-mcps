@@ -504,7 +504,7 @@ Set up your development environment:
 # Install dependencies (using uv)
 uv pip install -e ".[dev]"
 # Or sync with lock file
-# uv sync --dev
+# uv sync --all-extras --group dev
 ```
 
 **Linting and Formatting (Ruff):**
@@ -524,7 +524,7 @@ uvx ruff format .
 ./test.sh
 
 # Or run manually
-pytest --cov=src/devops_mcps --cov-report=html --cov-report=xml tests/
+pytest --cov=src/devops_mcps --cov-report=html:coverage/html --cov-report=xml --cov-fail-under=80 tests/
 ```
 
 **Test Script Features:**
@@ -534,12 +534,12 @@ The project includes a comprehensive `test.sh` script that:
 - Syncs development dependencies
 - Runs all tests with pytest
 - Generates both HTML and XML coverage reports
-- Automatically opens the HTML coverage report in your browser
+- Automatically opens the HTML coverage report in your browser (skipped in CI)
 - Requires minimum 80% test coverage (the project maintains high coverage)
 
 **Coverage Reports:**
 - HTML report: `coverage/html/index.html` (opens automatically)
-- XML report: `coverage/coverage.xml` (for CI/CD integration)
+- XML report: `coverage.xml` (for CI/CD integration)
 
 **Debugging with MCP Inspector:**
 
