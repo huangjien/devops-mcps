@@ -22,8 +22,10 @@ def jenkins_get_build_log(
   Args:
       job_name: Name of the Jenkins job
       build_number: Build number to get logs for (use 0 or negative for latest build)
-      start: Starting line number (0-indexed)
-      lines: Number of lines to retrieve
+      start: Starting line number (0-indexed). When 0 (default), returns the last
+             LOG_LENGTH characters from the end of the log (tail behavior). Use
+             positive values to start from the beginning of the log.
+      lines: Number of lines to retrieve (only used when start > 0)
 
   Returns:
       String containing the log content or error dictionary
@@ -85,13 +87,27 @@ def jenkins_get_build_log(
       return {"error": f"No console output found for build {build_number}"}
 
     # Extract the requested portion of the log
-    log_lines = console_output.split("\n")
-    end = min(start + lines, len(log_lines))
-    log_portion = "\n".join(log_lines[start:end])
-
-    logger.debug(
-      f"Retrieved {len(log_lines)} total lines, returning lines {start} to {end}"
-    )
+    # If start is 0, return the last LOG_LENGTH characters (tail behavior)
+    if start == 0:
+      log_length = constants.get("LOG_LENGTH", 10240)  # Default to 10KB
+      if len(console_output) > log_length:
+        log_portion = console_output[-log_length:]
+        logger.debug(
+          f"Retrieved {len(console_output)} total characters, returning last {log_length} characters"
+        )
+      else:
+        log_portion = console_output
+        logger.debug(
+          f"Retrieved {len(console_output)} total characters (less than LOG_LENGTH)"
+        )
+    else:
+      # Line-based extraction when start > 0
+      log_lines = console_output.split("\n")
+      end = min(start + lines, len(log_lines))
+      log_portion = "\n".join(log_lines[start:end])
+      logger.debug(
+        f"Retrieved {len(log_lines)} total lines, returning lines {start} to {end}"
+      )
     cache.set(cache_key, log_portion, ttl=300)  # Cache for 5 minutes
     return log_portion
 
