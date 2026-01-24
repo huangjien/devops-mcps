@@ -29,3 +29,7 @@
 - Run all checks:  
   ```bash
   uv run black src/ && uv run isort src/ && uv run mypy src/ && uv run flake8 src/ && pytest
+
+## Model
+
+When reasoning through a task, prioritize direct execution over exhaustive planning. If a plan exceeds 5 steps, execute the first 3 steps immediately and then pause for feedback.
