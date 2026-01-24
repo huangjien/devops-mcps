@@ -173,7 +173,9 @@ def setup_and_run(
       mount_path = "/mcp"
     mcp.run(transport="streamable-http", mount_path=mount_path)
   else:
-    mcp.run(transport=cast(Literal["stdio", "sse", "streamable-http"], transport))
+    mcp.run(
+      transport=cast(Literal["stdio", "sse", "streamable-http"], transport)
+    )
 
 
 if __name__ == "__main__":

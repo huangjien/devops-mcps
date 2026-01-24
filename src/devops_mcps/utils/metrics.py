@@ -305,7 +305,6 @@ def _get_metrics_enabled() -> bool:
   """
   return os.environ.get("METRICS_ENABLED", "true").lower() == "true"
 
-
 _METRICS_INSTANCE: Optional[MetricsCollector] = None
 
 
